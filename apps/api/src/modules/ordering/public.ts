@@ -15,3 +15,5 @@ export { lossShares, LOSS_PARTIES, LOSS_DISPOSITIONS } from './services/loss-res
 export type { LossParty, LossDisposition, LossShares } from './services/loss-responsibility';
 export { PurchaseVerificationService, evaluatePurchaseEligibility } from './services/purchase-verification.service';
 export type { PurchaseEligibilityReason, PurchaseEligibilityResult } from './services/purchase-verification.service';
+export { OrderQuantityAdjustmentService } from './services/order-quantity-adjustment.service';
+export type { QuantityAdjustmentView } from './services/order-quantity-adjustment.service';

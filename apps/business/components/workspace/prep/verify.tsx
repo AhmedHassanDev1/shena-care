@@ -3,13 +3,14 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { AlertTriangle, Camera, CheckCircle2, ScanLine, X, XCircle } from 'lucide-react'
-import { Button } from '@/components/bw/primitives'
+import { Button, Dialog, useDialog } from '@/components/bw/primitives'
 import { Flash, Meter } from '@/components/bw/ops'
 import { CameraScanner } from '@/components/workspace/camera-scanner'
 import { useMe } from '@/components/workspace/role-shell'
 import { api, newKey } from '@/lib/api'
 import { useCommand } from '@/lib/use-api'
-import { type Desk, type DeskOrder, REJECT, type ScanResult, productTitle, receivedOf, unitsOf } from './model'
+import { egp } from '@/components/workspace/buy-costs'
+import { type Desk, type DeskLine, type DeskOrder, MANUAL_CHECKS, MANUAL_REASON, REJECT, type ScanResult, productTitle, receivedOf, unitsOf } from './model'
 import type { Quantities } from './use-quantities'
 import { ProductCard } from './card'
 import { ActionsSheet, BarcodeSheet, ManualSheet, PriceSheet, type SheetKind } from './sheets'
@@ -18,6 +19,8 @@ import { UnitsPanel } from './units-panel'
 
 type Feedback = { tone: 'ok' | 'warn' | 'danger'; text: string }
 type Open = { kind: SheetKind; skuId: string } | null
+/** How a product's identity was verified, until its quantity is confirmed. */
+type Evidence = { barcode: string } | { manual: true }
 
 const NOTE_TONE = {
   ok: { Icon: CheckCircle2, color: 'text-bw-emerald' },
@@ -71,7 +74,8 @@ export function PrepProducts({ order, hubId, lastCosts, quantities, onOrder, onC
   const [feedback, setFeedback] = React.useState<Feedback | null>(null)
   const [sheet, setSheet] = React.useState<Open>(null)
   const [unknownCode, setUnknownCode] = React.useState('')
-  const [, setBusy] = React.useState(false)
+  const [identified, setIdentified] = React.useState<Record<string, Evidence>>({})
+  const [confirming, setConfirming] = React.useState<string | null>(null)
   const queue = React.useRef<Promise<unknown>>(Promise.resolve())
   const refocus = React.useCallback(() => window.setTimeout(() => scanBox.current?.querySelector<HTMLInputElement>('input')?.focus(), 0), [])
   React.useEffect(() => { if (window.matchMedia('(min-width: 1024px)').matches) refocus() }, [refocus, order.orderId])
@@ -82,37 +86,71 @@ export function PrepProducts({ order, hubId, lastCosts, quantities, onOrder, onC
   const scanning = order.stage !== 'packing'
   const waitingOnly = order.stage === 'waiting_purchase'
 
-  const apply = (result: ScanResult, barcode: string | null) => {
-    if (result.order) onOrder(result.order)
-    const updated = result.order?.lines.find((l) => l.skuId === result.skuId)
-    if (result.outcome === 'received') {
-      setFeedback({ tone: 'ok', text: `اتسجّلت ${updated ? productTitle(updated) : 'قطعة'} — ${updated?.received ?? ''} من ${updated?.required ?? ''}${result.order?.stage === 'packing' ? '. الطلب كامل.' : ''}`.trim() })
-    } else {
-      setFeedback({ tone: 'danger', text: REJECT[result.code ?? ''] ?? 'المسح اترفض.' })
-      if (result.code === 'PRODUCT_IDENTITY_REVIEW_REQUIRED' && barcode) setUnknownCode(barcode)
-    }
-    onChanged()
-  }
-
-  // Scans are sent one after another so a fast scanner can never apply an older answer over a newer one.
-  const enqueue = React.useCallback((barcode: string) => {
-    queue.current = queue.current.then(async () => {
-      setBusy(true)
-      try {
-        const result = await api<ScanResult>(`/fulfillment/locations/${hubId}/desk/orders/${order.orderId}/scan`, { body: { clientScanId: newKey(), barcodeScanned: barcode } })
-        apply(result, barcode)
-      } catch (error) {
-        setFeedback({ tone: 'danger', text: (error as Error).message })
-      } finally { setBusy(false); refocus() }
-    })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // The identity evidence of a product, kept until its quantity is confirmed: the scanned code (the server re-checks it at confirmation) or a manual check.
+  const identify = React.useCallback(async (barcode: string) => {
+    try {
+      const result = await api<ScanResult>(`/fulfillment/locations/${hubId}/desk/orders/${order.orderId}/identify`, { body: { clientScanId: newKey(), barcodeScanned: barcode } })
+      if (result.order) onOrder(result.order)
+      const line = result.order?.lines.find((l) => l.skuId === result.skuId)
+      if (result.outcome === 'identified' && result.skuId) {
+        setIdentified((all) => ({ ...all, [result.skuId as string]: { barcode } }))
+        setFeedback({ tone: 'ok', text: `اتأكدت الهوية: ${line ? productTitle(line) : 'المنتج'}. راجع الكمية المتاحة وأكّد.` })
+      } else {
+        setFeedback({ tone: 'danger', text: REJECT[result.code ?? ''] ?? 'المسح اترفض.' })
+        if (result.code === 'PRODUCT_IDENTITY_REVIEW_REQUIRED') setUnknownCode(barcode)
+      }
+      onChanged()
+    } catch (error) {
+      setFeedback({ tone: 'danger', text: (error as Error).message })
+    } finally { refocus() }
   }, [hubId, order.orderId, onOrder, onChanged, refocus])
 
+  // A scan identifies the product (once); it never counts a unit. Requests go one after another so an older answer can never land over a newer one.
   const onScan = (raw: string) => {
     const barcode = raw.trim()
     setCode('')
-    if (barcode) enqueue(barcode)
+    if (!barcode) return
+    queue.current = queue.current.then(() => identify(barcode))
   }
+
+  // Confirms the available quantity of one product as ONE operation: the units not counted yet are received in a single request (the server checks the
+  // identity evidence again), and any missing units are reported as a shortage for an Admin. Nothing is counted as received that was not confirmed.
+  const confirmLine = async (line: DeskLine) => {
+    const available = quantities.get(line)
+    const toReceive = Math.max(available - line.received, 0)
+    const missing = line.required - available
+    const evidence = identified[line.skuId]
+    if (toReceive > 0 && !evidence) return
+    setConfirming(line.skuId)
+    try {
+      let latest: DeskOrder | null = null
+      if (toReceive > 0 && evidence) {
+        const result = await api<ScanResult>(`/fulfillment/locations/${hubId}/desk/orders/${order.orderId}/scan`, {
+          body: { clientScanId: newKey(), quantity: toReceive, ...('barcode' in evidence ? { barcodeScanned: evidence.barcode } : { skuId: line.skuId, manualReason: MANUAL_REASON, manualChecks: MANUAL_CHECKS }) },
+        })
+        if (result.outcome === 'rejected') { setFeedback({ tone: 'danger', text: REJECT[result.code ?? ''] ?? 'التسجيل اترفض.' }); if (result.order) onOrder(result.order); return }
+        latest = result.order
+      }
+      if (missing > 0) {
+        const result = await api<{ order: DeskOrder | null }>(`/fulfillment/locations/${hubId}/desk/orders/${order.orderId}/lines/${line.orderItemId}/shortage`, { body: { clientRequestId: newKey(), missingQuantity: missing } })
+        latest = result.order ?? latest
+      }
+      if (latest) onOrder(latest)
+      setIdentified((all) => { const next = { ...all }; delete next[line.skuId]; return next })
+      setFeedback(missing > 0
+        ? { tone: 'warn', text: `${toReceive > 0 ? `اتسجّل ${toReceive}. ` : ''}اتسجّل نقص ${missing} من ${productTitle(line)} ومستني اعتماد الأدمن.` }
+        : { tone: 'ok', text: `اتأكدت ${toReceive} من ${productTitle(line)}.` })
+      onChanged()
+    } catch (error) {
+      setFeedback({ tone: 'danger', text: (error as Error).message })
+    } finally { setConfirming(null); refocus() }
+  }
+
+  const decideShortage = useCommand((what: 'approve' | 'reject', line: DeskLine) => api<{ order: DeskOrder | null }>(
+    `/fulfillment/locations/${hubId}/desk/orders/${order.orderId}/shortages/${line.shortage!.adjustmentId}/${what}`, { body: {} }))
+  const decideDialog = useDialog()
+  const [deciding, setDeciding] = React.useState<{ what: 'approve' | 'reject'; line: DeskLine } | null>(null)
+  const askDecision = (what: 'approve' | 'reject', line: DeskLine) => { setDeciding({ what, line }); decideDialog.open() }
 
   const sheetLine = sheet ? order.lines.find((l) => l.skuId === sheet.skuId) ?? null : null
   const close = () => { setSheet(null); refocus() }
@@ -150,6 +188,8 @@ export function PrepProducts({ order, hubId, lastCosts, quantities, onOrder, onC
         {[...order.lines].sort((a, b) => Number(a.received >= a.required) - Number(b.received >= b.required)).map((line) => (
           <ProductCard key={line.orderItemId} line={line} order={order} hubId={hubId} lastCosts={lastCosts} canPrice={isAdmin}
             quantity={quantities.get(line)} onQtyMinus={() => quantities.set(line, quantities.get(line) - 1)} onQtyPlus={() => quantities.set(line, quantities.get(line) + 1)}
+            identified={!!identified[line.skuId]} confirming={confirming === line.skuId} onConfirm={() => { void confirmLine(line) }}
+            onDecide={isAdmin && line.shortage ? (what) => askDecision(what, line) : null}
             onOrder={onOrder} onPick={(kind) => setSheet({ kind, skuId: line.skuId })} onMore={() => setSheet({ kind: 'menu', skuId: line.skuId })} />
         ))}
       </ul>
@@ -177,12 +217,10 @@ export function PrepProducts({ order, hubId, lastCosts, quantities, onOrder, onC
           <ActionsSheet line={sheetLine} canPrice={isAdmin} onClose={close} onPick={(kind) => setSheet({ kind, skuId: sheetLine.skuId })} />
         ) : sheet.kind === 'manual' ? (
           <ManualSheet line={sheetLine} hubId={hubId} orderId={order.orderId} onClose={close}
-            onDone={(next, recorded, requested) => {
+            onIdentified={(next) => {
               if (next) onOrder(next)
-              const what = recorded > 1 ? `${recorded} قطع من ${productTitle(sheetLine)}` : productTitle(sheetLine)
-              setFeedback(recorded < requested
-                ? { tone: 'warn', text: `اتسجّل ${recorded} بس من ${requested}: ${what}. الباقي ماتسجّلش.` }
-                : { tone: 'ok', text: `اتسجّلت ${what} بتحقق يدوي.` })
+              setIdentified((all) => ({ ...all, [sheetLine.skuId]: { manual: true } }))
+              setFeedback({ tone: 'ok', text: `اتأكدت الهوية بالعين: ${productTitle(sheetLine)}. راجع الكمية المتاحة وأكّد.` })
               onChanged()
             }} />
         ) : sheet.kind === 'barcode' ? (
@@ -192,6 +230,31 @@ export function PrepProducts({ order, hubId, lastCosts, quantities, onOrder, onC
           <PriceSheet line={sheetLine} onClose={close} />
         )
       ) : null}
+
+      <Dialog dialogRef={decideDialog.ref} title={deciding?.what === 'approve' ? 'اعتماد تعديل الكمية' : 'رفض تقرير النقص'}
+        footer={<>
+          <Button variant="secondary" onClick={decideDialog.close}>رجوع</Button>
+          <Button variant={deciding?.what === 'approve' ? 'danger' : 'primary'} loading={decideShortage.pending} onClick={async () => {
+            if (!deciding) return
+            const result = await decideShortage.execute(deciding.what, deciding.line)
+            if (result) {
+              if (result.order) onOrder(result.order)
+              setFeedback({ tone: 'ok', text: deciding.what === 'approve' ? 'اتعدّلت الكمية والمبالغ.' : 'اترفض تقرير النقص. الطلب زي ما هو.' })
+              decideDialog.close(); onChanged()
+            }
+          }}>{deciding?.what === 'approve' ? 'اعتمد التعديل' : 'ارفض'}</Button>
+        </>}>
+        {deciding ? (
+          <div className="space-y-3 text-bw-small">
+            <p className="font-semibold text-bw-ink"><bdi>{productTitle(deciding.line)}</bdi></p>
+            <p className="text-bw-ink-soft">اتطلب <bdi className="tabular-nums" dir="ltr">{deciding.line.ordered}</bdi> · ناقص <bdi className="tabular-nums" dir="ltr">{deciding.line.shortage?.missing}</bdi> · هتبقى <bdi className="tabular-nums" dir="ltr">{deciding.line.shortage?.newQuantity}</bdi></p>
+            {deciding.what === 'approve' && deciding.line.shortage?.amounts.codBefore != null ? (
+              <p className="rounded-bw-field bg-bw-sunken/60 px-3 py-2 text-bw-ink">المبلغ المطلوب تحصيله بيتغيّر من <bdi className="tabular-nums">{egp(deciding.line.shortage.amounts.codBefore)}</bdi> لـ <bdi className="font-semibold tabular-nums">{egp(deciding.line.shortage.amounts.codAfter ?? 0)}</bdi>. رسوم التوصيل والخصومات على مستوى الطلب مابتتحسبش من جديد. الطلب الأصلي بيتحفظ للمراجعة.</p>
+            ) : deciding.what === 'reject' ? <p className="text-bw-ink-soft">الطلب هيفضل بكميته الأصلية، وتكمّل البحث عن القطع الناقصة.</p> : null}
+            {decideShortage.error ? <Flash tone="danger">{decideShortage.error.message}</Flash> : null}
+          </div>
+        ) : null}
+      </Dialog>
     </div>
   )
 }

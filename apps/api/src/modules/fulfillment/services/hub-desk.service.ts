@@ -1,10 +1,11 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, ShipmentStatus } from '@prisma/client';
 import { PrismaService } from '../../../platform/database/prisma.service';
-import { OrderingService } from '../../ordering/public';
+import { OrderingService, OrderQuantityAdjustmentService } from '../../ordering/public';
+import type { QuantityAdjustmentView } from '../../ordering/public';
 import { CatalogService, ProductIdentityService } from '../../catalog/public';
 import { BatchCostView, PurchaseCostService } from '../../sourcing/public';
-import { CorrectBarcodeDto, DeskScanDto, RegisterBarcodeDto, ReverseReceiptDto, SetLineDiscountDto } from '../dto/hub-desk.dto';
+import { CorrectBarcodeDto, DecideShortageDto, DeskScanDto, RegisterBarcodeDto, ReportShortageDto, ReverseReceiptDto, SetLineDiscountDto } from '../dto/hub-desk.dto';
 import { MANUAL_IDENTITY_CHECKS } from '../dto/fulfillment.dto';
 import { FulfillmentActor, FulfillmentService } from './fulfillment.service';
 import { derivePrintState, PrintState } from './print-state';
@@ -33,8 +34,8 @@ const PRINT_EVENTS = ['LABEL_GENERATED', 'LABEL_PRINTED', 'RECEIPT_PRINTED', 'PR
 // A received unit can still be corrected until the parcel is printed or packed (mirrors FulfillmentService.reverseReceipt).
 const CORRECTABLE: ShipmentStatus[] = [ShipmentStatus.pending, ShipmentStatus.ready_to_prepare, ShipmentStatus.preparing, ShipmentStatus.prepared];
 
-export type DeskStage = 'waiting_purchase' | 'receiving' | 'verifying' | 'packing';
-export type DeskScanOutcome = 'received' | 'verified' | 'rejected';
+export type DeskStage = 'waiting_purchase' | 'receiving' | 'shortage_review' | 'verifying' | 'packing';
+export type DeskScanOutcome = 'received' | 'verified' | 'identified' | 'rejected';
 export type DeskRejectCode =
   | 'PRODUCT_IDENTITY_REVIEW_REQUIRED' | 'PRODUCT_IDENTITY_AMBIGUOUS' | 'WRONG_ITEM'
   | 'ALREADY_COMPLETE' | 'NOT_PURCHASED_YET' | 'ORDER_NOT_OPEN' | 'PACKING_STARTED';
@@ -49,8 +50,12 @@ export interface DeskLine {
   texture: string | null
   categoryName: string | null
   productSlug: string | null
-  /** Units the customer ordered. */
+  /** Units the order line asks for now (after an approved shortage adjustment this is the reduced quantity). */
   required: number
+  /** Units the customer originally ordered (differs from required only after an approved shortage adjustment). */
+  ordered: number
+  /** An open shortage report waiting for an Admin: the units reported missing and what the line would become. Nothing about the order changed yet. */
+  shortage: { adjustmentId: string; missing: number; newQuantity: number; reason: string | null; amounts: QuantityAdjustmentView['amounts']; reportedBy: string } | null
   /** Units recorded as bought on the Purchases checklist (received + still awaiting the scan). Not a physical fact. */
   purchased: number
   /** Units physically scanned in at the Hub against this order line. */
@@ -114,6 +119,7 @@ export class HubDeskService {
     private readonly catalog: CatalogService,
     private readonly purchaseCosts: PurchaseCostService,
     private readonly identity: ProductIdentityService,
+    private readonly adjustments: OrderQuantityAdjustmentService,
   ) {}
 
   async getDesk(locationId: string, actor: FulfillmentActor) {
@@ -137,6 +143,11 @@ export class HubDeskService {
       this.prisma.hubScanAttempt.groupBy({ by: ['orderId'], where: { orderId: { in: orderIds } }, _count: { _all: true } }),
     ]);
     const purchases = await this.purchaseCosts.purchasesForOrderItems(orders.flatMap(o => (o?.items ?? []).map(i => i.id)));
+    const adjustmentList = await this.adjustments.listForOrders(orderIds);
+    const openByItem = new Map(adjustmentList.filter(a => a.status === 'proposed').map(a => [a.orderItemId, a]));
+    // The original quantity of a line is what it was before its first applied adjustment.
+    const originalByItem = new Map<string, number>();
+    for (const a of adjustmentList.filter(a => a.status === 'applied')) if (!originalByItem.has(a.orderItemId)) originalByItem.set(a.orderItemId, a.orderedQuantity);
     const receivedByItem = new Map(receipts.map(row => [row.orderItemId, row._sum.quantity ?? 0]));
     const awaitingByItem = new Map<string, number>();
     for (const r of receivables) awaitingByItem.set(r.orderItemId, (awaitingByItem.get(r.orderItemId) ?? 0) + r.remainingQuantity);
@@ -164,7 +175,9 @@ export class HubDeskService {
           texture: label?.texture ?? null,
           categoryName: label?.categoryName ?? null,
           productSlug: label?.productSlug ?? null,
-          required: item.quantity, purchased: received + (awaitingByItem.get(item.id) ?? 0), received,
+          required: item.quantity, ordered: originalByItem.get(item.id) ?? item.quantity,
+          shortage: openByItem.has(item.id) ? (() => { const a = openByItem.get(item.id)!; return { adjustmentId: a.id, missing: a.missingQuantity, newQuantity: a.newQuantity, reason: a.reason, amounts: a.amounts, reportedBy: a.proposedBy }; })() : null,
+          purchased: received + (awaitingByItem.get(item.id) ?? 0), received,
           verified: Math.min(scans.filter(scan => scan.skuId === item.skuId).length, item.quantity),
           cost: lineCost(purchases.get(item.id) ?? [], nextPurchase.get(item.id)),
         };
@@ -191,7 +204,7 @@ export class HubDeskService {
         rejectedScans: attemptsByOrder.get(order.id) ?? 0,
       };
     });
-    const order: Record<DeskStage, number> = { receiving: 0, verifying: 1, packing: 2, waiting_purchase: 3 };
+    const order: Record<DeskStage, number> = { receiving: 0, shortage_review: 1, verifying: 2, packing: 3, waiting_purchase: 4 };
     result.sort((a, b) => order[a.stage] - order[b.stage] || +new Date(a.placedAt) - +new Date(b.placedAt));
     const skuIds = open.flatMap(o => o.items.map(i => i.skuId));
     return { orders: result, lastLots: await this.lastLots(locationId, skuIds), lastCosts: Object.fromEntries(await this.purchaseCosts.lastCostBySku(skuIds)) };
@@ -211,12 +224,14 @@ export class HubDeskService {
     const shipment = await this.prisma.shipment.findUnique({ where: { orderId } });
     if (shipment && shipment.locationId !== locationId) throw new ConflictException('Order shipment is allocated to another fulfillment location');
 
-    // A retried request for the same physical scan returns the original outcome.
-    const prior = await this.prisma.fulfillmentReceipt.findUnique({ where: { idempotencyKey: dto.clientScanId } });
-    if (prior) {
+    // A retried request for the same confirmation returns the original outcome; a confirmation interrupted half-way continues from what is already in.
+    const wanted = dto.quantity ?? 1;
+    const priorReceipts = await this.prisma.fulfillmentReceipt.findMany({ where: { idempotencyKey: { startsWith: dto.clientScanId } }, orderBy: { receivedAt: 'asc' } });
+    for (const prior of priorReceipts) {
       if (prior.orderId !== orderId || prior.actorId !== actor.id) throw new ConflictException('This scan id was already used for another receipt');
-      return this.outcome('received', orderId, locationId, actor, { skuId: prior.skuId });
     }
+    const alreadyIn = priorReceipts.reduce((sum, prior) => sum + prior.quantity, 0);
+    if (priorReceipts.length && alreadyIn >= wanted) return this.outcome('received', orderId, locationId, actor, { skuId: priorReceipts[0].skuId });
 
     if (!OPEN_ORDER_STATUSES.includes(order.status)) return this.reject(shipment?.id, 'ORDER_NOT_OPEN', dto, actor, orderId, locationId);
     const unit = await this.fulfillment.resolveUnitIdentity({
@@ -236,14 +251,17 @@ export class HubDeskService {
       return this.reject(shipment.id, 'PACKING_STARTED', dto, actor, orderId, locationId, unit.skuId);
     }
 
+    const needed = wanted - alreadyIn;
     const receivables = (await this.fulfillment.getReceivables(locationId, actor))
-      .filter(r => r.orderId === orderId && r.skuId === unit.skuId && r.remainingQuantity > 0);
-    const target = receivables.find(r => items.some(item => item.id === r.orderItemId));
-    if (!target) {
+      .filter(r => r.orderId === orderId && r.skuId === unit.skuId && r.remainingQuantity > 0 && items.some(item => item.id === r.orderItemId));
+    const available = receivables.reduce((sum, r) => sum + r.remainingQuantity, 0);
+    // All or nothing: a confirmation for more units than were bought (or than the order still needs) changes nothing.
+    if (!receivables.length || available < needed) {
       const received = await this.prisma.fulfillmentReceipt.aggregate({ where: { orderId, skuId: unit.skuId }, _sum: { quantity: true } });
       const required = items.reduce((sum, item) => sum + item.quantity, 0);
       return this.reject(shipment?.id, (received._sum.quantity ?? 0) >= required ? 'ALREADY_COMPLETE' : 'NOT_PURCHASED_YET', dto, actor, orderId, locationId, unit.skuId);
     }
+    const target = receivables[0];
     // A cost already recorded for this purchase must match what is entered now; a different value is a correction, never a silent overwrite.
     const acquireKey = (target as { acquireKey?: string }).acquireKey;
     if (dto.cost && acquireKey) {
@@ -256,21 +274,103 @@ export class HubDeskService {
     // Expiry and lot are not part of the normal preparation flow; a date that is supplied is still checked against the minimum shelf life.
     const sku = await this.catalog.getSkuIdentity(unit.skuId);
     if (!sku) throw new NotFoundException('SKU not found');
-    const receipt = await this.fulfillment.receiveAllocatedGoods({
-      locationId, allocationId: target.allocationId, orderId, orderItemId: target.orderItemId, skuId: unit.skuId,
-      variantName: sku.variantName, quantity: 1, condition: 'ACCEPTABLE', idempotencyKey: dto.clientScanId,
-      ...(dto.barcodeScanned ? { barcodeScanned: dto.barcodeScanned } : { manualReason: dto.manualReason, manualChecks: dto.manualChecks }),
-      ...(dto.lotNumber ? { lotNumber: dto.lotNumber } : {}), ...(dto.expiryDate ? { expiryDate: dto.expiryDate } : {}),
-    }, actor);
+    // One identity check, then the units go in purchase by purchase (normally one): each receipt has its own idempotency key derived from the
+    // confirmation id, so a retry never double counts and an interrupted confirmation resumes where it stopped.
+    let remaining = needed;
+    let index = priorReceipts.length;
+    let lastShipmentStatus: ShipmentStatus | undefined;
+    let lastShipmentId: string | undefined;
+    for (const slot of receivables) {
+      if (remaining <= 0) break;
+      const take = Math.min(slot.remainingQuantity, remaining);
+      const receipt = await this.fulfillment.receiveAllocatedGoods({
+        locationId, allocationId: slot.allocationId, orderId, orderItemId: slot.orderItemId, skuId: unit.skuId,
+        variantName: sku.variantName, quantity: take, condition: 'ACCEPTABLE', idempotencyKey: index === 0 ? dto.clientScanId : `${dto.clientScanId}#${index + 1}`,
+        ...(dto.barcodeScanned ? { barcodeScanned: dto.barcodeScanned } : { manualReason: dto.manualReason, manualChecks: dto.manualChecks }),
+        ...(dto.lotNumber ? { lotNumber: dto.lotNumber } : {}), ...(dto.expiryDate ? { expiryDate: dto.expiryDate } : {}),
+      }, actor);
+      remaining -= take;
+      index += 1;
+      lastShipmentStatus = receipt.shipment?.status;
+      lastShipmentId = receipt.shipment?.id;
+    }
     if (dto.cost && acquireKey) {
-      // After the unit is in: a replay of the same values is a no-op; the first value for this purchase is stored once.
+      // After the units are in: a replay of the same values is a no-op; the first value for this purchase is stored once.
       await this.purchaseCosts.record({ acquireKey, listUnitPrice: dto.cost.listUnitPrice, discountPerUnit: dto.cost.discountPerUnit }, actor.id)
         .catch(error => { if ((error as { response?: { code?: string } })?.response?.code !== 'COST_ALREADY_RECORDED') throw error; });
     }
-    if (receipt.shipment?.status === ShipmentStatus.ready_to_prepare) {
-      await this.fulfillment.verifyPreparationFromReceipts(receipt.shipment.id, actor);
+    if (lastShipmentId && lastShipmentStatus === ShipmentStatus.ready_to_prepare) {
+      await this.fulfillment.verifyPreparationFromReceipts(lastShipmentId, actor);
     }
     return this.outcome('received', orderId, locationId, actor, { skuId: unit.skuId });
+  }
+
+  /**
+   * Identity check only (scan once per product): the barcode or the manual check is resolved against the order's lines exactly as a scan is,
+   * but nothing is received. The confirmation that follows carries the same evidence and the quantity, and is checked again by the server.
+   */
+  async identify(locationId: string, orderId: string, dto: DeskScanDto, actor: FulfillmentActor) {
+    await this.fulfillment.assertDeskLocation(locationId, actor);
+    const order = await this.ordering.getOrder(orderId);
+    if (!order) throw new NotFoundException('Order not found');
+    if (!OPEN_ORDER_STATUSES.includes(order.status)) return this.reject(undefined, 'ORDER_NOT_OPEN', dto, actor, orderId, locationId);
+    const unit = await this.fulfillment.resolveUnitIdentity({
+      barcodeScanned: dto.barcodeScanned, skuId: dto.barcodeScanned ? undefined : dto.skuId,
+      manualReason: dto.manualReason, manualChecks: dto.manualChecks,
+    });
+    if (!unit.ok) return this.reject(undefined, unit.code, dto, actor, orderId, locationId);
+    if (!order.items.some(item => item.skuId === unit.skuId)) return this.reject(undefined, 'WRONG_ITEM', dto, actor, orderId, locationId, unit.skuId);
+    return this.outcome('identified', orderId, locationId, actor, { skuId: unit.skuId });
+  }
+
+  /** Units physically received for one order line (corrections already netted out). */
+  private async receivedFor(orderItemId: string) {
+    const sum = await this.prisma.fulfillmentReceipt.aggregate({ where: { orderItemId }, _sum: { quantity: true } });
+    return sum._sum.quantity ?? 0;
+  }
+
+  /**
+   * The Hub reports that some units of a line do not exist (fewer than ordered are available). This only records a proposal: the order, its
+   * totals and the COD stay as they are, the line is flagged for an Admin and the order cannot move on until that decision is made. Missing
+   * units are never counted as received or verified.
+   */
+  async reportShortage(locationId: string, orderId: string, orderItemId: string, dto: ReportShortageDto, actor: FulfillmentActor) {
+    await this.fulfillment.assertDeskLocation(locationId, actor);
+    const order = await this.ordering.getOrder(orderId);
+    if (!order) throw new NotFoundException('Order not found');
+    const item = order.items.find(line => line.id === orderItemId);
+    if (!item) throw new NotFoundException('Order line not found');
+    const shipment = await this.prisma.shipment.findUnique({ where: { orderId } });
+    if (shipment && shipment.locationId !== locationId) throw new ConflictException('Order shipment is allocated to another fulfillment location');
+    if (shipment && shipment.status !== ShipmentStatus.pending && shipment.status !== ShipmentStatus.ready_to_prepare) {
+      throw new ConflictException({ code: 'PREPARATION_ALREADY_VERIFIED', message: 'This order is already verified; a shortage can only be reported before verification' });
+    }
+    // The available units cannot be fewer than what was already counted in.
+    const received = await this.receivedFor(orderItemId);
+    if (received > item.quantity - dto.missingQuantity) {
+      throw new ConflictException({ code: 'RECEIVED_EXCEEDS_AVAILABLE', message: 'More units were already received than the available quantity you entered; correct the received units first' });
+    }
+    await this.adjustments.propose({ orderId, orderItemId, missingQuantity: dto.missingQuantity, reason: dto.reason, locationId, clientRequestId: dto.clientRequestId, actorId: actor.id });
+    return this.outcome('verified', orderId, locationId, actor, {});
+  }
+
+  /** An Admin applies a shortage report: line quantity, order totals, COD and the sourcing requirement follow, then the parcel can complete. */
+  async approveShortage(locationId: string, orderId: string, adjustmentId: string, dto: DecideShortageDto, actor: FulfillmentActor) {
+    await this.fulfillment.assertDeskLocation(locationId, actor);
+    const adj = await this.adjustments.get(adjustmentId);
+    if (adj.orderId !== orderId || (adj.locationId && adj.locationId !== locationId)) throw new NotFoundException('Shortage report not found for this order at this Hub');
+    await this.adjustments.approve(adjustmentId, actor.id, dto.note, await this.receivedFor(adj.orderItemId));
+    // The order is already adjusted; this step is idempotent and completes the receiving that the reduced quantity now satisfies.
+    await this.fulfillment.reconcileAfterQuantityAdjustment(orderId, actor);
+    return this.outcome('verified', orderId, locationId, actor, {});
+  }
+
+  async rejectShortage(locationId: string, orderId: string, adjustmentId: string, dto: DecideShortageDto, actor: FulfillmentActor) {
+    await this.fulfillment.assertDeskLocation(locationId, actor);
+    const adj = await this.adjustments.get(adjustmentId);
+    if (adj.orderId !== orderId || (adj.locationId && adj.locationId !== locationId)) throw new NotFoundException('Shortage report not found for this order at this Hub');
+    await this.adjustments.reject(adjustmentId, actor.id, dto.note);
+    return this.outcome('verified', orderId, locationId, actor, {});
   }
 
   /** Verification for orders received before the desk existed (or interrupted): receipt scans count once. */
@@ -446,6 +546,7 @@ export class HubDeskService {
   private stageOf(status: ShipmentStatus | null, lines: DeskLine[]): DeskStage {
     if (status === ShipmentStatus.ready_to_prepare || status === ShipmentStatus.preparing) return 'verifying';
     if (status && status !== ShipmentStatus.pending) return 'packing';
+    if (lines.some(line => line.shortage)) return 'shortage_review';
     return lines.some(line => line.purchased > line.received) ? 'receiving' : 'waiting_purchase';
   }
 

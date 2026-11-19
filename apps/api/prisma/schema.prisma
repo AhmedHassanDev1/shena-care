@@ -1475,6 +1475,7 @@ model Order {
   refundTransactions    RefundTransaction[]
   availabilityDecisions AvailabilityDecision[]
   amendments            OrderAmendment[]
+  quantityAdjustments   OrderQuantityAdjustment[]
   paymentAttempts       PaymentAttempt[]
   deliveryInstructions  DeliveryInstruction[]
 
@@ -1536,6 +1537,7 @@ model OrderItem {
   order          Order                    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   resolutions    OrderResolutionItem[]
   purchaseReason OrderItemPurchaseReason?
+  quantityAdjustments OrderQuantityAdjustment[]
 
   @@index([orderId])
   @@index([skuId])
@@ -1642,6 +1644,50 @@ model OrderAmendment {
 
   @@index([orderId])
   @@map("order_amendments")
+  @@schema("ordering")
+}
+
+/// A shortage found at the Hub (fewer units exist than were ordered) and the authorized decision on it. The order line itself is only changed
+/// when an Admin applies the adjustment; before / after keep the original line and the money so the order can always be audited.
+enum OrderAdjustmentStatus {
+  proposed
+  applied
+  rejected
+  superseded
+
+  @@schema("ordering")
+}
+
+model OrderQuantityAdjustment {
+  id              String                @id @default(uuid()) @db.Uuid
+  orderId         String                @map("order_id") @db.Uuid
+  orderItemId     String                @map("order_item_id") @db.Uuid
+  /// Fulfillment location that reported the shortage (plain id: no relation across contexts).
+  locationId      String?               @map("location_id") @db.Uuid
+  clientRequestId String                @unique @map("client_request_id") @db.Uuid
+  status          OrderAdjustmentStatus @default(proposed)
+  orderedQuantity Int                   @map("ordered_quantity")
+  missingQuantity Int                   @map("missing_quantity")
+  reason          String?               @db.VarChar(300)
+  proposedBy      String                @map("proposed_by")
+  proposedAt      DateTime              @default(now()) @map("proposed_at")
+  decidedBy       String?               @map("decided_by")
+  decidedAt       DateTime?             @map("decided_at")
+  decisionNote    String?               @map("decision_note") @db.VarChar(300)
+  before          Json?
+  after           Json?
+  codBefore       Decimal?              @map("cod_before") @db.Decimal(10, 2)
+  codAfter        Decimal?              @map("cod_after") @db.Decimal(10, 2)
+  totalBefore     Decimal?              @map("total_before") @db.Decimal(10, 2)
+  totalAfter      Decimal?              @map("total_after") @db.Decimal(10, 2)
+  currency        String?               @db.VarChar(3)
+
+  order     Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Restrict)
+
+  @@index([orderId])
+  @@index([orderItemId, status])
+  @@map("order_quantity_adjustments")
   @@schema("ordering")
 }
 

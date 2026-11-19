@@ -43,6 +43,13 @@ export class DeskScanDto {
   @IsIn(MANUAL_IDENTITY_CHECKS, { each: true })
   manualChecks?: string[];
 
+  /** How many units of this product are confirmed in ONE operation after the identity check (default 1). */
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(99)
+  quantity?: number;
+
   /** Printed lot/batch when visible on the pack. */
   @IsOptional()
   @IsString()
@@ -212,4 +219,30 @@ export class CorrectInspectionDto extends InspectReturnDto {
   @MinLength(5)
   @MaxLength(300)
   reason: string;
+}
+
+/** The Hub reports that some units of an order line do not exist. It records a proposal only; an Admin decides. */
+export class ReportShortageDto {
+  /** Client-generated id of this report; a retry returns the original. */
+  @IsUUID()
+  clientRequestId: string;
+
+  /** Units that are NOT available (at least 1, fewer than the ordered quantity). */
+  @IsInt()
+  @Min(1)
+  @Max(99)
+  missingQuantity: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(300)
+  reason?: string;
+}
+
+/** An Admin's decision on a shortage report. */
+export class DecideShortageDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(300)
+  note?: string;
 }

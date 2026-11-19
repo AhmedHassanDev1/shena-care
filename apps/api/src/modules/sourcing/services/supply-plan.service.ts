@@ -419,6 +419,19 @@ export class SupplyPlanService {
   }
 
   /**
+   * A confirmed shortage reduces what an order line still needs (owner command, inside the order adjustment transaction). The requirement keeps its
+   * history; only the quantity the buy list and receiving compare against goes down. Never raised, never below what was already received.
+   */
+  async reduceRequirement(tx: Tx, orderId: string, orderItemId: string, newQuantity: number): Promise<void> {
+    await this.lock(tx, orderId);
+    const request = await tx.supplyRequest.findUnique({ where: { orderId } });
+    if (!request) return; // sourcing has not started; nothing to reduce
+    const requirement = await tx.supplyRequirement.findFirst({ where: { supplyRequestId: request.id, orderItemId, releasedAt: null } });
+    if (!requirement || requirement.requiredQuantity <= newQuantity) return;
+    await tx.supplyRequirement.update({ where: { id: requirement.id }, data: { requiredQuantity: newQuantity } });
+  }
+
+  /**
    * Owner command inside the cancellation transaction (GLO-240): every open requirement is released
    * (kept as history) so nothing new is batched or received for it. Supplier commitments already
    * made on purchase orders are reported back for a human decision, never silently undone.

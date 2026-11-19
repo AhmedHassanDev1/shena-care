@@ -987,6 +987,33 @@ export class FulfillmentService {
    * unit (clientScanId `rcpt:<receiptId>:<n>`, so retries never double-count), and completes the
    * session only when every line matches exactly. Receipts are never altered. Idempotent.
    */
+  /**
+   * After an Admin applied a quantity adjustment (shortage) the order lines ask for fewer units. The shipment (created at the first receipt) keeps
+   * its own copy of the quantities, so it is brought in line here, and an order whose every line is now fully received completes receiving and is
+   * verified from its receipts, exactly as the last scan would have done. Idempotent; never touches a shipment that is already past verification.
+   */
+  async reconcileAfterQuantityAdjustment(orderId: string, actor: FulfillmentActor): Promise<void> {
+    const order = await this.orderingService.getOrder(orderId);
+    if (!order) throw new NotFoundException('Order not found');
+    const shipment = await this.prisma.shipment.findUnique({ where: { orderId } });
+    if (!shipment) return; // nothing received yet: the first receipt will create the shipment from the adjusted lines
+    if (shipment.status !== ShipmentStatus.pending && shipment.status !== ShipmentStatus.ready_to_prepare) return;
+    const wantedBySku = new Map<string, number>();
+    for (const item of order.items) wantedBySku.set(item.skuId, (wantedBySku.get(item.skuId) ?? 0) + item.quantity);
+    const totals = await this.prisma.fulfillmentReceipt.groupBy({ by: ['orderItemId'], where: { orderId }, _sum: { quantity: true } });
+    const receivedByItem = new Map(totals.map(total => [total.orderItemId, total._sum.quantity ?? 0]));
+    const complete = order.items.every(item => (receivedByItem.get(item.id) ?? 0) >= item.quantity);
+    await this.prisma.$transaction(async tx => {
+      for (const [skuId, quantity] of wantedBySku) {
+        await tx.shipmentItem.updateMany({ where: { shipmentId: shipment.id, skuId }, data: { quantity } });
+      }
+      if (complete && shipment.status === ShipmentStatus.pending) {
+        await tx.shipment.update({ where: { id: shipment.id }, data: { status: ShipmentStatus.ready_to_prepare } });
+      }
+    });
+    if (complete) await this.verifyPreparationFromReceipts(shipment.id, actor);
+  }
+
   async verifyPreparationFromReceipts(shipmentId: string, actor: FulfillmentActor) {
     if (!this.isUuid(shipmentId)) throw new BadRequestException('Invalid shipment ID');
     const shipment = await this.prisma.shipment.findUnique({ where: { id: shipmentId }, include: { items: true } });

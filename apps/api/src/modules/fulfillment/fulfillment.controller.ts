@@ -5,7 +5,7 @@ import { RouteOptimizationService } from './services/route-optimization.service'
 import { DispatchPlanningService } from './services/dispatch-planning.service';
 import { HubDeskService } from './services/hub-desk.service';
 import { HubReturnsService } from './services/hub-returns.service';
-import { CorrectBarcodeDto, CorrectInspectionDto, DeskScanDto, InspectReturnDto, RegisterBarcodeDto, ReverseReceiptDto, SetLineDiscountDto } from './dto/hub-desk.dto';
+import { CorrectBarcodeDto, CorrectInspectionDto, DeskScanDto, ReportShortageDto, DecideShortageDto, InspectReturnDto, RegisterBarcodeDto, ReverseReceiptDto, SetLineDiscountDto } from './dto/hub-desk.dto';
 import { PlanRouteDto } from './dto/routing.dto';
 import { ApplyOptimizationDto, OptimizationOptionsDto } from './dto/optimization.dto';
 import { PlanDispatchDto, ApproveDispatchPlanDto } from './dto/dispatch-planning.dto';
@@ -243,6 +243,35 @@ export class FulfillmentController {
   @RequirePermissions('hub.receive', 'hub.prepare')
   async deskScan(@Param('id') locationId: string, @Param('orderId', ParseUUIDPipe) orderId: string, @Body() dto: DeskScanDto, @CurrentUser() actor: FulfillmentActor) {
     return this.hubDesk.scan(locationId, orderId, dto, actor);
+  }
+
+  /** Identity check only (scan once per product): nothing is received; the confirmation that follows carries the quantity. */
+  @Post('locations/:id/desk/orders/:orderId/identify')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  @RequirePermissions('hub.receive', 'hub.prepare')
+  async deskIdentify(@Param('id') locationId: string, @Param('orderId', ParseUUIDPipe) orderId: string, @Body() dto: DeskScanDto, @CurrentUser() actor: FulfillmentActor) {
+    return this.hubDesk.identify(locationId, orderId, dto, actor);
+  }
+
+  /** Report units that do not exist (a proposal only; an Admin applies it). */
+  @Post('locations/:id/desk/orders/:orderId/lines/:orderItemId/shortage')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  @RequirePermissions('hub.receive', 'hub.prepare')
+  async deskReportShortage(@Param('id') locationId: string, @Param('orderId', ParseUUIDPipe) orderId: string, @Param('orderItemId', ParseUUIDPipe) orderItemId: string, @Body() dto: ReportShortageDto, @CurrentUser() actor: FulfillmentActor) {
+    return this.hubDesk.reportShortage(locationId, orderId, orderItemId, dto, actor);
+  }
+
+  /** Authorized partial-fulfillment adjustment: Admin only. Changes the line, the order totals and the COD expectation. */
+  @Post('locations/:id/desk/orders/:orderId/shortages/:adjustmentId/approve')
+  @Roles('ADMIN')
+  async deskApproveShortage(@Param('id') locationId: string, @Param('orderId', ParseUUIDPipe) orderId: string, @Param('adjustmentId', ParseUUIDPipe) adjustmentId: string, @Body() dto: DecideShortageDto, @CurrentUser() actor: FulfillmentActor) {
+    return this.hubDesk.approveShortage(locationId, orderId, adjustmentId, dto, actor);
+  }
+
+  @Post('locations/:id/desk/orders/:orderId/shortages/:adjustmentId/reject')
+  @Roles('ADMIN')
+  async deskRejectShortage(@Param('id') locationId: string, @Param('orderId', ParseUUIDPipe) orderId: string, @Param('adjustmentId', ParseUUIDPipe) adjustmentId: string, @Body() dto: DecideShortageDto, @CurrentUser() actor: FulfillmentActor) {
+    return this.hubDesk.rejectShortage(locationId, orderId, adjustmentId, dto, actor);
   }
 
   @Post('locations/:id/desk/orders/:orderId/verify')

@@ -22,8 +22,8 @@ const PACKAGING = [['BAG', 'شنطة'], ['BOX', 'كرتونة']] as const
  * Mobile-first: large touch targets, legible in dark mode.
  * In dev: print can be bypassed with one click or auto-bypassed when clicking handoff.
  */
-export function PrepBar({ order, quantityOf, packaging, costs, onPackaging, onChanged, onPacked }: {
-  order: DeskOrder; quantityOf: (line: DeskOrder['lines'][number]) => number; packaging: Packaging | null; costs: PackagingCosts | null
+export function PrepBar({ order, packaging, costs, onPackaging, onChanged, onPacked }: {
+  order: DeskOrder; packaging: Packaging | null; costs: PackagingCosts | null
   onPackaging: () => void; onChanged: () => void; onPacked: () => void
 }) {
   const verified = order.stage === 'packing' && !!order.shipment
@@ -83,7 +83,7 @@ export function PrepBar({ order, quantityOf, packaging, costs, onPackaging, onCh
 
   // Any difference between what the order asks for and what the server confirmed as prepared is shown before the parcel leaves.
   const guard = useDialog()
-  const differences = quantityDifferences(order.lines, quantityOf)
+  const differences = quantityDifferences(order.lines)
 
   const proceedHandoff = async () => {
     if (!verified) return
@@ -285,13 +285,13 @@ export function PrepBar({ order, quantityOf, packaging, costs, onPackaging, onCh
           <Button variant="danger" loading={handoff.pending || bypassing} onClick={async () => { guard.close(); await proceedHandoff() }}>تسليم</Button>
         </>}>
         <div className="space-y-3">
-          <p className="text-bw-small text-bw-ink-soft">الكميات المجهّزة مش زي المطلوب في الطلب ده. راجعها قبل ما الطرد يتسلّم.</p>
+          <p className="text-bw-small text-bw-ink-soft">في اختلاف بين اللي اتطلب واللي هيتسلّم. راجعه قبل ما الطرد يتسلّم.</p>
           <ul className="divide-y divide-bw-line rounded-bw-field border border-bw-line">
-            {differences.map(({ line, quantity, kind }) => (
+            {differences.map(({ line, kind }) => (
               <li key={line.orderItemId} className="flex items-center justify-between gap-3 px-3 py-2 text-bw-small">
                 <span className="min-w-0 flex-1 font-semibold text-bw-ink"><bdi>{productTitle(line)}</bdi></span>
-                <span className={cn('shrink-0 tabular-nums', kind === 'excess' ? "text-bw-danger" : "text-bw-amber")}>
-                  {kind === 'short' ? <>الكمية <bdi dir="ltr">{quantity}/{line.required}</bdi> نقص</> : <>اتمسح <bdi dir="ltr">{line.received}/{line.required}</bdi> {kind === 'excess' ? 'زيادة' : 'نقص'}</>}
+                <span className={cn('shrink-0 tabular-nums', kind === 'excess' ? 'text-bw-danger' : 'text-bw-amber')}>
+                  {kind === 'adjusted' ? <>اتطلب <bdi dir="ltr">{line.ordered}</bdi> واتعدّل لـ <bdi dir="ltr">{line.required}</bdi></> : kind === 'shortage-open' ? <>نقص <bdi dir="ltr">{line.shortage?.missing}</bdi> مستني الاعتماد</> : <>اتمسح <bdi dir="ltr">{line.received}/{line.required}</bdi> {kind === 'excess' ? 'زيادة' : 'نقص'}</>}
                 </span>
               </li>
             ))}

@@ -1,16 +1,26 @@
 import type { PrintState } from '@/components/workspace/pack-card'
 
 /** The Hub desk payload (`GET /fulfillment/locations/:id/desk`) as the preparation screen reads it. */
-export type Stage = 'waiting_purchase' | 'receiving' | 'verifying' | 'packing'
+export type Stage = 'waiting_purchase' | 'receiving' | 'shortage_review' | 'verifying' | 'packing'
 
 export interface DeskLine {
   orderItemId: string; skuId: string; productName: string | null; brandName: string | null; variantName: string | null
   skuCode: string | null; barcode: string | null; imageUrl: string | null; size: string | null
   sizeUnit?: string | null; unitPrice?: number | null; texture?: string | null; categoryName?: string | null
-  required: number; purchased: number; received: number; verified: number
+  /** What the order line asks for now; after an approved shortage adjustment it is the reduced quantity. */
+  required: number
+  /** What the customer originally ordered (differs from `required` only after an approved adjustment). */
+  ordered: number
+  purchased: number; received: number; verified: number
+  /** An open shortage report waiting for an Admin. Nothing about the order has changed yet. */
+  shortage: DeskShortage | null
   productSlug: string | null
   /** The purchase behind this line (the next unit's, else the latest): the supplier's list price, the discount obtained off it and its percentage. */
   cost: DeskLineCost | null
+}
+export interface DeskShortage {
+  adjustmentId: string; missing: number; newQuantity: number; reason: string | null; reportedBy: string
+  amounts: { codBefore: number | null; codAfter: number | null; totalBefore: number | null; totalAfter: number | null; delta: number | null; currency: string | null }
 }
 export interface DeskLineCost {
   acquireKey: string; recorded: boolean; units: number; version: number | null
@@ -27,7 +37,7 @@ export interface Desk {
   orders: DeskOrder[]; lastLots: Record<string, { lotNumber: string | null; expiryDate: string; recordedAt: string }>
   lastCosts: Record<string, { listUnitPrice: string; discountPerUnit: string; recordedAt: string }>
 }
-export interface ScanResult { outcome: 'received' | 'verified' | 'rejected'; code?: string; skuId?: string; order: DeskOrder | null }
+export interface ScanResult { outcome: 'received' | 'verified' | 'identified' | 'rejected'; code?: string; skuId?: string; order: DeskOrder | null }
 export type Packaging = { packagingType: 'BAG' | 'BOX' | null; packagingCost: string | null }
 
 /** What the person at the desk reads when a scan is refused: the problem and what to do, never a code. */
@@ -44,6 +54,7 @@ export const REJECT: Record<string, string> = {
 
 export const STAGE_LABEL: Record<Stage, { label: string; tone: 'info' | 'warn' | 'ok' | 'neutral' }> = {
   receiving: { label: 'امسح البضاعة', tone: 'info' },
+  shortage_review: { label: 'نقص مستني الاعتماد', tone: 'warn' },
   verifying: { label: 'أكّد التجهيز', tone: 'warn' },
   packing: { label: 'تغليف وطباعة', tone: 'ok' },
   waiting_purchase: { label: 'مستني شراء', tone: 'neutral' },

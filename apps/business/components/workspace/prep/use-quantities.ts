@@ -3,28 +3,19 @@
 import * as React from 'react'
 import { clampQuantity } from './quantity'
 
-type Line = { orderItemId: string; required: number }
+type Line = { orderItemId: string; required: number; received: number }
 export interface Quantities { get: (line: Line) => number; set: (line: Line, value: number) => void }
 
 /**
- * Declared quantity per line of one order, default = the full required quantity. Kept on this device (the API has no shortage record), per order,
- * and never touches scan progress or any server state.
+ * The quantity available per line of one order while the operator works (default: the full required quantity). It is only a draft on this
+ * screen: nothing is stored from here. It becomes real when the operator confirms (units received, shortage reported to the server).
  */
-export function useQuantities(orderId: string) {
-  const key = `bw.prep.qty.v1.${orderId}`
-  const [changed, setChanged] = React.useState<Record<string, number>>({})
-  React.useEffect(() => {
-    try { setChanged(JSON.parse(window.localStorage.getItem(key) ?? '{}')) } catch { setChanged({}) }
-  }, [key])
-
-  const get = React.useCallback((line: Line) => clampQuantity(changed[line.orderItemId] ?? line.required, line.required), [changed])
+export function useQuantities(orderId: string): Quantities {
+  const [draft, setDraft] = React.useState<Record<string, number>>({})
+  React.useEffect(() => { setDraft({}) }, [orderId])
+  const get = React.useCallback((line: Line) => clampQuantity(draft[line.orderItemId] ?? line.required, line.received, line.required), [draft])
   const set = React.useCallback((line: Line, value: number) => {
-    const next = { ...changed }
-    const quantity = clampQuantity(value, line.required)
-    if (quantity === line.required) delete next[line.orderItemId]
-    else next[line.orderItemId] = quantity
-    setChanged(next)
-    try { window.localStorage.setItem(key, JSON.stringify(next)) } catch { /* private mode: the change lasts for this screen only */ }
-  }, [changed, key])
+    setDraft((all) => ({ ...all, [line.orderItemId]: clampQuantity(value, line.received, line.required) }))
+  }, [])
   return { get, set }
 }

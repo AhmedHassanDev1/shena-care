@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import { Check, Loader2, Minus, Plus, RefreshCw } from 'lucide-react'
+import { Button } from '@/components/bw/primitives'
 import { Tag } from '@/components/bw/product-card'
 import { egp } from '@/components/workspace/buy-costs'
 import { api } from '@/lib/api'
@@ -113,21 +114,29 @@ function SaveStatus({ state, onRetry }: { state: SaveState; onRetry: () => void 
 
 /**
  * One product of the order, in the same structure as the purchases lists.
- * Top row: photo · brand + name (one line) with its tags (category, texture, size) · selling price (text only) · ⋯.
- * Bottom row, under a hairline: required · supplier discount · − prepared/required +.
- * The rare actions live behind ⋯ (a popover on desktop, a bottom sheet on a phone).
+ * Top row: photo · brand + name with its tags (category, texture, size) and the selling price (text only) · ⋯.
+ * Bottom row, under a hairline: scan progress (server) · supplier discount · the quantity available with − / +.
+ * Three numbers are never mixed: what the customer ordered, what the server counted as scanned in, and the quantity the operator says is available.
+ * The operator scans the product ONCE (identity), adjusts the quantity only if units are missing, and confirms it as one operation.
  */
-export function ProductCard({ line, order, hubId, lastCosts, canPrice, quantity, onQtyMinus, onQtyPlus, onOrder, onPick, onMore }: {
+export function ProductCard({ line, order, hubId, lastCosts, canPrice, quantity, onQtyMinus, onQtyPlus, identified, confirming, onConfirm, onDecide, onOrder, onPick, onMore }: {
   line: DeskLine; order: DeskOrder; hubId: string; lastCosts: Desk['lastCosts']; canPrice: boolean
-  /** The declared quantity (default: the full required one). Separate from scan progress, which is `line.received`. */
+  /** Units the operator says are available (default: the required quantity). A draft until confirmed. */
   quantity: number; onQtyMinus: () => void; onQtyPlus: () => void
+  /** The product's identity was verified (scan or manual check) and not yet confirmed. */
+  identified: boolean
+  confirming: boolean
+  /** Confirm the available quantity: receives the units not counted yet and reports any missing ones. */
+  onConfirm: () => void
+  /** Only for an Admin: decide an open shortage report. */
+  onDecide: ((what: 'approve' | 'reject') => void) | null
   onOrder: (order: DeskOrder) => void
   /** An action chosen from the popover (desktop). */
   onPick: (kind: ActionKind) => void
   /** Open the bottom sheet with the same actions (phone). */
   onMore: () => void
 }) {
-  const done = line.received >= line.required
+  const done = line.received >= line.required && !line.shortage
   // The desk sends the pack size as printed ("200 ml"); it is always one of the tags, next to the category (the type: cleanser, serum…) and the texture.
   const name = purchaseLineName({ productName: line.productName, brandName: line.brandName, variantName: line.variantName, size: null, sizeUnit: null, packCount: null })
   const full = [name.brand, name.name].filter(Boolean).join(' ') || productTitle(line)
@@ -135,8 +144,12 @@ export function ProductCard({ line, order, hubId, lastCosts, canPrice, quantity,
   const texture = textureLabel(line.texture)
   const size = line.size ?? ''
   const step = 'grid size-bw-control shrink-0 place-items-center rounded-full disabled:cursor-not-allowed'
+  const open = line.shortage
+  const toReceive = Math.max(quantity - line.received, 0)
+  const missing = line.required - quantity
+  const canConfirm = !open && (toReceive > 0 || missing > 0)
   return (
-    <li className={cn('space-y-2 rounded-bw-card border p-3', done ? 'border-bw-emerald/40 bg-bw-emerald-soft/25' : 'border-bw-line bg-bw-surface')}>
+    <li className={cn('space-y-2 rounded-bw-card border p-3', open ? 'border-bw-amber/50 bg-bw-amber-soft/20' : done ? 'border-bw-emerald/40 bg-bw-emerald-soft/25' : 'border-bw-line bg-bw-surface')}>
       <div className="flex items-center gap-3">
         <Thumb line={line} />
         <div className="min-w-0 flex-1">
@@ -153,31 +166,57 @@ export function ProductCard({ line, order, hubId, lastCosts, canPrice, quantity,
             {texture ? <Tag tone="violet"><bdi>{texture}</bdi></Tag> : null}
             {size ? <Tag tone="amber"><bdi>{size}</bdi></Tag> : null}
             {!line.barcode ? <Tag tone="neutral">ملوش باركود</Tag> : null}
+            {identified ? <Tag tone="emerald">اتأكدت الهوية</Tag> : null}
           </div>
         </div>
         <ActionsMenu line={line} canPrice={canPrice} onPick={onPick} onOpenSheet={onMore} />
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-bw-line/60 pt-2">
+        <div className="flex flex-col gap-0.5 text-[12px]">
+          <p className={cn(done ? 'font-semibold text-bw-emerald' : 'text-bw-ink-soft')}>اتمسح <bdi className="tabular-nums" dir="ltr">{line.received}/{line.required}</bdi></p>
+          {line.ordered !== line.required ? <p className="text-bw-amber">اتطلب <bdi className="tabular-nums" dir="ltr">{line.ordered}</bdi> · اتعدّل لـ <bdi className="tabular-nums" dir="ltr">{line.required}</bdi></p> : null}
+        </div>
+
         <div className="min-w-0 text-[12px] text-bw-ink-soft">
           <DiscountField line={line} suggestedList={lastCosts[line.skuId]?.listUnitPrice ?? null} hubId={hubId} orderId={order.orderId} onOrder={onOrder} />
         </div>
 
-        <p className={cn("text-[12px]", done ? "font-semibold text-bw-emerald" : "text-bw-ink-soft")}>اتمسح <bdi className="tabular-nums" dir="ltr">{line.received}/{line.required}</bdi></p>
-
-        <div role="group" aria-label={`الكمية في الطرد من ${productTitle(line)}`} className="flex shrink-0 items-center gap-1">
-          <span className="me-1 text-[12px] text-bw-ink-soft">الكمية</span>
-          <button type="button" disabled={quantity <= 0} aria-label="نقّص الكمية" onClick={onQtyMinus}
-            className={cn(step, "border border-bw-line-field text-bw-ink hover:bg-bw-sunken disabled:border-bw-line disabled:text-bw-ink-subtle disabled:opacity-50")}>
+        <div role="group" aria-label={`الكمية المتاحة من ${productTitle(line)}`} className="flex shrink-0 items-center gap-1">
+          <span className="me-1 text-[12px] text-bw-ink-soft">المتاح</span>
+          <button type="button" disabled={!!open || quantity <= line.received} aria-label="نقّص الكمية المتاحة" onClick={onQtyMinus}
+            className={cn(step, 'border border-bw-line-field text-bw-ink hover:bg-bw-sunken disabled:border-bw-line disabled:text-bw-ink-subtle disabled:opacity-50')}>
             <Minus className="size-4" aria-hidden />
           </button>
-          <span className={cn("min-w-10 text-center text-bw-heading font-semibold tabular-nums", quantity < line.required ? "text-bw-amber" : "text-bw-ink")} dir="ltr" aria-live="polite" aria-label={`الكمية ${quantity} من ${line.required}`}>{quantity}</span>
-          <button type="button" disabled={quantity >= line.required} aria-label="زوّد الكمية" onClick={onQtyPlus}
-            className={cn(step, "bg-bw-action text-bw-on-action hover:bg-bw-action-hover disabled:bg-bw-sunken disabled:text-bw-ink-subtle")}>
+          <span className={cn('min-w-10 text-center text-bw-heading font-semibold tabular-nums', (open ? open.newQuantity : quantity) < line.required ? 'text-bw-amber' : 'text-bw-ink')} dir="ltr" aria-live="polite"
+            aria-label={`المتاح ${open ? open.newQuantity : quantity} من ${line.required}`}>{open ? open.newQuantity : quantity}</span>
+          <button type="button" disabled={!!open || quantity >= line.required} aria-label="زوّد الكمية المتاحة" onClick={onQtyPlus}
+            className={cn(step, 'bg-bw-action text-bw-on-action hover:bg-bw-action-hover disabled:bg-bw-sunken disabled:text-bw-ink-subtle')}>
             <Plus className="size-4" aria-hidden />
           </button>
         </div>
       </div>
+
+      {open ? (
+        <div className="space-y-2 rounded-bw-field border border-bw-amber/30 bg-bw-amber-soft/40 p-2.5 text-bw-small">
+          <p className="text-bw-ink">ناقص <bdi className="font-semibold tabular-nums" dir="ltr">{open.missing}</bdi> — مستني اعتماد الأدمن. مفيش حاجة اتغيّرت في الطلب لسه.</p>
+          {onDecide ? (
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" onClick={() => onDecide('approve')}>اعتماد تعديل الكمية</Button>
+              <Button size="sm" variant="secondary" onClick={() => onDecide('reject')}>رفض</Button>
+            </div>
+          ) : <p className="text-[12px] text-bw-ink-soft">الأدمن هو اللي بيعتمد التعديل.</p>}
+        </div>
+      ) : canConfirm ? (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-[12px] text-bw-ink-soft">
+            {toReceive > 0 && !identified ? 'امسح باركود المنتج مرة واحدة الأول.' : missing > 0 ? <>هيتسجّل نقص <bdi className="tabular-nums" dir="ltr">{missing}</bdi> لحد ما الأدمن يعتمد.</> : null}
+          </p>
+          <Button size="sm" loading={confirming} disabled={toReceive > 0 && !identified} onClick={onConfirm}>
+            {toReceive > 0 ? `تأكيد ${toReceive}${missing > 0 ? ` وتسجيل نقص ${missing}` : ''}` : `سجّل نقص ${missing}`}
+          </Button>
+        </div>
+      ) : null}
     </li>
   )
 }

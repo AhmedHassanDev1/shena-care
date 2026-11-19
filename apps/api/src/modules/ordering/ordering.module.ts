@@ -15,6 +15,7 @@ import { GuestOrderTrackingController } from './guest-order-tracking.controller'
 import { OrderTrackingService } from './services/order-tracking.service';
 import { CatalogModule } from '../catalog/public';
 import { AvailabilityResolutionService } from './services/availability-resolution.service';
+import { OrderQuantityAdjustmentService } from './services/order-quantity-adjustment.service';
 import { AvailabilityDecisionController, GuestAvailabilityDecisionController } from './availability-decision.controller';
 import { CustomerReturnsController } from './customer-returns.controller';
 import { GuestReturnsController } from './guest-returns.controller';
@@ -29,7 +30,7 @@ import { GuestPurchaseReasonController, PurchaseReasonController } from './purch
   controllers: [OrderingController, CartController, CheckoutController, GuestOrderTrackingController,
     AvailabilityDecisionController, GuestAvailabilityDecisionController,
     CustomerReturnsController, GuestReturnsController, PaymentWebhookController, PurchaseReasonController, GuestPurchaseReasonController],
-  providers: [PurchaseReasonService, OrderingService, CartService, ReconciliationService, OrderTrackingService, AvailabilityResolutionService, ReturnEligibilityService, PurchaseVerificationService, PaymentsService, MonthlyStatementService],
-  exports: [OrderingService, CartService, ReconciliationService, PaymentsService, OrderTrackingService, PurchaseVerificationService],
+  providers: [PurchaseReasonService, OrderingService, CartService, ReconciliationService, OrderTrackingService, AvailabilityResolutionService, OrderQuantityAdjustmentService, ReturnEligibilityService, PurchaseVerificationService, PaymentsService, MonthlyStatementService],
+  exports: [OrderingService, CartService, ReconciliationService, PaymentsService, OrderTrackingService, PurchaseVerificationService, OrderQuantityAdjustmentService],
 })
 export class OrderingModule {}
