@@ -3,8 +3,6 @@
 import * as React from 'react'
 import {
   AlertTriangle,
-  ArrowRight,
-  Barcode,
   Check,
   CheckCircle2,
   ChevronDown,
@@ -13,13 +11,10 @@ import {
   Compass,
   History,
   Layers,
-  MapPin,
-  Package,
   RefreshCw,
   RotateCcw,
   Scan,
   ShieldCheck,
-  Sparkles,
   Truck,
   User,
   Users,
@@ -43,8 +38,8 @@ import { LoadError } from '@/components/workspace/role-shell'
 import { api } from '@/lib/api'
 import { getDevShipmentBarcode } from '@/lib/dev-barcode'
 import {
-  FAILURE_REASONS,
-  RUN_STATUS,
+  RUN_BLOCKER,
+  RUN_SETTLEMENT_STATE,
   SHIPMENT_STATUS,
   formatDateTime,
   shortId,
@@ -69,6 +64,54 @@ interface Run {
   attempts: Record<string, number>
   /** Stops still waiting for a delivery outcome (a failed parcel in the courier's hands no longer counts). */
   toAttempt?: number
+  /** The server's settlement answer for this run (the same one the Complete Trip gate enforces). */
+  settlement?: RunSettlementSummary
+}
+
+type SettlementState = 'pending' | 'reconciliation_required' | 'settled' | 'completed'
+
+interface RunBlocker {
+  code: string
+  count: number
+}
+
+interface RunSettlementSummary {
+  state: SettlementState
+  stops: { total: number; delivered: number; inTransit: number; pendingReturns: number; returnedToHub: number; cancelled: number }
+  cash: {
+    zeroCodDeliveries: number
+    codOrders: number
+    awaitingDeclaration: number
+    awaitingCount: number
+    counted: number
+    disputed: number
+    expectedTotal: number
+    declaredTotal: number
+    countedTotal: number
+    variance: number | null
+  }
+  blockers: RunBlocker[]
+  canSettleCash: boolean
+  canComplete: boolean
+}
+
+interface RunSettlementDetail extends RunSettlementSummary {
+  runId: string
+  runStatus: string
+  settlements: Array<{ id: string; reference: string; settledAt: string; expectedTotal: number; countedTotal: number; variance: number }>
+  deliveredOrders: Array<{
+    orderId: string
+    orderNumber: string | null
+    cash: { status: string; expectedAmount: number; declaredAmount: number | null; countedAmount: number | null } | null
+  }>
+  pendingReturns: Array<{ shipmentId: string; orderId: string; orderNumber: string | null; area: string | null }>
+}
+
+interface ReturnParcel {
+  shipmentId: string
+  orderId: string
+  orderNumber: string | null
+  area: string | null
 }
 
 interface RunStop {
@@ -174,7 +217,6 @@ function DispatchBody() {
   const eligible = useApi<Eligible[]>(`/fulfillment/locations/${hub.id}/eligible-shipments`, { pollMs: 15000 })
   const packed = useApi<{ items: HubShipment[] }>(`/fulfillment/locations/${hub.id}/shipments?status=packed&take=100`, { pollMs: 15000 })
   const runs = useApi<{ items: Run[] }>(`/fulfillment/locations/${hub.id}/runs?status=planning,dispatched,completed&take=100`, { pollMs: 15000 })
-  const failed = useApi<{ items: HubShipment[] }>(`/fulfillment/locations/${hub.id}/shipments?status=failed&take=100`, { pollMs: 15000 })
   const collections = useApi<{ items: Collection[] }>(`/ordering/settlements/collections?locationId=${hub.id}&status=collected&take=100`, { pollMs: 15000 })
   const pastBatches = useApi<{ items: PastSettlementBatch[] }>(`/ordering/settlements/batches?locationId=${hub.id}&take=50`, { pollMs: 30000 })
 
@@ -209,12 +251,11 @@ function DispatchBody() {
     eligible.reload()
     packed.reload()
     runs.reload()
-    failed.reload()
     collections.reload()
     pastBatches.reload()
-  }, [eligible, packed, runs, failed, collections, pastBatches])
+  }, [eligible, packed, runs, collections, pastBatches])
 
-  // Group collections by courier
+  // Group collections by courier (only for cash that belongs to no listed run)
   const collectionsByCourier = React.useMemo(() => {
     const map = new Map<string, Collection[]>()
     for (const c of collections.data?.items ?? []) {
@@ -224,9 +265,6 @@ function DispatchBody() {
     }
     return map
   }, [collections.data])
-
-  // Failed shipments by courier/run
-  const failedShipments = failed.data?.items ?? []
 
   // Classify runs into tabs
   const planningRuns = React.useMemo(() => (runs.data?.items ?? []).filter((r) => r.status === 'planning'), [runs.data])
@@ -241,9 +279,8 @@ function DispatchBody() {
     })
   }, [runs.data])
 
-  // Runs or couriers awaiting settlement:
-  // Each Delivery Run is treated as an independent settlement unit (GLO-COD-01).
-  // Collections of different runs for the same courier are NEVER mixed.
+  // Runs awaiting settlement. Each Delivery Run is an independent settlement unit (GLO-COD-01): its state comes from the
+  // server (stops + the cash of the orders it delivered), never from "no unsettled collections found" on this screen.
   const settlementItems = React.useMemo(() => {
     const items: Array<{
       id: string
@@ -251,91 +288,53 @@ function DispatchBody() {
       courierName: string
       run?: Run
       runOrderIds?: string[]
+      summary?: RunSettlementSummary
       unsettledCollections: Collection[]
-      failedParcels: HubShipment[]
     }> = []
 
     const coveredOrderIds = new Set<string>()
-
-    // 1. Process runs that are dispatched (all stops attempted) or completed
     for (const r of runs.data?.items ?? []) {
-      if (r.status === 'planning') continue
-      const activeStops = r.toAttempt ?? r.attempts?.active ?? 0
-      if (activeStops > 0 && r.status === 'dispatched') continue // Still active on the road
-
+      for (const orderId of r.stopOrderIds ?? []) coveredOrderIds.add(orderId)
+      if (r.status !== 'dispatched') continue
+      if ((r.toAttempt ?? r.attempts?.active ?? 0) > 0) continue // still on the road
       const cId = r.driverId
       if (!cId) continue
-
-      // Scope collections strictly to this run's stop orders
       const runOrderIds = r.stopOrderIds ?? []
-      const runCollections = (collections.data?.items ?? []).filter((c) => {
-        if (runOrderIds.length > 0) {
-          return runOrderIds.includes(c.orderId)
-        }
-        return c.courierId === cId
+      items.push({
+        id: r.id,
+        courierId: cId,
+        courierName: driverName.get(cId) ?? shortId(cId),
+        run: r,
+        runOrderIds,
+        summary: r.settlement,
+        unsettledCollections: (collections.data?.items ?? []).filter((c) => runOrderIds.includes(c.orderId)),
       })
-
-      // Record covered orders to avoid duplicate accounting
-      runCollections.forEach((c) => coveredOrderIds.add(c.orderId))
-
-      // Match returns belonging to this specific run
-      const runFailed = failedShipments.filter(
-        (f) => f.activeRun?.batchId === r.id || runOrderIds.includes(f.orderId)
-      )
-
-      const hasUnsettledCash = runCollections.length > 0
-      const hasFailedReturns = runFailed.length > 0
-
-      if (hasUnsettledCash || hasFailedReturns || r.status !== 'completed') {
-        items.push({
-          id: r.id,
-          courierId: cId,
-          courierName: driverName.get(cId) ?? shortId(cId),
-          run: r,
-          runOrderIds,
-          unsettledCollections: runCollections,
-          failedParcels: runFailed,
-        })
-      }
     }
 
-    // 2. Account for any collections not explicitly assigned to a recorded run
-    const leftoverCollections = (collections.data?.items ?? []).filter(
-      (c) => !coveredOrderIds.has(c.orderId)
-    )
+    // Declared cash that belongs to no run listed here (older runs): still has to be counted.
     const leftoverByCourier = new Map<string, Collection[]>()
-    for (const c of leftoverCollections) {
-      if (c.courierId) {
+    for (const c of collections.data?.items ?? []) {
+      if (c.courierId && !coveredOrderIds.has(c.orderId)) {
         leftoverByCourier.set(c.courierId, [...(leftoverByCourier.get(c.courierId) ?? []), c])
       }
     }
-
     for (const [cId, cList] of leftoverByCourier.entries()) {
-      if (cList.length > 0) {
-        items.push({
-          id: `unassigned-run-${cId}`,
-          courierId: cId,
-          courierName: driverName.get(cId) ?? shortId(cId),
-          runOrderIds: cList.map((c) => c.orderId),
-          unsettledCollections: cList,
-          failedParcels: failedShipments.filter((f) => !f.activeRun),
-        })
-      }
+      items.push({
+        id: `unassigned-run-${cId}`,
+        courierId: cId,
+        courierName: driverName.get(cId) ?? shortId(cId),
+        runOrderIds: cList.map((c) => c.orderId),
+        unsettledCollections: cList,
+      })
     }
-
     return items
-  }, [runs.data, collections.data, failedShipments, driverName])
+  }, [runs.data, collections.data, driverName])
 
-  // Closed runs: status === completed AND no unsettled collections for its driver AND no failed returns
-  const closedRuns = React.useMemo(() => {
-    return (runs.data?.items ?? []).filter((r) => {
-      if (r.status !== 'completed') return false
-      const cId = r.driverId
-      if (!cId) return true
-      const hasCash = (collectionsByCourier.get(cId) ?? []).length > 0
-      return !hasCash
-    })
-  }, [runs.data, collectionsByCourier])
+  // Closed runs are the ones the server closed: completing is only possible once the run was settled.
+  const closedRuns = React.useMemo(
+    () => (runs.data?.items ?? []).filter((r) => r.status === 'completed'),
+    [runs.data]
+  )
 
   // Counts
   const readyCount = eligible.data?.length ?? 0
@@ -521,11 +520,9 @@ function DispatchBody() {
       {settlingCourier && (
         <SettlementDrawer
           hubId={hub.id}
-          hubName={hub.name}
           courierId={settlingCourier.courierId}
           courierName={settlingCourier.courierName}
           runId={settlingCourier.runId}
-          runOrderIds={settlingCourier.runOrderIds}
           collections={
             settlingCourier.runOrderIds && settlingCourier.runOrderIds.length > 0
               ? (collections.data?.items ?? []).filter((c) =>
@@ -533,7 +530,6 @@ function DispatchBody() {
                 )
               : collectionsByCourier.get(settlingCourier.courierId) ?? []
           }
-          failedParcels={failedShipments}
           onClose={() => setSettlingCourier(null)}
           onSettled={reloadAll}
         />
@@ -634,9 +630,9 @@ function ReadyParcelsSection({
         if (!cancelled && res?.trips) {
           setClusters(res.trips)
         }
-      } catch (err: any) {
+      } catch (err) {
         if (!cancelled) {
-          setClusterError(err?.message || 'تعذر تحميل التوزيع الجغرافي المقترح')
+          setClusterError((err as Error)?.message || 'تعذر تحميل التوزيع الجغرافي المقترح')
           setViewMode('parcels')
         }
       } finally {
@@ -684,8 +680,8 @@ function ReadyParcelsSection({
         },
       })
       onCreated()
-    } catch (err: any) {
-      setClusterError(err?.message || 'تعذر اعتماد المشوار للمندوب')
+    } catch (err) {
+      setClusterError((err as Error)?.message || 'تعذر اعتماد المشوار للمندوب')
     } finally {
       setAssigningClusterId(null)
     }
@@ -1383,7 +1379,6 @@ function ActiveTripsSection({
 function ActiveTripCard({
   run,
   driver,
-  onChanged,
 }: {
   run: Run
   driver: string
@@ -1510,7 +1505,6 @@ function ActiveTripCard({
 function SettlementQueueSection({
   items,
   onOpenSettle,
-  onChanged,
 }: {
   items: Array<{
     id: string
@@ -1518,8 +1512,8 @@ function SettlementQueueSection({
     courierName: string
     run?: Run
     runOrderIds?: string[]
+    summary?: RunSettlementSummary
     unsettledCollections: Collection[]
-    failedParcels: HubShipment[]
   }>
   onOpenSettle: (item: {
     courierId: string
@@ -1540,77 +1534,75 @@ function SettlementQueueSection({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2.5">
       {items.map((item) => {
-        const expectedTotal = item.unsettledCollections.reduce((sum, c) => sum + Number(c.expectedAmount), 0)
-        const declaredTotal = item.unsettledCollections.reduce((sum, c) => sum + Number(c.declaredAmount ?? 0), 0)
-        const returnsCount = item.failedParcels.length
+        // Run rows read the server's settlement answer; only cash that belongs to no listed run falls back to its collections.
+        const summary = item.summary
+        const state: SettlementState = summary?.state ?? 'pending'
+        const [stateLabel, stateTone] = RUN_SETTLEMENT_STATE[state] ?? [state, 'neutral' as const]
+        const awaitingCash = summary
+          ? summary.cash.awaitingCount > 0
+          : item.unsettledCollections.length > 0
+        const expectedAwaiting = item.unsettledCollections.reduce((sum, c) => sum + Number(c.expectedAmount), 0)
+        const declaredAwaiting = item.unsettledCollections.reduce((sum, c) => sum + Number(c.declaredAmount ?? 0), 0)
+        const facts: React.ReactNode[] = []
+        if (summary) {
+          if (summary.stops.delivered > 0) facts.push(<span key="d">{summary.stops.delivered} اتسلّم</span>)
+          if (summary.cash.codOrders > 0) {
+            facts.push(
+              <span key="c">
+                نقدية <Egp value={summary.cash.expectedTotal} />
+                {summary.cash.awaitingCount > 0 ? ` · ${summary.cash.awaitingCount} مستنية العدّ` : ' · اتعدّت'}
+              </span>
+            )
+          } else if (summary.stops.delivered > 0) {
+            facts.push(<span key="z">بدون تحصيل نقدي</span>)
+          }
+          const returns = summary.stops.pendingReturns
+          if (returns > 0) facts.push(<span key="r" className="text-bw-danger">{returns} مرتجع لسه مع المندوب</span>)
+          else if (summary.stops.returnedToHub > 0) facts.push(<span key="rr">{summary.stops.returnedToHub} مرتجع استلمه المخزن</span>)
+        } else {
+          facts.push(<span key="o">{item.unsettledCollections.length} طلب — <Egp value={expectedAwaiting} /> متوقع، أعلن المندوب <Egp value={declaredAwaiting} /></span>)
+        }
+        const empty = summary?.blockers.some((b) => b.code === 'NO_STOPS' || b.code === 'NO_OUTCOMES')
+        const actionLabel =
+          state === 'settled' ? 'إغلاق المشوار' : awaitingCash ? 'عدّ النقدية' : state === 'reconciliation_required' ? 'مطابقة' : 'مراجعة'
+        const canOpen = !summary || !empty || summary.stops.total > 0
 
         return (
           <div
             key={item.id}
-            className="rounded-bw-card border border-bw-line bg-bw-surface p-4 space-y-3 shadow-sm hover:border-bw-cobalt/40 transition-colors"
+            className="rounded-bw-card border border-bw-line bg-bw-surface px-4 py-3 shadow-sm transition-colors hover:border-bw-cobalt/40"
           >
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-bw-line pb-3">
-              <div className="flex items-center gap-3">
-                <div className="grid size-9 place-items-center rounded-lg bg-bw-warn/10 border border-bw-warn/30">
-                  <Wallet className="size-4 text-bw-warn" />
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+              <div className="min-w-0 space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-bold text-bw-ink">{item.courierName}</span>
+                  {item.run ? (
+                    <span className="font-mono text-xs text-bw-ink-soft">
+                      مشوار <Code>#{shortId(item.run.id)}</Code>
+                    </span>
+                  ) : (
+                    <span className="text-xs text-bw-ink-soft">نقدية خارج مشاوير هذه الصفحة</span>
+                  )}
+                  {summary ? <StatusLabel tone={stateTone}>{stateLabel}</StatusLabel> : <StatusLabel tone="warn">بانتظار العدّ</StatusLabel>}
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-bw-ink text-sm">{item.courierName}</span>
-                    {item.run ? (
-                      <span className="text-xs text-bw-ink-soft font-mono">
-                        مشوار <Code>#{shortId(item.run.id)}</Code>
-                      </span>
-                    ) : null}
-                  </div>
-                  <div className="text-[11px] text-bw-ink-subtle">
-                    {item.unsettledCollections.length} طلبات مسلّمة بانتظار عدّ النقدية
-                    {returnsCount > 0 ? ` · ${returnsCount} طرد مرتجع` : ''}
-                  </div>
-                </div>
-              </div>
-
-              {/* Outstanding Badges */}
-              <div className="flex flex-wrap items-center gap-2">
-                {expectedTotal > 0 ? (
-                  <StatusLabel tone="warn">
-                    عهدة نقدية: <Egp value={expectedTotal} />
-                  </StatusLabel>
-                ) : null}
-                {returnsCount > 0 ? (
-                  <StatusLabel tone="danger">
-                    {returnsCount} طرد مرتجع مستني الاستلام
-                  </StatusLabel>
+                <p className="flex flex-wrap items-center gap-x-2 text-[11px] text-bw-ink-subtle">
+                  {facts.map((fact, i) => (
+                    <React.Fragment key={i}>
+                      {i > 0 ? <span aria-hidden>·</span> : null}
+                      {fact}
+                    </React.Fragment>
+                  ))}
+                </p>
+                {summary && summary.stops.total === 0 ? (
+                  <p className="text-[11px] text-bw-danger">{RUN_BLOCKER.NO_STOPS(0)}</p>
                 ) : null}
               </div>
-            </div>
-
-            {/* Quick Metrics */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-              <div className="rounded-bw-field border border-bw-line bg-bw-sunken/40 p-2">
-                <span className="text-bw-ink-subtle block text-[11px]">متوقع تحصيله</span>
-                <span className="font-bold text-bw-ink font-mono"><Egp value={expectedTotal} /></span>
-              </div>
-              <div className="rounded-bw-field border border-bw-line bg-bw-sunken/40 p-2">
-                <span className="text-bw-ink-subtle block text-[11px]">أعلن المندوب</span>
-                <span className="font-bold text-bw-ink font-mono"><Egp value={declaredTotal} /></span>
-              </div>
-              <div className="rounded-bw-field border border-bw-line bg-bw-sunken/40 p-2">
-                <span className="text-bw-ink-subtle block text-[11px]">الطلبات المسلّمة</span>
-                <span className="font-bold text-bw-ink font-mono">{item.unsettledCollections.length} طلب</span>
-              </div>
-              <div className="rounded-bw-field border border-bw-line bg-bw-sunken/40 p-2">
-                <span className="text-bw-ink-subtle block text-[11px]">الطرود المرتجعة</span>
-                <span className="font-bold text-bw-ink font-mono">{returnsCount} طرد</span>
-              </div>
-            </div>
-
-            {/* Primary Action Button */}
-            <div className="flex items-center justify-end gap-2 pt-1">
               <Button
-                variant="primary"
+                variant={state === 'settled' || awaitingCash ? 'primary' : 'secondary'}
+                size="sm"
+                disabled={!canOpen}
                 onClick={() =>
                   onOpenSettle({
                     courierId: item.courierId,
@@ -1621,8 +1613,8 @@ function SettlementQueueSection({
                 }
                 className="text-xs font-semibold cursor-pointer"
               >
-                <Wallet className="size-4" />
-                <span>{item.run ? `تسوية مشوار #${shortId(item.run.id)}` : 'تسوية عهدة المندوب'}</span>
+                <Wallet className="size-4" aria-hidden />
+                <span>{actionLabel}</span>
               </Button>
             </div>
           </div>
@@ -1694,43 +1686,63 @@ function ClosedTripsSection({
 
 function SettlementDrawer({
   hubId,
-  hubName,
   courierId,
   courierName,
   runId,
-  runOrderIds,
   collections,
-  failedParcels,
   onClose,
   onSettled,
 }: {
   hubId: string
-  hubName: string
   courierId: string
   courierName: string
   runId?: string
-  runOrderIds?: string[]
+  /** Declared cash of orders that belong to no run (only used when there is no runId). */
   collections: Collection[]
-  failedParcels: HubShipment[]
   onClose: () => void
   onSettled: () => void
 }) {
   const [receipt, setReceipt] = React.useState<SettlementReceipt | null>(null)
   const [countedInput, setCountedInput] = React.useState('')
   const [notes, setNotes] = React.useState('')
+  const [showOrders, setShowOrders] = React.useState(false)
+
+  // The run's settlement position comes from the server: stops, delivered orders, cash and what blocks closing it.
+  const detail = useApi<RunSettlementDetail>(runId ? `/fulfillment/delivery-batches/${runId}/settlement` : null)
+  const run = detail.data
 
   // Stable reference for idempotent settlement submission
   const reference = React.useRef(
     `CNT-${new Date().toISOString().slice(0, 10)}-${courierId.slice(0, 6)}-${Math.random().toString(36).slice(2, 7)}`.toUpperCase()
   )
 
-  const expectedTotal = collections.reduce((sum, r) => sum + Number(r.expectedAmount), 0)
-  const declaredTotal = collections.reduce((sum, r) => sum + Number(r.declaredAmount ?? 0), 0)
+  // Cash waiting for the cashier's count.
+  const awaiting = React.useMemo(() => {
+    if (runId) {
+      return (run?.deliveredOrders ?? [])
+        .filter((o) => o.cash?.status === 'collected')
+        .map((o) => ({
+          orderId: o.orderId,
+          orderNumber: o.orderNumber ?? shortId(o.orderId),
+          expected: o.cash!.expectedAmount,
+          declared: o.cash!.declaredAmount,
+        }))
+    }
+    return collections.map((c) => ({
+      orderId: c.orderId,
+      orderNumber: c.orderNumber,
+      expected: Number(c.expectedAmount),
+      declared: c.declaredAmount === null ? null : Number(c.declaredAmount),
+    }))
+  }, [runId, run, collections])
+
+  const expectedTotal = awaiting.reduce((sum, r) => sum + r.expected, 0)
+  const declaredTotal = awaiting.reduce((sum, r) => sum + (r.declared ?? 0), 0)
   const amount = Number(countedInput)
   const isInputValid = countedInput.trim() !== '' && Number.isFinite(amount) && amount >= 0
   const variance = isInputValid ? Math.round((amount - expectedTotal) * 100) / 100 : null
 
-  // Settle round command - strictly scoped to target run's orders
+  // Settle round command - strictly scoped to the cash this run delivered
   const settle = useCommand(() =>
     api<RoundTotals & { lines: SettlementLine[] }>('/ordering/settlements/rounds', {
       body: {
@@ -1738,17 +1750,15 @@ function SettlementDrawer({
         locationId: hubId,
         reference: reference.current,
         runId: runId || undefined,
-        orderIds: runOrderIds && runOrderIds.length > 0 ? runOrderIds : collections.map((c) => c.orderId),
+        orderIds: awaiting.map((a) => a.orderId),
         countedTotal: Math.round(amount * 100) / 100,
         notes: notes.trim() || undefined,
       },
     })
   )
 
-  // Complete run command (if runId provided)
-  const completeRun = useCommand(() =>
-    runId ? api(`/fulfillment/delivery-batches/${runId}/complete`, { method: 'POST' }) : Promise.resolve(null)
-  )
+  // Complete run: the server refuses it unless the run is settled.
+  const completeRun = useCommand(() => api(`/fulfillment/delivery-batches/${runId}/complete`, { method: 'POST' }))
 
   const handleCashSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -1765,20 +1775,23 @@ function SettlementDrawer({
         reference: reference.current,
         round: done,
         lines: done.lines,
-        orderNumbers: Object.fromEntries(collections.map((r) => [r.orderId, r.orderNumber])),
+        orderNumbers: Object.fromEntries(awaiting.map((r) => [r.orderId, r.orderNumber])),
       })
+      detail.reload()
       onSettled()
     }
   }
 
-  // Returns for this courier / run
-  const courierReturns = failedParcels.filter(
-    (s) => s.activeRun?.batchId === runId || (runOrderIds && runOrderIds.includes(s.orderId)) || !s.activeRun
-  )
+  const refreshAfterReturn = () => {
+    detail.reload()
+    onSettled()
+  }
 
-  const allCashSettled = receipt !== null || collections.length === 0
-  const allReturnsReconciled = courierReturns.length === 0
-  const isFullyReconciled = allCashSettled && allReturnsReconciled
+  const state = run?.state
+  const [stateLabel, stateTone] = state ? RUN_SETTLEMENT_STATE[state] ?? [state, 'neutral' as const] : ['', 'neutral' as const]
+  const returns: ReturnParcel[] = run?.pendingReturns ?? []
+  const counted = run?.settlements ?? []
+  const cashDue = awaiting.length > 0 && !receipt
 
   return (
     <div
@@ -1791,226 +1804,246 @@ function SettlementDrawer({
       <div
         className={cn(
           'bg-bw-surface text-bw-ink border-bw-line shadow-bw-overlay flex flex-col',
-          // Desktop: side drawer on right
-          'md:ms-auto md:me-0 md:h-dvh md:max-h-dvh md:w-[min(38rem,100%)] md:border-s',
+          // Desktop: compact side drawer
+          'md:ms-auto md:me-0 md:h-dvh md:max-h-dvh md:w-[min(28rem,100%)] md:border-s',
           // Mobile: bottom sheet
           'max-md:mx-auto max-md:mb-0 max-md:mt-auto max-md:max-h-[92dvh] max-md:w-full max-md:rounded-t-bw-card max-md:border-t'
         )}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-bw-line px-5 py-4">
-          <div className="flex items-center gap-2.5">
-            <div className="grid size-8 place-items-center rounded-lg bg-bw-cobalt/15 text-bw-cobalt">
-              <Wallet className="size-4" />
-            </div>
-            <div>
-              <h2 id="settlement-drawer-title" className="text-base font-bold text-bw-ink">
-                تسوية عهدة: {runId ? `مشوار #${shortId(runId)} — ` : ''}{courierName}
-              </h2>
-              <p className="text-[11px] text-bw-ink-subtle">
-                مرجع العدّ <Code>{reference.current}</Code>
-              </p>
+        <div className="flex items-start justify-between gap-3 border-b border-bw-line px-4 py-3">
+          <div className="min-w-0 space-y-1">
+            <h2 id="settlement-drawer-title" className="text-sm font-bold text-bw-ink">
+              تسوية {runId ? <>مشوار <Code>#{shortId(runId)}</Code> — </> : null}{courierName}
+            </h2>
+            <div className="flex flex-wrap items-center gap-2 text-[11px] text-bw-ink-subtle">
+              {state ? <StatusLabel tone={stateTone}>{stateLabel}</StatusLabel> : null}
+              {cashDue ? <span>مرجع العدّ <Code>{reference.current}</Code></span> : null}
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="إغلاق"
-            className="grid size-8 place-items-center rounded-full text-bw-ink-soft hover:bg-bw-sunken hover:text-bw-ink cursor-pointer transition-colors"
+            className="grid size-8 shrink-0 place-items-center rounded-full text-bw-ink-soft hover:bg-bw-sunken hover:text-bw-ink cursor-pointer transition-colors"
           >
             <X className="size-5" />
           </button>
         </div>
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-6">
-          {/* Status summary banner */}
+        <div className="flex-1 space-y-4 overflow-y-auto p-4 text-xs">
+          {runId && detail.loading && !run ? <Skeleton className="h-24 w-full rounded-bw-card" /> : null}
+          {runId && detail.error ? <LoadError message={detail.error.message} onRetry={detail.reload} /> : null}
+
+          {/* Compact summary: only what this run actually has */}
+          {run ? (
+            <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-bw-field border border-bw-line bg-bw-line sm:grid-cols-4">
+              <div className="bg-bw-surface p-2.5">
+                <dt className="text-[11px] text-bw-ink-subtle">اتسلّم</dt>
+                <dd className="font-mono text-sm font-bold">{run.stops.delivered}<span className="text-[11px] font-normal text-bw-ink-subtle"> / {run.stops.total}</span></dd>
+              </div>
+              <div className="bg-bw-surface p-2.5">
+                <dt className="text-[11px] text-bw-ink-subtle">نقدية متوقعة</dt>
+                <dd className="font-mono text-sm font-bold">
+                  {run.cash.codOrders > 0 ? <Egp value={run.cash.expectedTotal} /> : <span className="text-[11px] font-normal text-bw-ink-soft">بدون تحصيل</span>}
+                </dd>
+              </div>
+              <div className="bg-bw-surface p-2.5">
+                <dt className="text-[11px] text-bw-ink-subtle">{run.cash.codOrders > 0 && run.cash.counted === run.cash.codOrders ? 'اتعدّ' : 'أعلن المندوب'}</dt>
+                <dd className="font-mono text-sm font-bold">
+                  {run.cash.codOrders === 0 ? '—' : <Egp value={run.cash.counted === run.cash.codOrders ? run.cash.countedTotal : run.cash.declaredTotal} />}
+                </dd>
+              </div>
+              <div className="bg-bw-surface p-2.5">
+                <dt className="text-[11px] text-bw-ink-subtle">مرتجعات</dt>
+                <dd className="font-mono text-sm font-bold">
+                  {run.stops.pendingReturns + run.stops.returnedToHub}
+                  {run.stops.pendingReturns > 0 ? <span className="text-[11px] font-normal text-bw-danger"> ({run.stops.pendingReturns} مفتوح)</span> : null}
+                </dd>
+              </div>
+            </dl>
+          ) : null}
+
+          {/* Explicit status: what is left, or that the run is ready to close */}
+          {run && run.state !== 'completed' ? (
+            run.blockers.length > 0 ? (
+              <Notice tone={run.state === 'reconciliation_required' ? 'warn' : 'info'} title="المتبقي قبل إغلاق المشوار">
+                <ul className="list-disc space-y-0.5 ps-4">
+                  {run.blockers.map((b) => (
+                    <li key={b.code}>{(RUN_BLOCKER[b.code] ?? (() => b.code))(b.count)}</li>
+                  ))}
+                </ul>
+              </Notice>
+            ) : (
+              <Notice tone="ok" title="كل الالتزامات متطابقة — المشوار جاهز للإغلاق">
+                {run.cash.codOrders === 0
+                  ? [
+                      run.stops.delivered > 0 ? `اتسلّم ${run.stops.delivered} طلب بدون تحصيل نقدي` : 'مافيش نقدية مستحقة',
+                      run.stops.returnedToHub > 0 ? `استلم المخزن ${run.stops.returnedToHub} مرتجع` : null,
+                    ].filter(Boolean).join(' — ') + '.'
+                  : 'النقدية اتعدّت والمرتجعات رجعت المخزن.'}
+              </Notice>
+            )
+          ) : null}
+          {run?.state === 'completed' ? <Notice tone="ok" title="المشوار مغلق ومُسوّى بالكامل" /> : null}
+
           {receipt ? (
             <Notice
               tone={Number(receipt.round.variance) === 0 ? 'ok' : 'warn'}
               title={
                 Number(receipt.round.variance) === 0
-                  ? 'تم تسجيل التسوية بنجاح وبدون فروق'
-                  : `تم تسجيل التسوية مع فرق: ${Number(receipt.round.variance) > 0 ? 'زيادة' : 'عجز'} ${Math.abs(Number(receipt.round.variance)).toLocaleString('en-US')} ج.م — محال للمراجعة الإدارية`
+                  ? 'تم تسجيل العدّ بدون فروق'
+                  : `تم تسجيل العدّ مع فرق: ${Number(receipt.round.variance) > 0 ? 'زيادة' : 'عجز'} ${Math.abs(Number(receipt.round.variance)).toLocaleString('en-US')} ج.م — محال للمراجعة الإدارية`
               }
             >
-              مرجع التسوية: <Code>{receipt.reference}</Code> · المبلغ المعدود:{' '}
-              <Egp value={receipt.round.countedTotal} />
+              مرجع <Code>{receipt.reference}</Code> · المعدود <Egp value={receipt.round.countedTotal} />
             </Notice>
           ) : null}
 
-          {/* Section 1: Cash Collection Settlement */}
-          <div className="space-y-3.5">
-            <div className="flex items-center justify-between border-b border-bw-line pb-2">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-bw-ink-soft flex items-center gap-1.5">
-                <Wallet className="size-3.5 text-bw-cobalt" />
-                <span>العهدة النقدية المستحقة (COD)</span>
-              </h3>
-              <span className="text-[11px] text-bw-ink-subtle">
-                {collections.length} طلبات
-              </span>
-            </div>
+          {/* Cash to count: shown only when there is cash to count */}
+          {cashDue ? (
+            <form onSubmit={handleCashSubmit} className="space-y-3">
+              <div className="flex items-center justify-between border-b border-bw-line pb-1.5">
+                <h3 className="flex items-center gap-1.5 text-xs font-bold text-bw-ink-soft">
+                  <Wallet className="size-3.5 text-bw-cobalt" aria-hidden />
+                  <span>عدّ النقدية ({awaiting.length} طلب)</span>
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setShowOrders((v) => !v)}
+                  className="flex items-center gap-1 text-[11px] font-semibold text-bw-cobalt hover:underline cursor-pointer"
+                  aria-expanded={showOrders}
+                >
+                  {showOrders ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
+                  <span>{showOrders ? 'إخفاء الطلبات' : 'عرض الطلبات'}</span>
+                </button>
+              </div>
 
-            {collections.length > 0 && !receipt ? (
-              <form onSubmit={handleCashSubmit} className="space-y-4">
-                {/* Orders Breakdown */}
-                <div className="rounded-bw-field border border-bw-line overflow-hidden divide-y divide-bw-line text-xs">
-                  {collections.map((r) => (
-                    <div key={r.orderId} className="flex items-center justify-between p-2.5 bg-bw-sunken/30">
-                      <div>
-                        <span className="font-semibold text-bw-ink font-mono">
-                          {r.orderNumber.replace(/^ORD-/, '#')}
-                        </span>
-                        <div className="text-[11px] text-bw-ink-subtle">
-                          أعلن المندوب: <Egp value={r.declaredAmount} />
-                        </div>
-                      </div>
-                      <div className="text-end">
-                        <span className="font-bold text-bw-ink font-mono">
-                          <Egp value={r.expectedAmount} />
-                        </span>
-                        <span className="block text-[10px] text-bw-ink-subtle">متوقع</span>
-                      </div>
+              {showOrders ? (
+                <div className="divide-y divide-bw-line overflow-hidden rounded-bw-field border border-bw-line">
+                  {awaiting.map((r) => (
+                    <div key={r.orderId} className="flex items-center justify-between bg-bw-sunken/30 px-2.5 py-1.5">
+                      <span className="font-mono font-semibold">{r.orderNumber.replace(/^ORD-/, '#')}</span>
+                      <span className="text-bw-ink-subtle">
+                        أعلن <Egp value={r.declared} /> · متوقع <Egp value={r.expected} className="font-bold text-bw-ink" />
+                      </span>
                     </div>
                   ))}
                 </div>
+              ) : null}
 
-                {/* Totals Summary */}
-                <div className="rounded-bw-card border border-bw-line bg-bw-sunken/50 p-3 space-y-1.5 text-xs">
-                  <div className="flex justify-between">
-                    <span className="text-bw-ink-soft">إجمالي المتوقع تحصيله:</span>
-                    <span className="font-bold text-bw-ink font-mono"><Egp value={expectedTotal} /></span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-bw-ink-soft">إجمالي ما أعلنه المندوب:</span>
-                    <span className="font-bold text-bw-ink font-mono"><Egp value={declaredTotal} /></span>
-                  </div>
-                </div>
-
-                {/* Actual Count Input */}
-                <div className="space-y-1.5">
-                  <Field
-                    label="المبلغ المستلم والمعدود فعلياً من المندوب"
-                    ltr
-                    inputMode="decimal"
-                    placeholder="0.00"
-                    value={countedInput}
-                    onChange={(e) => setCountedInput(e.target.value)}
-                    hint="أدخل المبلغ الإجمالي الذي تم استلامه وعدّه في الخزينة لهذا المشوار"
-                  />
-                </div>
-
-                {/* Live Variance Calculation */}
-                {variance !== null ? (
-                  variance === 0 ? (
-                    <div className="flex items-center gap-2 rounded-lg bg-bw-ok/10 border border-bw-ok/30 p-2.5 text-xs text-bw-ok">
-                      <Check className="size-4" />
-                      <span className="font-semibold">المبلغ مطابق للمتوقع تماماً (0.00 ج.م)</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2 rounded-lg bg-bw-warn/10 border border-bw-warn/30 p-2.5 text-xs text-bw-warn">
-                      <AlertTriangle className="size-4" />
-                      <span>
-                        يوجد {variance > 0 ? 'زيادة' : 'عجز'} بقيمة{' '}
-                        <strong className="font-mono">{Math.abs(variance).toLocaleString('en-US')} ج.م</strong>{' '}
-                        عن المتوقع — سيتم قيد المبلغ المستلم وتسجيل الفرق للمراجعة الإدارية.
-                      </span>
-                    </div>
-                  )
-                ) : null}
-
-                {/* Staff Notes */}
-                <div className="space-y-1">
-                  <Field
-                    label="ملاحظات التسوية (اختياري)"
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder="أي ملاحظات حول العدّ أو الفروق..."
-                  />
-                </div>
-
-                <Button
-                  type="submit"
-                  loading={settle.pending}
-                  disabled={!isInputValid}
-                  className="w-full text-xs font-semibold py-2.5"
-                >
-                  <ShieldCheck className="size-4" />
-                  <span>
-                    تأكيد عدّ النقدية وتأكيد التسوية ({isInputValid ? `${amount} ج.م` : '—'})
-                  </span>
-                </Button>
-
-                <CommandError error={settle.error} />
-              </form>
-            ) : collections.length === 0 ? (
-              <div className="rounded-bw-field border border-bw-line bg-bw-sunken/30 p-3 text-center text-xs text-bw-ink-soft">
-                لا توجد مبالغ نقدية معلقة مستحقة من هذا المندوب.
+              <div className="flex justify-between rounded-bw-field bg-bw-sunken/50 px-2.5 py-2">
+                <span className="text-bw-ink-soft">المتوقع <Egp value={expectedTotal} className="font-bold text-bw-ink" /></span>
+                <span className="text-bw-ink-soft">أعلن المندوب <Egp value={declaredTotal} className="font-bold text-bw-ink" /></span>
               </div>
-            ) : null}
-          </div>
 
-          {/* Section 2: Returned Parcels Physical Reconciliation */}
-          <div className="space-y-3.5 pt-2">
-            <div className="flex items-center justify-between border-b border-bw-line pb-2">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-bw-ink-soft flex items-center gap-1.5">
-                <RotateCcw className="size-3.5 text-bw-danger" />
-                <span>مطابقة واستلام الطرود المرتجعة</span>
+              <Field
+                label="المبلغ المعدود فعلياً من المندوب"
+                ltr
+                inputMode="decimal"
+                placeholder="0.00"
+                value={countedInput}
+                onChange={(e) => setCountedInput(e.target.value)}
+              />
+
+              {variance !== null ? (
+                variance === 0 ? (
+                  <div className="flex items-center gap-2 rounded-lg border border-bw-ok/30 bg-bw-ok/10 p-2 text-bw-ok">
+                    <Check className="size-4" aria-hidden />
+                    <span className="font-semibold">مطابق للمتوقع تماماً</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 rounded-lg border border-bw-warn/30 bg-bw-warn/10 p-2 text-bw-warn">
+                    <AlertTriangle className="size-4 shrink-0" aria-hidden />
+                    <span>
+                      {variance > 0 ? 'زيادة' : 'عجز'} <strong className="font-mono">{Math.abs(variance).toLocaleString('en-US')} ج.م</strong> عن المتوقع — يُسجَّل الفرق للمراجعة الإدارية.
+                    </span>
+                  </div>
+                )
+              ) : null}
+
+              <Field
+                label="ملاحظات (اختياري)"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="أي ملاحظات حول العدّ أو الفروق..."
+              />
+
+              <Button type="submit" loading={settle.pending} disabled={!isInputValid} className="w-full py-2 text-xs font-semibold">
+                <ShieldCheck className="size-4" aria-hidden />
+                <span>تأكيد العدّ {isInputValid ? `(${amount} ج.م)` : ''}</span>
+              </Button>
+              <CommandError error={settle.error} />
+            </form>
+          ) : null}
+
+          {/* Cash already counted for this run */}
+          {counted.length > 0 ? (
+            <div className="space-y-1.5">
+              <h3 className="flex items-center gap-1.5 text-xs font-bold text-bw-ink-soft">
+                <CheckCircle2 className="size-3.5 text-bw-ok" aria-hidden />
+                <span>النقدية المعدودة</span>
               </h3>
-              <span className="text-[11px] text-bw-ink-subtle">
-                {courierReturns.length} طرد
-              </span>
+              {counted.map((s) => (
+                <div key={s.id} className="flex flex-wrap items-center justify-between gap-2 rounded-bw-field border border-bw-line px-2.5 py-1.5">
+                  <span className="text-bw-ink-subtle"><Code>{s.reference}</Code> · {formatDateTime(s.settledAt)}</span>
+                  <span className="flex items-center gap-2">
+                    <Egp value={s.countedTotal} className="font-bold" />
+                    {s.variance === 0 ? (
+                      <StatusLabel tone="ok">مطابق</StatusLabel>
+                    ) : (
+                      <StatusLabel tone="warn">{s.variance < 0 ? 'عجز' : 'زيادة'} {Math.abs(s.variance).toLocaleString('en-US')}</StatusLabel>
+                    )}
+                  </span>
+                </div>
+              ))}
             </div>
+          ) : null}
 
-            {courierReturns.length === 0 ? (
-              <div className="rounded-bw-field border border-bw-line bg-bw-sunken/30 p-3 text-center text-xs text-bw-ink-soft">
-                لا توجد طرود مرتجعة معلقة لهذا المندوب.
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <p className="text-[11px] text-bw-ink-subtle">
-                  امسح باركود البوليصة لتأكيد وصول الطرد فيزيائياً للمخزن. لن يُغلق الالتزام تلقائياً بدون مطابقة الباركود.
-                </p>
-                {courierReturns.map((s) => (
-                  <ReturnReconcileItem key={s.shipmentId} shipment={s} onReconciled={onSettled} />
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Section 3: Final Trip Closure */}
-          {runId && isFullyReconciled ? (
-            <div className="rounded-bw-card border border-bw-ok/40 bg-bw-ok/10 p-4 space-y-3 animate-in fade-in">
-              <div className="flex items-center gap-2 text-bw-ok font-semibold text-xs">
-                <CheckCircle2 className="size-4" />
-                <span>تمت تسوية جميع الالتزامات (النقدية والمرتجعات) بنجاح!</span>
-              </div>
-              <p className="text-xs text-bw-ink-soft">
-                يمكنك الآن إغلاق المشوار نهائياً وتحويله إلى سجل المشاوير المغلقة.
+          {/* Failed parcels still with the courier: scan to take them back */}
+          {returns.length > 0 ? (
+            <div className="space-y-2">
+              <h3 className="flex items-center gap-1.5 text-xs font-bold text-bw-ink-soft">
+                <RotateCcw className="size-3.5 text-bw-danger" aria-hidden />
+                <span>مرتجعات لسه مع المندوب ({returns.length})</span>
+              </h3>
+              <p className="text-[11px] text-bw-ink-subtle">
+                امسح باركود البوليصة لتأكيد وصول الطرد للمخزن. لا يُقفل الالتزام بدون مطابقة الباركود.
               </p>
+              {returns.map((s) => (
+                <ReturnReconcileItem key={s.shipmentId} shipment={s} onReconciled={refreshAfterReturn} />
+              ))}
+            </div>
+          ) : null}
+        </div>
+
+        {/* Footer: the primary action is the one the server allows */}
+        <div className="flex items-center justify-between gap-2 border-t border-bw-line bg-bw-surface px-4 py-3">
+          <Button variant="secondary" size="sm" onClick={onClose} className="text-xs">
+            إغلاق
+          </Button>
+          {runId && run && run.state !== 'completed' ? (
+            <div className="flex flex-col items-end gap-1">
               <Button
                 variant="primary"
+                size="sm"
                 loading={completeRun.pending}
+                disabled={!run.canComplete}
                 onClick={async () => {
                   if (await completeRun.execute()) {
                     onSettled()
                     onClose()
                   }
                 }}
-                className="w-full text-xs"
+                className="text-xs font-semibold"
               >
-                <span>إغلاق المشوار نهائياً (Complete Trip)</span>
+                <CheckCircle2 className="size-4" aria-hidden />
+                <span>إغلاق المشوار</span>
               </Button>
               <CommandError error={completeRun.error} />
             </div>
           ) : null}
-        </div>
-
-        {/* Footer */}
-        <div className="border-t border-bw-line p-4 flex justify-end gap-2 bg-bw-surface">
-          <Button variant="secondary" size="sm" onClick={onClose} className="text-xs">
-            إغلاق
-          </Button>
         </div>
       </div>
     </div>
@@ -2025,7 +2058,7 @@ function ReturnReconcileItem({
   shipment,
   onReconciled,
 }: {
-  shipment: HubShipment
+  shipment: ReturnParcel
   onReconciled: () => void
 }) {
   const [barcode, setBarcode] = React.useState('')
@@ -2069,9 +2102,7 @@ function ReturnReconcileItem({
         <span className="font-bold text-bw-ink font-mono">{orderNum}</span>
         <span className="text-[11px] text-bw-danger font-semibold">تعذر التوصيل</span>
       </div>
-      <div className="text-[11px] text-bw-ink-subtle">
-        {shipment.area ? `${shipment.area}، ` : ''}{shipment.governorate || ''}
-      </div>
+      {shipment.area ? <div className="text-[11px] text-bw-ink-subtle">{shipment.area}</div> : null}
 
       <div className="space-y-1.5">
         <div className="flex items-center gap-1.5">
@@ -2130,7 +2161,6 @@ function ReturnReconcileItem({
    ───────────────────────────────────────────────────────────── */
 
 function SettlementHistoryDrawer({
-  hubId,
   batches,
   driverName,
   loading,

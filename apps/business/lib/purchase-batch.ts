@@ -43,7 +43,7 @@ export interface BatchOverview {
 
 export const ACTION_LABEL: Record<Exclude<BatchAction, null>, string> = {
   send: 'تأكيد الطلب',
-  receive: 'تسجيل الاستلام',
+  receive: 'تسجيل الشراء',
   close: 'إقفال',
 }
 

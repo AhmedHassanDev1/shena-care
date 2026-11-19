@@ -248,7 +248,12 @@ describe('Delivery MVP: dispatch, verified handoff, courier delivery, COD settle
     // The hub's run list: the failed parcel is still an open attempt until it is taken back, but nothing is left for the courier to attempt.
     const listed = (await http().get(`/fulfillment/locations/${locationId}/runs`).set(hub.auth).expect(200)).body.items.find((r: any) => r.id === first);
     expect(listed).toMatchObject({ toAttempt: 0, attempts: { delivered: 1, active: 1 } });
-    await http().post(`/fulfillment/delivery-batches/${first}/complete`).set(hub.auth).expect(201);
+    // The run is not settled: declared cash is uncounted and the failed parcel is still in the courier's hands, so it cannot be closed.
+    expect(listed.settlement).toMatchObject({ state: 'reconciliation_required', canComplete: false, stops: { delivered: 1, pendingReturns: 1 } });
+    const refused = await http().post(`/fulfillment/delivery-batches/${first}/complete`).set(hub.auth).expect(409);
+    expect(refused.body).toMatchObject({ code: 'RUN_NOT_SETTLED', state: 'reconciliation_required' });
+    expect(refused.body.blockers.map((blocker: { code: string }) => blocker.code)).toEqual(expect.arrayContaining(['PENDING_RETURNS', 'CASH_AWAITING_COUNT']));
+    expect((await prisma.deliveryBatch.findUniqueOrThrow({ where: { id: first } })).status).toBe('dispatched');
 
     // Back at the hub (scanned), retried on a second run with the other courier, and delivered.
     await shipmentEvent(b.shipmentId, { type: 'RECEIVED_BACK', barcode: b.barcode }, d1.auth).expect(403);
@@ -257,7 +262,7 @@ describe('Delivery MVP: dispatch, verified handoff, courier delivery, COD settle
     await shipmentEvent(b.shipmentId, { type: 'DELIVERED', collectedAmount: b.cod }, d1.auth).expect(res => expect([403, 404]).toContain(res.status));
     await shipmentEvent(b.shipmentId, { type: 'DELIVERED', collectedAmount: b.cod }, d2.auth).expect(201);
     expect((await prisma.deliveryStop.findMany({ where: { shipmentId: b.shipmentId }, orderBy: { createdAt: 'asc' } })).map(s => s.status)).toEqual(['failed', 'delivered']);
-    await http().post(`/fulfillment/delivery-batches/${second}/complete`).set(hub.auth).expect(201);
+    await http().post(`/fulfillment/delivery-batches/${second}/complete`).set(hub.auth).expect(409); // its cash is still uncounted
     expect(await prisma.orderStatusEvent.count({ where: { orderId: b.orderId, status: 'shipped' } })).toBe(1);
     expect((await prisma.order.findUniqueOrThrow({ where: { id: b.orderId } })).status).toBe('delivered');
 
@@ -280,5 +285,108 @@ describe('Delivery MVP: dispatch, verified handoff, courier delivery, COD settle
     expect((await http().get('/ordering/settlements/rounds/open').set(hub.auth).expect(200)).body.filter((r: any) => [d1.id, d2.id].includes(r.courierId))).toEqual([]);
     // Customer prices and COD amounts are exactly what was confirmed at checkout.
     for (const p of [a, b]) expect(Number((await prisma.order.findUniqueOrThrow({ where: { id: p.orderId } })).codAmount)).toBe(p.cod);
+
+    // Both runs are settled now (cash counted, the failed parcel was taken back), so each can be closed - once.
+    for (const id of [first, second]) {
+      expect((await http().get(`/fulfillment/delivery-batches/${id}/settlement`).set(hub.auth).expect(200)).body).toMatchObject({ state: 'settled', canComplete: true, blockers: [] });
+      await http().post(`/fulfillment/delivery-batches/${id}/complete`).set(hub.auth).expect(201);
+      expect((await http().get(`/fulfillment/delivery-batches/${id}/settlement`).set(hub.auth).expect(200)).body).toMatchObject({ state: 'completed', canComplete: false });
+      await http().post(`/fulfillment/delivery-batches/${id}/complete`).set(hub.auth).expect(400); // already closed
+    }
+  });
+
+  it('settlement states: an empty trip, outstanding cash, pending returns, a counted COD delivery and a valid zero-COD delivery', async () => {
+    const dispatchRun = async (parcels: Packed[], driver: Actor, name: string) => {
+      const batch = (await http().post('/fulfillment/delivery-batches').set(hub.auth).send({ hubId: locationId, name, driverId: driver.id }).expect(201)).body as { id: string };
+      await http().post(`/fulfillment/delivery-batches/${batch.id}/stops`).set(hub.auth).send({ stops: parcels.map((p, i) => ({ shipmentId: p.shipmentId, sequence: i + 1 })) }).expect(201);
+      for (const p of parcels) await handoff(batch.id, p.barcode, driver.auth).expect(201);
+      await http().post(`/fulfillment/delivery-batches/${batch.id}/dispatch`).set(hub.auth).expect(201);
+      return batch.id;
+    };
+    const settlement = async (id: string) => (await http().get(`/fulfillment/delivery-batches/${id}/settlement`).set(hub.auth).expect(200)).body;
+    const complete = (id: string) => http().post(`/fulfillment/delivery-batches/${id}/complete`).set(hub.auth);
+
+    // 1. An empty trip (no parcels at all) is never settled or completable, and no round can be "settled" for it.
+    const empty = await prisma.deliveryBatch.create({ data: { status: 'dispatched', driverId: d1.id, locationId, dispatchedAt: new Date() } });
+    expect(await settlement(empty.id)).toMatchObject({ state: 'pending', canComplete: false, canSettleCash: false, blockers: [{ code: 'NO_STOPS' }] });
+    expect((await complete(empty.id).expect(409)).body).toMatchObject({ code: 'RUN_NOT_SETTLED' });
+    expect((await http().post('/ordering/settlements/rounds').set(hub.auth).send({ courierId: d1.id, locationId, runId: empty.id, reference: 'R-' + randomUUID(), countedTotal: 0 }).expect(409)).body.code).toBe('NO_OPEN_ROUND');
+    await http().post('/ordering/settlements/rounds').set(hub.auth).send({ courierId: d1.id, locationId, runId: randomUUID(), reference: 'R-' + randomUUID(), countedTotal: 0 }).expect(404);
+
+    // 2. Parcels still on the road: pending, nothing to settle yet.
+    const cod = await packedOrder(MAADI_A); const failed = await packedOrder(MAADI_B);
+    const mixed = await dispatchRun([cod, failed], d1, 'Mixed');
+    expect(await settlement(mixed)).toMatchObject({ state: 'pending', canComplete: false, stops: { inTransit: 2, delivered: 0 } });
+    await complete(mixed).expect(400); // the courier still has parcels to attempt
+
+    // 3. COD delivered + one failed parcel still in the courier's hands: reconciliation required, cash outstanding.
+    await shipmentEvent(cod.shipmentId, { type: 'DELIVERED', collectedAmount: cod.cod }, d1.auth).expect(201);
+    await shipmentEvent(failed.shipmentId, { type: 'FAILED', reasonCode: 'CUSTOMER_UNREACHABLE' }, d1.auth).expect(201);
+    const reconciling = await settlement(mixed);
+    expect(reconciling).toMatchObject({ state: 'reconciliation_required', canComplete: false, canSettleCash: true, stops: { delivered: 1, pendingReturns: 1 } });
+    expect(reconciling.cash).toMatchObject({ codOrders: 1, awaitingCount: 1, expectedTotal: cod.cod, declaredTotal: cod.cod });
+    expect(reconciling.pendingReturns).toEqual([expect.objectContaining({ shipmentId: failed.shipmentId, orderNumber: failed.orderNumber })]);
+    await complete(mixed).expect(409);
+
+    // 4. Count the cash: still blocked by the pending return. The counted round is scoped to this run's delivered cash.
+    const counted = await http().post('/ordering/settlements/rounds').set(hub.auth).send({ courierId: d1.id, locationId, runId: mixed, reference: 'R-' + randomUUID(), countedTotal: cod.cod }).expect(201);
+    expect(counted.body).toMatchObject({ variance: '0.00' });
+    expect(await settlement(mixed)).toMatchObject({ state: 'reconciliation_required', canSettleCash: false, canComplete: false, blockers: [{ code: 'PENDING_RETURNS', count: 1 }] });
+    expect((await settlement(mixed)).settlements).toEqual([expect.objectContaining({ countedTotal: cod.cod, variance: 0 })]);
+    await complete(mixed).expect(409);
+
+    // 5. Take the failed parcel back: the run is settled and closes.
+    await shipmentEvent(failed.shipmentId, { type: 'RECEIVED_BACK', barcode: failed.barcode }, hub.auth).expect(201);
+    expect(await settlement(mixed)).toMatchObject({ state: 'settled', canComplete: true, blockers: [], cash: { counted: 1, variance: 0 } });
+    await complete(mixed).expect(201);
+    expect(await settlement(mixed)).toMatchObject({ state: 'completed' });
+
+    // 6. A valid zero-COD trip: a prepaid parcel really delivered. Nothing to count, yet it is settled and closes honestly.
+    const prepaid = await packedOrder(MAADI_A);
+    // Planned as a normal order, then settled online before the run leaves: no driver cash is ever due for it (GLO-241).
+    const zeroBatch = (await http().post('/fulfillment/delivery-batches').set(hub.auth).send({ hubId: locationId, name: 'Prepaid', driverId: d2.id }).expect(201)).body as { id: string };
+    await http().post(`/fulfillment/delivery-batches/${zeroBatch.id}/stops`).set(hub.auth).send({ stops: [{ shipmentId: prepaid.shipmentId, sequence: 1 }] }).expect(201);
+    await handoff(zeroBatch.id, prepaid.barcode, d2.auth).expect(201);
+    const paidOrder = await prisma.order.update({ where: { id: prepaid.orderId }, data: { paymentMethod: 'CARD', codAmount: 0 } });
+    await prisma.paymentAttempt.create({ data: { orderId: paidOrder.id, method: 'CARD', provider: 'test-card-psp', reference: 'PAID-' + randomUUID().slice(0, 12), amount: paidOrder.totalAmount, currency: paidOrder.currency, status: 'confirmed', confirmedAt: new Date() } });
+    await http().post(`/fulfillment/delivery-batches/${zeroBatch.id}/dispatch`).set(hub.auth).expect(201);
+    const zero = zeroBatch.id;
+    expect(await settlement(zero)).toMatchObject({ state: 'pending', canComplete: false });
+    await shipmentEvent(prepaid.shipmentId, { type: 'DELIVERED' }, d2.auth).expect(201);
+    const zeroCod = await settlement(zero);
+    expect(zeroCod).toMatchObject({ state: 'settled', canComplete: true, canSettleCash: false, stops: { delivered: 1 }, cash: { codOrders: 0, zeroCodDeliveries: 1 } });
+    expect(await prisma.paymentCollection.count({ where: { orderId: prepaid.orderId } })).toBe(0);
+    await http().post('/ordering/settlements/rounds').set(hub.auth).send({ courierId: d2.id, locationId, runId: zero, reference: 'R-' + randomUUID(), countedTotal: 0 }).expect(409); // no cash to "settle"
+    await complete(zero).expect(201);
+
+    // 7. A trip whose only parcel failed and was taken back has nothing to settle and closes (no cash was ever due).
+    const returned = await packedOrder(MAADI_B);
+    const back = await dispatchRun([returned], d2, 'Returned');
+    await shipmentEvent(returned.shipmentId, { type: 'FAILED', reasonCode: 'CUSTOMER_UNREACHABLE' }, d2.auth).expect(201);
+    expect(await settlement(back)).toMatchObject({ state: 'reconciliation_required', stops: { pendingReturns: 1, delivered: 0 } });
+    await shipmentEvent(returned.shipmentId, { type: 'RECEIVED_BACK', barcode: returned.barcode }, hub.auth).expect(201);
+    expect(await settlement(back)).toMatchObject({ state: 'settled', canComplete: true, cash: { codOrders: 0, zeroCodDeliveries: 0 } });
+    // Who may close a settled run: nobody unauthenticated, no customer, not another courier or another hub; its own courier, its hub and admin can.
+    const customer = await createActor(prisma, Role.CUSTOMER);
+    await http().post(`/fulfillment/delivery-batches/${back}/complete`).expect(401);
+    await http().post(`/fulfillment/delivery-batches/${back}/complete`).set(customer.auth).expect(403);
+    await http().post(`/fulfillment/delivery-batches/${back}/complete`).set(d1.auth).expect(404);
+    await http().post(`/fulfillment/delivery-batches/${back}/complete`).set(otherHub.auth).expect(404);
+    expect((await prisma.deliveryBatch.findUniqueOrThrow({ where: { id: back } })).status).toBe('dispatched');
+    await http().post(`/fulfillment/delivery-batches/${back}/complete`).set(d2.auth).expect(201); // its own courier, once it is settled
+    expect((await prisma.deliveryBatch.findUniqueOrThrow({ where: { id: back } })).completedAt).toBeInstanceOf(Date);
+
+    // The settlement read is staff-only and hub-scoped: customers, couriers and other hubs get nothing.
+    await http().get(`/fulfillment/delivery-batches/${mixed}/settlement`).expect(401);
+    await http().get(`/fulfillment/delivery-batches/${mixed}/settlement`).set(customer.auth).expect(403);
+    await http().get(`/fulfillment/delivery-batches/${mixed}/settlement`).set(d1.auth).expect(403);
+    await http().get(`/fulfillment/delivery-batches/${mixed}/settlement`).set(otherHub.auth).expect(404);
+    await http().get(`/fulfillment/delivery-batches/${mixed}/settlement`).set(admin.auth).expect(200);
+    await http().get('/fulfillment/delivery-batches/not-a-uuid/settlement').set(hub.auth).expect(404);
+    // Another hub cannot count or close this hub's run cash either.
+    await http().post('/ordering/settlements/rounds').set(otherHub.auth).send({ courierId: d1.id, locationId, runId: zero, reference: 'R-' + randomUUID(), countedTotal: 0 }).expect(403);
+
+    // A closed run cannot be re-opened by a late count or closed twice.
+    await complete(back).expect(400);
   });
 });

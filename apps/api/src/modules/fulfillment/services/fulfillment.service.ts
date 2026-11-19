@@ -14,6 +14,7 @@ import { OutboxService } from '../../operations/services/outbox.service';
 import { SupportService } from '../../operations/services/support.service';
 import { expiryProblem } from './receiving-policy';
 import { derivePrintState, PRINT_EVENT_TYPES_FOR_STATE } from './print-state';
+import { assessRunSettlement } from './run-settlement';
 
 /** What the service receives: the supplier-goods endpoint still requires the printed expiry (the DTO); the Hub desk's preparation flow does not capture it. */
 export type ReceiveAllocatedGoodsInput = Omit<ReceiveAllocatedGoodsDto, 'expiryDate'> & { expiryDate?: string };
@@ -1632,14 +1633,70 @@ export class FulfillmentService {
         throw new BadRequestException('Cannot complete batch until all shipments are in a terminal state (delivered, failed, returned)');
       }
 
-      return tx.deliveryBatch.update({
-        where: { id: batchId },
-        data: {
-          status: 'completed',
-          completedAt: new Date()
-        }
+      // A run closes only when it is settled: it had real delivery outcomes, the cash of every delivered COD order is counted
+      // and every failed parcel is back at the hub. An empty or half-reconciled run is never "complete".
+      const assessment = await this.assessRun(batch.status, batch.stops);
+      if (!assessment.canComplete) {
+        throw new ConflictException({
+          code: 'RUN_NOT_SETTLED', message: 'The run still has open settlement items and cannot be completed',
+          state: assessment.state, blockers: assessment.blockers,
+        });
+      }
+
+      // Claimed atomically so two concurrent closers cannot both complete (or re-complete) the run.
+      const claimed = await tx.deliveryBatch.updateMany({
+        where: { id: batchId, status: 'dispatched' },
+        data: { status: 'completed', completedAt: new Date() },
       });
+      if (claimed.count !== 1) throw new ConflictException('The run was completed concurrently');
+      return tx.deliveryBatch.findUniqueOrThrow({ where: { id: batchId } });
     });
+  }
+
+  /** The one settlement answer for a run, from its stops and the cash of the orders it delivered (see run-settlement.ts). */
+  private async assessRun(runStatus: string, stops: Array<{ status: string; shipmentId: string; shipment: { status: string; orderId: string } }>) {
+    const collections = await this.reconciliation.getCollectionFacts(stops.map(stop => stop.shipment.orderId));
+    return assessRunSettlement({
+      runStatus,
+      stops: stops.map(stop => ({ stopStatus: stop.status, shipmentStatus: stop.shipment.status, shipmentId: stop.shipmentId, orderId: stop.shipment.orderId })),
+      collections,
+    });
+  }
+
+  /**
+   * Settlement position of one run for the hub (and its settlement drawer): which parcels were delivered, which cash is still to
+   * be counted, which failed parcels are still in the courier's hands, and exactly what blocks closing the run.
+   */
+  async getRunSettlement(batchId: string, actor: FulfillmentActor) {
+    if (!this.isUuid(batchId)) throw new NotFoundException('Batch not found');
+    const batch = await this.prisma.deliveryBatch.findUnique({ where: { id: batchId }, include: { stops: { orderBy: { sequence: 'asc' }, include: { shipment: true } } } });
+    if (!batch) throw new NotFoundException('Batch not found');
+    if (await this.resolveBatchScope(batch, actor) === 'driver') throw new ForbiddenException('Hub access is required');
+    const orderIds = batch.stops.map(stop => stop.shipment.orderId);
+    const [collections, orders] = await Promise.all([this.reconciliation.getCollectionFacts(orderIds), this.orderingService.getOrderSummaries(orderIds)]);
+    const assessment = assessRunSettlement({
+      runStatus: batch.status,
+      stops: batch.stops.map(stop => ({ stopStatus: stop.status, shipmentStatus: stop.shipment.status, shipmentId: stop.shipmentId, orderId: stop.shipment.orderId })),
+      collections,
+    });
+    const collectionOf = new Map(collections.map(c => [c.orderId, c]));
+    const delivered = batch.stops.filter(stop => stop.status === 'delivered' || (stop.status === 'active' && stop.shipment.status === 'delivered'));
+    return {
+      runId: batch.id, runStatus: batch.status, driverId: batch.driverId, locationId: batch.locationId, completedAt: batch.completedAt,
+      ...assessment,
+      // The delivered orders with the cash side of each (no cash row = nothing was owed at the door).
+      deliveredOrders: delivered.map(stop => {
+        const collection = collectionOf.get(stop.shipment.orderId);
+        const owed = collection && collection.status !== 'voided';
+        return {
+          orderId: stop.shipment.orderId, orderNumber: orders.get(stop.shipment.orderId)?.orderNumber ?? null,
+          cash: owed ? { status: collection.status, expectedAmount: collection.expectedAmount, declaredAmount: collection.declaredAmount, countedAmount: collection.countedAmount } : null,
+        };
+      }),
+      pendingReturns: batch.stops
+        .filter(stop => assessment.pendingReturnShipmentIds.includes(stop.shipmentId))
+        .map(stop => ({ shipmentId: stop.shipmentId, orderId: stop.shipment.orderId, orderNumber: orders.get(stop.shipment.orderId)?.orderNumber ?? null, area: orders.get(stop.shipment.orderId)?.area ?? null })),
+    };
   }
 
   // --- Hub work queues (GLO-239): read-only, scoped to an assigned hub, no customer PII ---
@@ -1702,9 +1759,21 @@ export class FulfillmentService {
     const [total, rows] = await Promise.all([
       this.prisma.deliveryBatch.count({ where }),
       this.prisma.deliveryBatch.findMany({ where, orderBy: { createdAt: 'desc' }, take: filter.take, skip: filter.skip,
-        include: { stops: { select: { status: true, shipment: { select: { orderId: true, status: true } } } } } }),
+        include: { stops: { select: { status: true, shipmentId: true, shipment: { select: { orderId: true, status: true } } } } } }),
     ]);
+    // One cash lookup for the whole page, so every run row carries the same settlement answer the drawer and the Complete gate use.
+    const collections = await this.reconciliation.getCollectionFacts([...new Set(rows.flatMap(run => run.stops.map(stop => stop.shipment.orderId)))]);
+    const collectionOf = new Map(collections.map(c => [c.orderId, c]));
     return { total, items: rows.map(run => ({
+      settlement: (() => {
+        const a = assessRunSettlement({
+          runStatus: run.status,
+          stops: run.stops.map(stop => ({ stopStatus: stop.status, shipmentStatus: stop.shipment.status, shipmentId: stop.shipmentId, orderId: stop.shipment.orderId })),
+          collections: run.stops.map(stop => collectionOf.get(stop.shipment.orderId)).filter((c): c is NonNullable<typeof c> => !!c),
+        });
+        // The list carries the headline only; order ids, counted rounds and parcel ids come from the run's own settlement read.
+        return { state: a.state, stops: a.stops, cash: { ...a.cash, awaitingCountOrderIds: undefined }, blockers: a.blockers, canSettleCash: a.canSettleCash, canComplete: a.canComplete };
+      })(),
       id: run.id, status: run.status, driverId: run.driverId, plannedAt: run.plannedAt, dispatchedAt: run.dispatchedAt, completedAt: run.completedAt,
       stops: run.stops.length,
       stopOrderIds: run.stops.map(s => s.shipment.orderId),

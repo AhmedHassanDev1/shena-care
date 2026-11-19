@@ -3,16 +3,16 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { ArrowRight, Check, ChevronDown, Copy, ExternalLink, MessageCircle, Package, Printer, RefreshCw, Undo2 } from 'lucide-react'
+import { ArrowRight, Check, ChevronDown, Copy, MessageCircle, Printer, RefreshCw, Undo2 } from 'lucide-react'
 import { Button, Code, Field, Notice, PageHeader, Skeleton, StateBlock, StatusLabel } from '@/components/bw/primitives'
-import { Flash, Meter } from '@/components/bw/ops'
+import { Flash } from '@/components/bw/ops'
 import { ProductIdentity } from '@/components/bw/product-card'
 import { CommandError, Page } from '@/components/workspace/kit'
 import { LoadError, RoleShell } from '@/components/workspace/role-shell'
 import { api, newKey } from '@/lib/api'
 import { formatDateTime, shortId } from '@/lib/labels'
 import {
-  batchPrintHtml, categoryLabel, fromLocalInput, openLines, orderedLines, productUrl, purchaseLineName, purchaseListText, purchaseTotals, STATUS_LABEL, textureLabel, toLocalInput,
+  batchPrintHtml, fromLocalInput, openLines, orderedLines, purchaseLineName, purchaseListText, purchaseTotals, STATUS_LABEL, toLocalInput,
   tomorrowMidday, whatsappUrl,
   type BatchDetail, type BatchLine,
 } from '@/lib/purchase-batch'
@@ -27,8 +27,9 @@ export default function BatchPage() {
   )
 }
 
+// `received` is the stored event type of a purchase count (history keeps it); the screen words it as what it is: a purchase.
 const EVENT_LABEL: Record<string, string> = {
-  created: 'اتقفلت الدفعة', sent: 'اتأكد إن الدفعة اتطلبت', details: 'اتعدّل الموعد أو الملاحظة', received: 'اتسجّل استلام',
+  created: 'اتقفلت الدفعة', sent: 'اتأكد إن الدفعة اتطلبت', details: 'اتعدّل الموعد أو الملاحظة', received: 'اتسجّل شراء',
   unavailable: 'اتسجّل إنه مش متاح', closed: 'اتقفلت',
 }
 
@@ -59,7 +60,10 @@ function BatchBody() {
   const { data, error, loading, reload } = useApi<BatchDetail>(id ? `/purchase-batches/${id}` : null, { pollMs: 20000 })
   const [copied, setCopied] = React.useState<'ok' | 'failed' | null>(null)
 
+  // `rows` are the lines still to buy (what is copied, shared, printed and bulk-selected); `lines` is every line of the batch, open ones first,
+  // so what was bought, closed out or parked as unavailable stays on the same list instead of a second one.
   const rows = React.useMemo(() => (data ? openLines(data) : []), [data])
+  const lines = React.useMemo(() => (data ? [...rows, ...orderedLines(data).filter((line) => line.remaining === 0)] : []), [data, rows])
   const hasOpen = rows.length > 0
   const totals = data ? purchaseTotals(data) : null
 
@@ -101,6 +105,7 @@ function BatchBody() {
             <span>{formatDateTime(data.cutoffAt)}</span>
             <span><Code>{totals.products}</Code> منتج</span>
             <span><Code>{totals.units}</Code> قطعة</span>
+            {data.status !== 'ready' ? <span>اتشترى <Code>{data.received}/{data.units}</Code></span> : null}
             {data.expectedAt && data.status !== 'closed' ? <span>وصول متوقع {formatDateTime(data.expectedAt)}</span> : null}
           </span>
         ) : undefined}
@@ -128,29 +133,32 @@ function BatchBody() {
       {data ? (
         <>
           {data.status === 'closed' ? (
-            <Notice tone={data.closeReason === 'cancelled' ? 'info' : 'ok'} title={data.closeReason === 'cancelled' ? 'الدفعة اتقفلت من غير استلام' : 'الدفعة اتقفلت'}>
-              {data.closeReason === 'cancelled' ? 'طلباتها اتلغت أو اتسجّلت مش متاحة، فمفيش حاجة مستنية.' : `اتستلم ${data.received} من ${data.units} قطعة، والباقي اتحسم.`}
+            <Notice tone={data.closeReason === 'cancelled' ? 'info' : 'ok'} title={data.closeReason === 'cancelled' ? 'الدفعة اتقفلت من غير شراء' : 'الدفعة اتقفلت'}>
+              {data.closeReason === 'cancelled' ? 'طلباتها اتلغت أو اتسجّلت مش متاحة، فمفيش حاجة مستنية.' : `اتشترى ${data.received} من ${data.units} قطعة، والباقي اتحسم.`}
               {data.closedAt ? <> · {formatDateTime(data.closedAt)}</> : null}
             </Notice>
           ) : null}
 
           <section aria-label="قائمة المشتريات" className="bw-panel overflow-hidden">
-            {hasOpen ? (
+            {lines.length ? (
               <>
-                <SelectionBar batch={data} rows={rows} selected={selected} onToggleAll={toggleAll} onCopy={(text) => void copyText(text)} onChanged={reload} />
+                {hasOpen ? <SelectionBar batch={data} rows={rows} selected={selected} onToggleAll={toggleAll} onCopy={(text) => void copyText(text)} onChanged={reload} /> : null}
                 <ul className="divide-y divide-bw-line">
-                  {rows.map((line) => <PurchaseRow key={line.id} line={line} checked={selected.has(line.id)} onToggle={() => toggle(line.id)} />)}
+                  {lines.map((line) => <PurchaseRow key={line.id} batch={data} line={line} checked={selected.has(line.id)} onToggle={() => toggle(line.id)} onChanged={reload} />)}
                 </ul>
+                {data.status === 'sent' ? (
+                  <p className="border-t border-bw-line px-4 py-2 text-[12px] text-bw-ink-subtle">
+                    «تم الشراء» بيسجّل إنك اشتريت بس. الوصول الفعلي للمخزن والتكلفة النهائية بيتأكدوا في «الطلبات والتجهيز» بمسح الباركود.
+                  </p>
+                ) : null}
               </>
             ) : (
-              <StateBlock kind="empty" title={data.status === 'closed' ? 'مفيش حاجة للشراء في الدفعة دي' : 'كل أصناف الدفعة اتشترت أو اتحسمت'}
-                body={data.status === 'closed' ? undefined : 'التفاصيل في «تسجيل الاستلام» تحت.'} />
+              <StateBlock kind="empty" title="مفيش حاجة للشراء في الدفعة دي" />
             )}
           </section>
 
           {data.status === 'ready' ? <SendBar batch={data} onChanged={reload} /> : null}
 
-          <ReceivingSection batch={data} onChanged={reload} />
           <BatchDetails batch={data} onChanged={reload} />
         </>
       ) : null}
@@ -158,45 +166,181 @@ function BatchBody() {
   )
 }
 
-const tagTone = {
-  violet: 'bg-bw-violet-soft text-bw-violet border-bw-violet/25',
-  amber: 'bg-bw-amber-soft text-bw-amber border-bw-amber/25',
-  cobalt: 'bg-bw-cobalt-soft text-bw-cobalt border-bw-cobalt/25',
-} as const
-
-/** A small colored label: category (violet), texture (amber), size (cobalt). Colour is never the only carrier: each tag has its own words. */
-function Tag({ tone, children }: { tone: keyof typeof tagTone; children: React.ReactNode }) {
-  return <span className={cn('inline-flex items-center rounded-full border px-2 text-[11px] font-semibold leading-5', tagTone[tone])}>{children}</span>
-}
-
-const imageSrc = (url: string) => (url.startsWith('/') ? `${(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/$/, '')}${url}` : url)
+const money = (value: number) => (Math.round(value * 100) / 100).toFixed(2)
+const AMOUNT = /^\d+(\.\d{1,2})?$/
 
 /**
- * How one product is shown everywhere on this page: photo, the brand right beside the name, size and texture as small tags, and a link
- * to its storefront page. Tags carry the size only when the name does not already say it.
+ * One product on the purchase list: select box, the product, the numbers (required / bought / left / orders) and, while there is
+ * something left to buy on a confirmed batch, the actions. Buying records what staff hold in hand (a partial count is fine; «مش متاح»
+ * parks what is left for the customer decision flow) and may carry the price paid and the supplier discount. A line that is done
+ * shows how it ended; a parked one offers «لقيته». Nothing here marks a unit as physically received: that is the desk's barcode scan.
  */
-function ProductCell({ line }: { line: BatchLine }) {
-  return <ProductIdentity item={line} />
+function PurchaseRow({ batch, line, checked, onToggle, onChanged }: { batch: BatchDetail; line: BatchLine; checked: boolean; onToggle: () => void; onChanged: () => void }) {
+  const open = line.remaining > 0
+  const canAct = batch.status === 'sent' && open
+  const parked = line.orders.some((order) => order.state === 'unavailable')
+  const [quantity, setQuantity] = React.useState(String(line.remaining))
+  const [listPrice, setListPrice] = React.useState('')
+  const [discountPercent, setDiscountPercent] = React.useState('')
+  const [showCost, setShowCost] = React.useState(false)
+  const [showOrders, setShowOrders] = React.useState(false)
+  const [confirmUnavailable, setConfirmUnavailable] = React.useState(false)
+  const [message, setMessage] = React.useState<{ tone: 'ok' | 'warn'; text: string } | null>(null)
+  // One key per physical count: a retry after a lost response replays instead of counting twice; a new number or price is a new count.
+  const key = React.useRef(newKey())
+  React.useEffect(() => { setQuantity(String(line.remaining)); key.current = newKey() }, [line.remaining])
+
+  const qty = Number(quantity)
+  const valid = Number.isInteger(qty) && qty >= 1 && qty <= line.remaining
+  const over = Number.isInteger(qty) && qty > line.remaining
+  const priceGiven = listPrice !== ''
+  const priceOk = !priceGiven || (AMOUNT.test(listPrice) && Number(listPrice) >= 0.01 && Number(listPrice) <= 100000)
+  const percent = discountPercent === '' ? 0 : Number(discountPercent)
+  const percentOk = discountPercent === '' || (AMOUNT.test(discountPercent) && percent < 100)
+  const discountPerUnit = priceGiven && priceOk && percentOk ? Math.round(Number(listPrice) * percent) / 100 : 0
+  const finalCost = priceGiven && priceOk && percentOk ? Number(listPrice) - discountPerUnit : null
+  const costOk = priceOk && percentOk && (finalCost === null || finalCost > 0)
+
+  const receive = useCommand(() => api<{ replayed: boolean }>(`/purchase-batches/${batch.id}/lines/${line.id}/receive`, {
+    body: { quantity: qty, idempotencyKey: key.current, ...(priceGiven && finalCost !== null ? { cost: { listUnitPrice: Number(listPrice), discountPerUnit } } : {}) },
+  }))
+  const unavailable = useCommand(() => api(`/purchase-batches/${batch.id}/lines/${line.id}/unavailable`, { body: {} }))
+  const reopen = useCommand(() => api('/buy-list/reopen', { body: { skuId: line.skuId, orderIds: line.orders.filter((o) => o.state === 'unavailable').map((o) => o.orderId) } }))
+  const busy = receive.pending || unavailable.pending || reopen.pending
+  const stale = receive.error?.code === 'EXCEEDS_OUTSTANDING' || receive.error?.code === 'NOTHING_OUTSTANDING'
+    ? 'الكمية المتبقية اتغيّرت (طلب اتلغى أو اتعدّل). اتحدّثت بالأرقام الحالية.' : null
+
+  const submit = async () => {
+    setMessage(null)
+    const result = await receive.execute()
+    if (result) {
+      key.current = newKey()
+      setShowCost(false); setListPrice(''); setDiscountPercent('')
+      setMessage({ tone: 'ok', text: `اتسجّل شراء ${qty} قطعة.` })
+    }
+    onChanged() // a stale count (cancelled order, another purchase) is refreshed so the next try uses the fresh numbers
+  }
+
+  return (
+    <li className={cn('px-3 py-2 sm:px-4', (checked || !open) && 'bg-bw-veil-1')}>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        {open
+          ? <input type="checkbox" className="size-4 shrink-0 accent-bw-action" checked={checked} onChange={onToggle} aria-label={`تحديد ${purchaseLineName(line).full}`} />
+          : <span className="size-4 shrink-0" aria-hidden />}
+        <div className="min-w-0 flex-1 basis-52"><ProductIdentity item={line} size="sm" /></div>
+
+        <div className="flex shrink-0 items-center gap-3.5 text-center">
+          <Stat label="مطلوب" value={line.required} />
+          <Stat label="اتشترى" value={line.received} tone={line.received > 0 ? 'ok' : undefined} />
+          <Stat label="فاضل" value={line.remaining} tone={line.remaining > 0 ? 'warn' : undefined} />
+          <button type="button" aria-expanded={showOrders} aria-label={`الطلبات (${line.orders.length})`} onClick={() => setShowOrders((v) => !v)}
+            className="flex flex-col items-center gap-0.5 rounded-bw-field px-1 hover:bg-bw-sunken">
+            <span className="text-[11px] leading-4 text-bw-ink-subtle">طلبات</span>
+            <span className="flex items-center gap-0.5 text-bw-body font-semibold leading-5 text-bw-ink"><Code>{line.orders.length}</Code><ChevronDown className={cn('size-3 text-bw-ink-subtle transition-transform duration-200', showOrders && 'rotate-180')} aria-hidden /></span>
+          </button>
+        </div>
+
+        <div className="flex basis-full flex-wrap items-center gap-2 md:basis-auto md:min-w-[18.5rem] md:justify-end">
+          {canAct ? (
+            <form className="flex flex-wrap items-center gap-2" onSubmit={(event) => { event.preventDefault(); void submit() }}>
+              <input
+                aria-label="الكمية اللي اتشترت" dir="ltr" inputMode="numeric" autoComplete="off" value={quantity} aria-invalid={over || undefined}
+                onChange={(event) => { setQuantity(event.target.value.replace(/[^\d]/g, '')); key.current = newKey() }}
+                className={cn('bw-control h-9 w-14 rounded-bw-field border bg-bw-page/60 text-center text-bw-body font-semibold tabular-nums text-bw-ink', over ? 'border-bw-danger' : 'border-bw-line-field')}
+              />
+              <Button type="submit" size="sm" loading={receive.pending} disabled={!valid || !costOk || busy}>تم الشراء</Button>
+              <button type="button" aria-expanded={showCost} onClick={() => setShowCost((v) => !v)}
+                className="h-9 rounded-bw-field px-2 text-[12px] font-semibold text-bw-ink-soft transition-colors hover:bg-bw-sunken hover:text-bw-ink">
+                السعر والخصم
+              </button>
+              {confirmUnavailable ? (
+                <span className="flex items-center gap-1.5">
+                  <Button type="button" variant="danger" size="sm" loading={unavailable.pending} disabled={busy} onClick={async () => { if (await unavailable.execute()) { setConfirmUnavailable(false); onChanged() } }}>تأكيد: <Code>{line.remaining}</Code> مش متاح</Button>
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setConfirmUnavailable(false)} disabled={busy}>رجوع</Button>
+                </span>
+              ) : (
+                <button type="button" disabled={busy} onClick={() => setConfirmUnavailable(true)} className="h-9 rounded-bw-field px-2 text-[12px] font-semibold text-bw-danger transition-colors hover:bg-bw-danger-soft">مش متاح</button>
+              )}
+              {showCost ? (
+                <div className="flex basis-full flex-wrap items-end gap-x-3 gap-y-1.5 rounded-bw-field border border-bw-line bg-bw-surface px-2.5 py-2">
+                  <label className="flex flex-col gap-0.5 text-[11px] text-bw-ink-subtle">
+                    سعر القائمة للوحدة (ج.م)
+                    <input dir="ltr" inputMode="decimal" autoComplete="off" value={listPrice} aria-invalid={!priceOk || undefined}
+                      onChange={(event) => { setListPrice(event.target.value.replace(/[^\d.]/g, '')); key.current = newKey() }}
+                      className={cn('bw-control h-9 w-28 rounded-bw-field border bg-bw-page/60 text-center text-bw-body font-semibold tabular-nums text-bw-ink', priceOk ? 'border-bw-line-field' : 'border-bw-danger')} />
+                  </label>
+                  <label className="flex flex-col gap-0.5 text-[11px] text-bw-ink-subtle">
+                    خصم المورد %
+                    <input dir="ltr" inputMode="decimal" autoComplete="off" value={discountPercent} disabled={!priceGiven} aria-invalid={!percentOk || undefined}
+                      onChange={(event) => { setDiscountPercent(event.target.value.replace(/[^\d.]/g, '')); key.current = newKey() }}
+                      className={cn('bw-control h-9 w-20 rounded-bw-field border bg-bw-page/60 text-center text-bw-body font-semibold tabular-nums text-bw-ink disabled:opacity-50', percentOk ? 'border-bw-line-field' : 'border-bw-danger')} />
+                  </label>
+                  <p className="pb-2 text-[12px] text-bw-ink-soft" aria-live="polite">
+                    {finalCost !== null && costOk ? <>التكلفة بعد الخصم <Code className="font-semibold text-bw-ink">{money(finalCost)}</Code> ج.م للوحدة</> : priceGiven && !costOk ? 'السعر أو الخصم مش مظبوط' : 'اختياري: ممكن يتسجّل بعدين وقت المسح'}
+                  </p>
+                </div>
+              ) : null}
+              {over ? <p role="alert" className="basis-full text-[12px] text-bw-danger">أكتر من المتبقي (<Code>{line.remaining}</Code>)</p> : null}
+            </form>
+          ) : open ? null : (
+            <>
+              {parked
+                ? <StatusLabel tone="warn">مش متاح — العميل هيتسأل</StatusLabel>
+                : line.closedOut > 0
+                  ? <StatusLabel tone="warn">مش هيوصل <Code>{line.closedOut}</Code> قطعة</StatusLabel>
+                  : <StatusLabel tone="ok">اتشترى بالكامل</StatusLabel>}
+              {parked ? (
+                <button type="button" disabled={busy} onClick={async () => { if (await reopen.execute()) { setMessage({ tone: 'ok', text: 'رجع للقائمة — هيدخل في الدفعة الجاية' }); onChanged() } }}
+                  className="inline-flex h-9 items-center gap-1 rounded-bw-field px-2 text-[12px] font-semibold text-bw-cobalt hover:bg-bw-sunken">
+                  <Undo2 className="size-3.5" aria-hidden />لقيته — رجّعه للقائمة
+                </button>
+              ) : null}
+            </>
+          )}
+        </div>
+      </div>
+
+      {message || stale || receive.error || unavailable.error || reopen.error ? (
+        <div className="mt-2 space-y-2">
+          {message ? <Flash tone={message.tone}>{message.text}</Flash> : null}
+          {stale ? <Flash tone="warn">{stale}</Flash> : <CommandError error={receive.error ?? unavailable.error ?? reopen.error} />}
+        </div>
+      ) : null}
+
+      {showOrders ? (
+        <ul className="mt-2 divide-y divide-bw-line rounded-bw-field border border-bw-line bg-bw-surface">
+          {line.orders.map((order) => (
+            <li key={order.orderItemId} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-1.5 text-bw-small">
+              <Code className="font-semibold text-bw-ink">{order.orderNumber.replace(/^ORD-/, '#')}</Code>
+              <span className="text-bw-ink-soft">مطلوب <Code>{order.quantity}</Code></span>
+              <span className="text-bw-ink-soft">اتشترى <Code>{order.received}</Code></span>
+              <span className="ms-auto">
+                <StatusLabel tone={order.state === 'received' ? 'ok' : order.state === 'pending' ? 'pending' : 'warn'}>{orderStateLabel[order.state]}</StatusLabel>
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </li>
+  )
 }
 
-/** One product to buy: a checkbox, the quantity as the loudest thing on the row, then the product. */
-function PurchaseRow({ line, checked, onToggle }: { line: BatchLine; checked: boolean; onToggle: () => void }) {
+// Per order line: «اتشترى» only means the units were bought and are on their way; the desk's barcode scan is what receives them.
+const orderStateLabel = { received: 'اتشترى', pending: 'مستني', unavailable: 'مش متاح', cancelled: 'اتلغى' } as const
+
+function Stat({ label, value, tone }: { label: string; value: number; tone?: 'ok' | 'warn' }) {
   return (
-    <li className={cn('flex items-center gap-2.5 px-3 py-2.5 sm:gap-3 sm:px-4', checked && 'bg-bw-veil-1')}>
-      <input type="checkbox" className="size-4 shrink-0 accent-bw-action" checked={checked} onChange={onToggle} aria-label={`تحديد ${purchaseLineName(line).full}`} />
-      <p className="flex w-10 shrink-0 items-baseline justify-center gap-0.5 text-bw-ink sm:w-12" aria-label={`الكمية ${line.remaining}`}>
-        <bdi className="bw-code text-[1.5rem] font-semibold leading-none tabular-nums">{line.remaining}</bdi>
-        <span className="text-bw-small text-bw-ink-subtle" aria-hidden>×</span>
-      </p>
-      <ProductCell line={line} />
-    </li>
+    <p className="flex min-w-9 flex-col items-center gap-0.5">
+      <span className="text-[11px] leading-4 text-bw-ink-subtle">{label}</span>
+      <span className={cn('text-bw-body font-semibold leading-5 tabular-nums', tone === 'ok' ? 'text-bw-emerald' : tone === 'warn' ? 'text-bw-amber' : 'text-bw-ink')}><bdi className="bw-code">{value}</bdi></span>
+    </p>
   )
 }
 
 /**
  * Select all / pick some, then act on just those: copy or share their text, or (once the order is confirmed) record each as bought at
- * its remaining quantity through the same per-line receive call the receiving section uses. Nothing is selected by default, so the
- * header's copy button keeps copying the whole list.
+ * its remaining quantity through the same per-line purchase call the row uses. Nothing is selected by default, so the header's copy
+ * button keeps copying the whole list.
  */
 function SelectionBar({ batch, rows, selected, onToggleAll, onCopy, onChanged }: {
   batch: BatchDetail; rows: BatchLine[]; selected: ReadonlySet<string>; onToggleAll: () => void; onCopy: (text: string) => void; onChanged: () => void
@@ -224,12 +368,12 @@ function SelectionBar({ batch, rows, selected, onToggleAll, onCopy, onChanged }:
     setBusy(false); setConfirming(false)
     setResult(failed.length
       ? { tone: 'warn', text: `اتسجّل ${done} من ${chosen.length}. مااتسجّلش: ${failed.join('، ')}. الأرقام اتحدّثت، جرّب تاني.` }
-      : { tone: 'ok', text: `اتسجّل شراء ${units} قطعة لـ ${done} منتج. الوصول الفعلي والتكلفة بيتسجّلوا في «الطلبات والتجهيز» وقت المسح.` })
+      : { tone: 'ok', text: `اتسجّل شراء ${units} قطعة لـ ${done} منتج.` })
     onChanged()
   }
 
   return (
-    <div className="border-b border-bw-line px-4 py-2">
+    <div className="border-b border-bw-line px-4 py-1.5">
       <div className="flex min-h-9 flex-wrap items-center gap-x-3 gap-y-2">
         <label className="flex items-center gap-3 text-bw-small font-semibold text-bw-ink-soft">
           <input ref={boxRef} type="checkbox" className="size-4 accent-bw-action" checked={all} onChange={onToggleAll} />
@@ -288,38 +432,6 @@ function SendBar({ batch, onChanged }: { batch: BatchDetail; onChanged: () => vo
   )
 }
 
-/**
- * Recording what was physically bought belongs after the order is confirmed, so the section only exists then (plus a ready batch
- * that holds a line parked as unavailable, whose «لقيته» action must stay reachable). It is open while a batch is being received.
- */
-function ReceivingSection({ batch, onChanged }: { batch: BatchDetail; onChanged: () => void }) {
-  const parked = batch.lines.some((line) => line.orders.some((order) => order.state === 'unavailable'))
-  if (batch.status === 'ready' && !parked) return null
-  const lines = orderedLines(batch).filter((line) => batch.status !== 'ready' || line.orders.some((order) => order.state === 'unavailable'))
-  return (
-    <details className="group bw-panel" open={batch.status === 'sent'}>
-      <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 py-2 [&::-webkit-details-marker]:hidden">
-        <span className="min-w-0">
-          <span className="block text-bw-body font-semibold text-bw-ink">تسجيل الاستلام</span>
-          <span className="block text-[12px] text-bw-ink-soft">اتشترى <Code>{batch.received}/{batch.units}</Code> قطعة</span>
-        </span>
-        <span className="flex items-center gap-3">
-          <Meter className="hidden w-28 sm:block" value={batch.received} max={batch.units} tone={batch.remaining === 0 ? 'emerald' : 'cobalt'} label={`اتستلم ${batch.received} من ${batch.units}`} />
-          <ChevronDown className="size-4 text-bw-ink-soft transition-transform duration-200 group-open:rotate-180" aria-hidden />
-        </span>
-      </summary>
-      <div className="border-t border-bw-line">
-        <div className="hidden grid-cols-[minmax(0,1fr)_4.5rem_4.5rem_4.5rem_minmax(0,19rem)] gap-x-4 border-b border-bw-line px-4 py-2 text-[12px] font-semibold text-bw-ink-soft md:grid">
-          <span>الصنف</span><span className="text-center">مطلوب</span><span className="text-center">اتشترى</span><span className="text-center">فاضل</span><span />
-        </div>
-        <ul className="divide-y divide-bw-line">
-          {lines.map((line) => <LineRow key={line.id} batch={batch} line={line} onChanged={onChanged} />)}
-        </ul>
-      </div>
-    </details>
-  )
-}
-
 /** Who confirmed the order, the expected arrival and note (editable until the batch closes) and the audit log: all optional reading. */
 function BatchDetails({ batch, onChanged }: { batch: BatchDetail; onChanged: () => void }) {
   const [editing, setEditing] = React.useState(false)
@@ -374,130 +486,5 @@ function BatchDetails({ batch, onChanged }: { batch: BatchDetail; onChanged: () 
         </ul>
       </div>
     </details>
-  )
-}
-
-const orderStateLabel = { received: 'اتستلم', pending: 'مستني', unavailable: 'مش متاح', cancelled: 'اتلغى' } as const
-
-function LineRow({ batch, line, onChanged }: { batch: BatchDetail; line: BatchLine; onChanged: () => void }) {
-  const [quantity, setQuantity] = React.useState(String(line.remaining))
-  const [confirmUnavailable, setConfirmUnavailable] = React.useState(false)
-  const [showOrders, setShowOrders] = React.useState(false)
-  const [message, setMessage] = React.useState<{ tone: 'ok' | 'warn'; text: string } | null>(null)
-  const inputId = React.useId()
-  // One key per physical count: a retry after a lost response replays instead of counting twice; a new number is a new count.
-  const key = React.useRef(newKey())
-  React.useEffect(() => { setQuantity(String(line.remaining)); key.current = newKey() }, [line.remaining])
-
-  const receive = useCommand(() => api<{ replayed: boolean }>(`/purchase-batches/${batch.id}/lines/${line.id}/receive`, {
-    body: { quantity: Number(quantity), idempotencyKey: key.current },
-  }))
-  const unavailable = useCommand(() => api(`/purchase-batches/${batch.id}/lines/${line.id}/unavailable`, { body: {} }))
-  const reopen = useCommand(() => api('/buy-list/reopen', { body: { skuId: line.skuId, orderIds: line.orders.filter((o) => o.state === 'unavailable').map((o) => o.orderId) } }))
-
-  const qty = Number(quantity)
-  const valid = Number.isInteger(qty) && qty >= 1 && qty <= line.remaining
-  const over = Number.isInteger(qty) && qty > line.remaining
-  const busy = receive.pending || unavailable.pending || reopen.pending
-  const canReceive = batch.status === 'sent' && line.remaining > 0
-  const parked = line.orders.some((order) => order.state === 'unavailable')
-  const stale = receive.error?.code === 'EXCEEDS_OUTSTANDING' || receive.error?.code === 'NOTHING_OUTSTANDING'
-    ? 'الكمية المتبقية اتغيّرت (طلب اتلغى أو اتعدّل). اتحدّثت بالأرقام الحالية.' : null
-  const done = line.remaining === 0
-
-  const submit = async () => {
-    setMessage(null)
-    const result = await receive.execute()
-    if (result) {
-      key.current = newKey()
-      setMessage({ tone: 'ok', text: `اتسجّل شراء ${qty} قطعة. الوصول الفعلي والتكلفة بيتسجّلوا في «الطلبات والتجهيز» وقت المسح.` })
-      onChanged()
-    } else onChanged() // a stale count (cancelled order, another receipt) is refreshed so the next try uses the fresh numbers
-  }
-
-  return (
-    <li className={cn('px-4 py-3.5', done && 'bg-bw-veil-1')}>
-      <div className="grid gap-x-4 gap-y-3 md:grid-cols-[minmax(0,1fr)_4.5rem_4.5rem_4.5rem_minmax(0,19rem)] md:items-center">
-        <div className="min-w-0">
-          <ProductCell line={line} />
-          <p className="mt-1 flex flex-wrap items-center gap-x-3 text-[12px] text-bw-ink-subtle">
-            <Code>{line.skuCode ?? shortId(line.skuId)}</Code>
-            {line.barcode ? <Code>{line.barcode}</Code> : null}
-            <button type="button" aria-expanded={showOrders} onClick={() => setShowOrders((v) => !v)} className="inline-flex items-center gap-1 font-semibold text-bw-ink-soft hover:text-bw-ink">
-              <Code>{line.orders.length}</Code> طلب<ChevronDown className={cn('size-3.5 transition-transform duration-200', showOrders && 'rotate-180')} aria-hidden />
-            </button>
-          </p>
-        </div>
-
-        <Qty label="مطلوب" value={line.required} />
-        <Qty label="اتشترى" value={line.received} tone={line.received > 0 ? 'ok' : undefined} />
-        <Qty label="فاضل" value={line.remaining} tone={line.remaining > 0 ? 'warn' : undefined} />
-
-        <div className="min-w-0">
-          {canReceive ? (
-            <form className="flex flex-wrap items-center gap-2" onSubmit={(event) => { event.preventDefault(); void submit() }}>
-              <label htmlFor={inputId} className="sr-only">الكمية اللي اتشترت</label>
-              <input
-                id={inputId} dir="ltr" inputMode="numeric" autoComplete="off" value={quantity} aria-invalid={over || undefined}
-                onChange={(event) => { setQuantity(event.target.value.replace(/[^\d]/g, '')); key.current = newKey() }}
-                className={cn('bw-control h-bw-control w-16 rounded-bw-field border bg-bw-page/60 text-center text-bw-body font-semibold tabular-nums text-bw-ink', over ? 'border-bw-danger' : 'border-bw-line-field')}
-              />
-              <Button type="submit" loading={receive.pending} disabled={!valid || busy} className="flex-1 sm:flex-none">تم الشراء</Button>
-              {confirmUnavailable ? (
-                <span className="flex items-center gap-1.5">
-                  <Button type="button" variant="danger" size="sm" loading={unavailable.pending} disabled={busy} onClick={async () => { if (await unavailable.execute()) { setConfirmUnavailable(false); onChanged() } }}>تأكيد: العميل هيتسأل</Button>
-                  <Button type="button" variant="ghost" size="sm" onClick={() => setConfirmUnavailable(false)} disabled={busy}>رجوع</Button>
-                </span>
-              ) : (
-                <button type="button" disabled={busy} onClick={() => setConfirmUnavailable(true)} className="h-9 rounded-bw-field px-2 text-[12px] font-semibold text-bw-danger transition-colors hover:bg-bw-danger-soft">مش متاح</button>
-              )}
-              {over ? <p role="alert" className="basis-full text-[12px] text-bw-danger">أكتر من المتبقي (<Code>{line.remaining}</Code>)</p> : null}
-            </form>
-          ) : (
-            <p className="text-[12px] text-bw-ink-subtle md:text-end">
-              {line.remaining > 0 ? '' : line.closedOut > 0
-                ? <>مش هيوصل: <Code>{line.closedOut}</Code> قطعة</> : 'اكتمل'}
-            </p>
-          )}
-          {parked ? (
-            <button type="button" disabled={busy} onClick={async () => { if (await reopen.execute()) { setMessage({ tone: 'ok', text: 'رجع للقائمة — هيدخل في الدفعة الجاية' }); onChanged() } }}
-              className="mt-1.5 inline-flex items-center gap-1 text-[12px] font-semibold text-bw-cobalt hover:underline md:float-end">
-              <Undo2 className="size-3.5" aria-hidden />لقيته — رجّعه للقائمة
-            </button>
-          ) : null}
-        </div>
-      </div>
-
-      {message || stale || receive.error || unavailable.error || reopen.error ? (
-        <div className="mt-3 space-y-2">
-          {message ? <Flash tone={message.tone}>{message.text}</Flash> : null}
-          {stale ? <Flash tone="warn">{stale}</Flash> : <CommandError error={receive.error ?? unavailable.error ?? reopen.error} />}
-        </div>
-      ) : null}
-
-      {showOrders ? (
-        <ul className="mt-3 divide-y divide-bw-line rounded-bw-field border border-bw-line bg-bw-veil-1">
-          {line.orders.map((order) => (
-            <li key={order.orderItemId} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-2 text-bw-small">
-              <Code className="font-semibold text-bw-ink">{order.orderNumber.replace(/^ORD-/, '#')}</Code>
-              <span className="text-bw-ink-soft">مطلوب <Code>{order.quantity}</Code></span>
-              <span className="text-bw-ink-soft">وصل <Code>{order.received}</Code></span>
-              <span className="ms-auto">
-                <StatusLabel tone={order.state === 'received' ? 'ok' : order.state === 'pending' ? 'pending' : 'warn'}>{orderStateLabel[order.state]}</StatusLabel>
-              </span>
-            </li>
-          ))}
-        </ul>
-      ) : null}
-    </li>
-  )
-}
-
-function Qty({ label, value, tone }: { label: string; value: number; tone?: 'ok' | 'warn' }) {
-  return (
-    <p className="flex items-baseline justify-between gap-2 md:block md:text-center">
-      <span className="text-[12px] text-bw-ink-subtle md:hidden">{label}</span>
-      <span className={cn('text-[1.25rem] font-semibold leading-none tabular-nums', tone === 'ok' ? 'text-bw-emerald' : tone === 'warn' ? 'text-bw-amber' : 'text-bw-ink')}><bdi className="bw-code">{value}</bdi></span>
-    </p>
   )
 }
