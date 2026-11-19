@@ -67,23 +67,25 @@ export interface DriverRun {
   stops: DriverStop[]
 }
 
-type TabFilter = 'all' | 'custody' | 'delivered'
+type TabFilter = 'pickup' | 'custody' | 'delivered' | 'all'
 
 /**
  * Driver Workspace — My Trips (مشاويري)
- * Built to match the approved visual reference exactly:
- * - 3-column top metrics bar (في العهدة / تم التسليم / إجمالي المشوار)
- * - Simple filter pills bar (الكل / في العهدة / تم التسليم)
- * - Single-piece contiguous order cards with customer name, address, parcel count, secondary ID
- * - Out-of-the-box quick barcode scanner button right from the card
+ * Built to match the approved visual reference with mobile operational speed:
+ * - 3-column top metrics bar with live interactive tab switching
+ * - Sequential workflow tabs: استلام العهدة / في العهدة (مرتبة حسب اللوكيشن) / تم التسليم / الكل
+ * - Preserves strict geographic stop sequence (#1, #2, #3...)
+ * - Dedicated pickup/scan workspace with continuous camera scanner
+ * - Single-piece contiguous order cards with customer name, address, parcel count, stop badge
  * - Entire card tappable to open order details
  */
 export default function DriverRoute() {
   const { data, error, loading, reload } = useApi<DriverRun[]>('/fulfillment/driver/runs', { pollMs: 15000 })
-  const [activeTab, setActiveTab] = React.useState<TabFilter>('all')
+  const [activeTab, setActiveTab] = React.useState<TabFilter>('custody')
   const [scanningRun, setScanningRun] = React.useState<DriverRun | null>(null)
   const [quickScanStop, setQuickScanStop] = React.useState<DriverStop | null>(null)
   const [activeDeliveryId] = useActiveDeliveryStop()
+  const initialTabSetRef = React.useRef(false)
 
   // Only display active runs assigned to this courier by the Hub (planning or dispatched); old completed runs are hidden
   const activeRuns = React.useMemo(() => {
@@ -93,36 +95,100 @@ export default function DriverRoute() {
 
   const allStops = activeRuns.flatMap((r) => r.stops)
 
-  // Metrics matching the 3-column approved layout
+  // Operational metrics
   const totalAssigned = allStops.length
   const deliveredCount = allStops.filter((s) => s.status === 'delivered' || s.attemptStatus === 'delivered').length
   const remainingCount = allStops.filter((s) => s.status !== 'delivered' && s.attemptStatus !== 'delivered').length
   const custodyCount = allStops.filter(
-    (s) => (s.handedOver && s.status !== 'delivered') || (s.attemptStatus === 'active' && s.status !== 'delivered')
+    (s) =>
+      ((s.handedOver && s.status !== 'delivered') || (s.attemptStatus === 'active' && s.status !== 'delivered')) &&
+      s.status !== 'failed' &&
+      s.attemptStatus !== 'failed'
+  ).length
+  const awaitingScanCount = allStops.filter(
+    (s) =>
+      !s.handedOver &&
+      s.status !== 'delivered' &&
+      s.attemptStatus !== 'delivered' &&
+      s.status !== 'failed' &&
+      s.attemptStatus !== 'failed'
   ).length
 
-  // Flattened stops filtered by selected tab
+  // Smart initial tab selection based on operational stage
+  React.useEffect(() => {
+    if (data && !initialTabSetRef.current) {
+      initialTabSetRef.current = true
+      if (awaitingScanCount > 0) {
+        setActiveTab('pickup')
+      } else if (custodyCount > 0) {
+        setActiveTab('custody')
+      } else if (deliveredCount > 0) {
+        setActiveTab('delivered')
+      }
+    }
+  }, [data, awaitingScanCount, custodyCount, deliveredCount])
+
+  // Flattened stops filtered by selected tab & sorted to preserve geographic location sequence
   const filteredStops = React.useMemo(() => {
     const pairs: Array<{ stop: DriverStop; run: DriverRun }> = []
     for (const run of activeRuns) {
       for (const stop of run.stops) {
         const isDelivered = stop.status === 'delivered' || stop.attemptStatus === 'delivered'
+        const isFailed = stop.status === 'failed' || stop.attemptStatus === 'failed'
         const isCustody =
-          (stop.handedOver && !isDelivered) ||
-          (run.status === 'dispatched' && !isDelivered && stop.status !== 'failed' && stop.attemptStatus !== 'failed')
+          (stop.handedOver && !isDelivered && !isFailed) ||
+          (run.status === 'dispatched' && !isDelivered && !isFailed)
+        const isAwaitingScan = !stop.handedOver && !isDelivered && !isFailed
 
-        if (activeTab === 'delivered') {
-          if (isDelivered) pairs.push({ stop, run })
+        if (activeTab === 'pickup') {
+          if (isAwaitingScan) pairs.push({ stop, run })
         } else if (activeTab === 'custody') {
           if (isCustody) pairs.push({ stop, run })
+        } else if (activeTab === 'delivered') {
+          if (isDelivered || isFailed) pairs.push({ stop, run })
         } else {
           // 'all'
           pairs.push({ stop, run })
         }
       }
     }
-    return pairs
-  }, [activeRuns, activeTab])
+
+    if (activeTab === 'custody') {
+      // In custody: preserve strict route location sequence (stop.sequence ASC)
+      return [...pairs].sort((a, b) => a.stop.sequence - b.stop.sequence)
+    }
+
+    if (activeTab === 'pickup') {
+      // Awaiting scan: sort by stop sequence
+      return [...pairs].sort((a, b) => a.stop.sequence - b.stop.sequence)
+    }
+
+    if (activeTab === 'delivered') {
+      return [...pairs].sort((a, b) => a.stop.sequence - b.stop.sequence)
+    }
+
+    // In 'all': Smart priority so finished/delivered NEVER comes before new or custody work:
+    // Priority: 1. Active delivery, 2. In Custody (by sequence), 3. Awaiting scan (by sequence), 4. Finished (by sequence)
+    return [...pairs].sort((a, b) => {
+      const aIsActive = activeDeliveryId === a.stop.shipmentId ? 0 : 1
+      const bIsActive = activeDeliveryId === b.stop.shipmentId ? 0 : 1
+      if (aIsActive !== bIsActive) return aIsActive - bIsActive
+
+      const getTier = (p: { stop: DriverStop; run: DriverRun }) => {
+        const isDelivered = p.stop.status === 'delivered' || p.stop.attemptStatus === 'delivered'
+        const isFailed = p.stop.status === 'failed' || p.stop.attemptStatus === 'failed'
+        if (isDelivered || isFailed) return 3 // Last
+        const isCustody = p.stop.handedOver || p.run.status === 'dispatched'
+        if (isCustody) return 1 // Custody first
+        return 2 // Awaiting scan
+      }
+
+      const tierA = getTier(a)
+      const tierB = getTier(b)
+      if (tierA !== tierB) return tierA - tierB
+      return a.stop.sequence - b.stop.sequence
+    })
+  }, [activeRuns, activeTab, activeDeliveryId])
 
   return (
     <RoleShell role="driver" active="run" mode="mobile" counts={{ run: remainingCount }}>
@@ -143,69 +209,129 @@ export default function DriverRoute() {
         {activeRuns.length > 0 ? (
           <div className="rounded-2xl border border-bw-line bg-bw-surface p-3.5 shadow-bw-card">
             <div className="grid grid-cols-3 divide-x divide-x-reverse divide-bw-line text-center">
-              {/* Col 1 (Right in RTL): في العهدة */}
-              <div className="flex flex-col items-center justify-center px-1">
-                <span className="flex items-center gap-1.5 text-xs text-bw-ink-soft font-medium">
-                  <Package className="size-3.5 text-bw-emerald" aria-hidden />
-                  في العهدة
-                </span>
-                <span className="mt-1 font-bw-display text-xl sm:text-2xl font-bold text-bw-ink">
-                  {custodyCount}
-                </span>
-              </div>
+              {/* Col 1 (Right in RTL): بانتظار المسح (إذا وُجد) أو في العهدة */}
+              {awaitingScanCount > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('pickup')}
+                  className="flex flex-col items-center justify-center px-1 cursor-pointer group transition-colors"
+                >
+                  <span className="flex items-center gap-1.5 text-xs text-amber-400 font-medium group-hover:text-amber-300">
+                    <Scan className="size-3.5 text-amber-400" aria-hidden />
+                    بانتظار المسح
+                  </span>
+                  <span className="mt-1 font-bw-display text-xl sm:text-2xl font-bold text-amber-400">
+                    {awaitingScanCount}
+                  </span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('custody')}
+                  className="flex flex-col items-center justify-center px-1 cursor-pointer group transition-colors"
+                >
+                  <span className="flex items-center gap-1.5 text-xs text-bw-ink-soft font-medium group-hover:text-bw-ink">
+                    <Package className="size-3.5 text-bw-emerald" aria-hidden />
+                    في العهدة
+                  </span>
+                  <span className="mt-1 font-bw-display text-xl sm:text-2xl font-bold text-bw-ink">
+                    {custodyCount}
+                  </span>
+                </button>
+              )}
 
-              {/* Col 2 (Middle): تم التسليم */}
-              <div className="flex flex-col items-center justify-center px-1">
-                <span className="flex items-center gap-1.5 text-xs text-bw-ink-soft font-medium">
-                  <CheckCircle2 className="size-3.5 text-bw-emerald" aria-hidden />
-                  تم التسليم
-                </span>
-                <span className="mt-1 font-bw-display text-xl sm:text-2xl font-bold text-bw-ink">
-                  {deliveredCount}
-                </span>
-              </div>
+              {/* Col 2 (Middle): في العهدة (إذا كان هناك بانتظار المسح) أو تم التسليم */}
+              {awaitingScanCount > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('custody')}
+                  className="flex flex-col items-center justify-center px-1 cursor-pointer group transition-colors"
+                >
+                  <span className="flex items-center gap-1.5 text-xs text-bw-ink-soft font-medium group-hover:text-bw-ink">
+                    <Package className="size-3.5 text-bw-emerald" aria-hidden />
+                    في العهدة
+                  </span>
+                  <span className="mt-1 font-bw-display text-xl sm:text-2xl font-bold text-bw-ink">
+                    {custodyCount}
+                  </span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('delivered')}
+                  className="flex flex-col items-center justify-center px-1 cursor-pointer group transition-colors"
+                >
+                  <span className="flex items-center gap-1.5 text-xs text-bw-ink-soft font-medium group-hover:text-bw-ink">
+                    <CheckCircle2 className="size-3.5 text-bw-emerald" aria-hidden />
+                    تم التسليم
+                  </span>
+                  <span className="mt-1 font-bw-display text-xl sm:text-2xl font-bold text-bw-ink">
+                    {deliveredCount}
+                  </span>
+                </button>
+              )}
 
-              {/* Col 3 (Left in RTL): إجمالي المشوار */}
-              <div className="flex flex-col items-center justify-center px-1">
-                <span className="flex items-center gap-1.5 text-xs text-bw-ink-soft font-medium">
-                  <Route className="size-3.5 text-bw-cobalt" aria-hidden />
-                  إجمالي المشوار
-                </span>
-                <span className="mt-1 font-bw-display text-xl sm:text-2xl font-bold text-bw-ink">
-                  {totalAssigned}
-                </span>
-              </div>
+              {/* Col 3 (Left in RTL): تم التسليم (إذا كان هناك بانتظار المسح) أو إجمالي المشوار */}
+              {awaitingScanCount > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('delivered')}
+                  className="flex flex-col items-center justify-center px-1 cursor-pointer group transition-colors"
+                >
+                  <span className="flex items-center gap-1.5 text-xs text-bw-ink-soft font-medium group-hover:text-bw-ink">
+                    <CheckCircle2 className="size-3.5 text-bw-cobalt" aria-hidden />
+                    تم التسليم
+                  </span>
+                  <span className="mt-1 font-bw-display text-xl sm:text-2xl font-bold text-bw-ink">
+                    {deliveredCount}
+                  </span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('all')}
+                  className="flex flex-col items-center justify-center px-1 cursor-pointer group transition-colors"
+                >
+                  <span className="flex items-center gap-1.5 text-xs text-bw-ink-soft font-medium group-hover:text-bw-ink">
+                    <Route className="size-3.5 text-bw-cobalt" aria-hidden />
+                    إجمالي المشوار
+                  </span>
+                  <span className="mt-1 font-bw-display text-xl sm:text-2xl font-bold text-bw-ink">
+                    {totalAssigned}
+                  </span>
+                </button>
+              )}
             </div>
           </div>
         ) : null}
 
-        {/* Simple Filter Pills Bar matching approved reference: الكل / في العهدة / تم التسليم */}
-        <div className="flex items-center gap-1.5 rounded-2xl border border-bw-line bg-bw-sunken/60 p-1 text-xs">
+        {/* Workflow Filter Pills: استلام العهدة / في العهدة / تم التسليم / الكل */}
+        <div className="flex items-center gap-1 rounded-2xl border border-bw-line bg-bw-sunken/60 p-1 text-xs overflow-x-auto no-scrollbar">
           <button
             type="button"
-            onClick={() => setActiveTab('all')}
+            onClick={() => setActiveTab('pickup')}
             className={cn(
-              'flex-1 rounded-xl py-2 font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer',
-              activeTab === 'all'
-                ? 'bg-bw-surface text-bw-ink shadow-bw-card border border-bw-line/70'
+              'flex-1 min-w-[85px] rounded-xl py-2 px-1 font-semibold transition-all flex items-center justify-center gap-1 cursor-pointer text-[11px] sm:text-xs',
+              activeTab === 'pickup'
+                ? 'bg-bw-surface text-amber-400 shadow-bw-card border border-amber-500/40'
                 : 'text-bw-ink-soft hover:text-bw-ink'
             )}
           >
-            <Layers className="size-3.5 shrink-0" aria-hidden />
-            <span>الكل ({totalAssigned})</span>
+            <Scan className="size-3.5 shrink-0 text-amber-400" aria-hidden />
+            <span>استلام ({awaitingScanCount})</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('custody')}
             className={cn(
-              'flex-1 rounded-xl py-2 font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer',
+              'flex-1 min-w-[88px] rounded-xl py-2 px-1 font-semibold transition-all flex items-center justify-center gap-1 cursor-pointer text-[11px] sm:text-xs',
               activeTab === 'custody'
-                ? 'bg-bw-surface text-bw-ink shadow-bw-card border border-bw-line/70'
+                ? 'bg-bw-surface text-emerald-400 shadow-bw-card border border-emerald-500/40'
                 : 'text-bw-ink-soft hover:text-bw-ink'
             )}
           >
-            <Package className="size-3.5 shrink-0" aria-hidden />
+            <Package className="size-3.5 shrink-0 text-bw-emerald" aria-hidden />
             <span>في العهدة ({custodyCount})</span>
             {/* Screen reader token for backward test compatibility */}
             <span className="sr-only">جاري التوصيل</span>
@@ -215,14 +341,28 @@ export default function DriverRoute() {
             type="button"
             onClick={() => setActiveTab('delivered')}
             className={cn(
-              'flex-1 rounded-xl py-2 font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer',
+              'flex-1 min-w-[88px] rounded-xl py-2 px-1 font-semibold transition-all flex items-center justify-center gap-1 cursor-pointer text-[11px] sm:text-xs',
               activeTab === 'delivered'
                 ? 'bg-bw-surface text-bw-ink shadow-bw-card border border-bw-line/70'
                 : 'text-bw-ink-soft hover:text-bw-ink'
             )}
           >
-            <CheckCircle2 className="size-3.5 shrink-0" aria-hidden />
+            <CheckCircle2 className="size-3.5 shrink-0 text-bw-cobalt" aria-hidden />
             <span>تم التسليم ({deliveredCount})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('all')}
+            className={cn(
+              'flex-none min-w-[65px] rounded-xl py-2 px-1 font-semibold transition-all flex items-center justify-center gap-1 cursor-pointer text-[11px] sm:text-xs',
+              activeTab === 'all'
+                ? 'bg-bw-surface text-bw-ink shadow-bw-card border border-bw-line/70'
+                : 'text-bw-ink-soft hover:text-bw-ink'
+            )}
+          >
+            <Layers className="size-3.5 shrink-0" aria-hidden />
+            <span>الكل ({totalAssigned})</span>
           </button>
         </div>
 
@@ -248,18 +388,49 @@ export default function DriverRoute() {
           <StateBlock
             kind="empty"
             title={
-              activeTab === 'custody'
+              activeTab === 'pickup'
+                ? 'تم استلام كافة طرود المشوار بنجاح'
+                : activeTab === 'custody'
                 ? 'لا توجد طلبات في عهدتك حالياً'
                 : activeTab === 'delivered'
                 ? 'لم يتم تسليم أي طلبات بعد'
                 : 'لا توجد طلبات'
             }
             body={
-              activeTab === 'custody'
+              activeTab === 'pickup'
+                ? 'كافة الطرود أصبحت في عهدتك وجاهزة للتوصيل. انتقل لتبويب "في العهدة" لبدء خط السير.'
+                : activeTab === 'custody'
                 ? 'امسح باركود البوليصة لاستلام الطرود وبدء التوصيل.'
                 : 'ستظهر الطلبات هنا بمجرد تحديث حالتها.'
             }
           />
+        ) : null}
+
+        {/* Quick Batch Scan Banner for Pickup Tab */}
+        {activeTab === 'pickup' && filteredStops.length > 0 && activeRuns.length > 0 ? (
+          <div className="flex items-center justify-between gap-3 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30">
+            <div className="space-y-0.5 min-w-0">
+              <span className="text-xs font-bold text-amber-300 block">
+                استلام طرود المشوار ({filteredStops.length} طرد)
+              </span>
+              <span className="text-[11px] text-bw-ink-soft block">
+                امسح الباركود لدخول الطرود في عهدتك وبدء التوصيل
+              </span>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              variant="primary"
+              onClick={() => {
+                const targetRun = activeRuns.find((r) => r.stops.some((s) => !s.handedOver)) || activeRuns[0]
+                if (targetRun) setScanningRun(targetRun)
+              }}
+              className="shrink-0 font-bold bg-amber-500 text-black hover:bg-amber-400 gap-1.5 cursor-pointer text-xs"
+            >
+              <Scan className="size-3.5" aria-hidden />
+              <span>مسح بالكاميرا</span>
+            </Button>
+          </div>
         ) : null}
 
         {/* Order Cards List: Single Contiguous Block per Order matching reference image */}
@@ -293,7 +464,7 @@ export default function DriverRoute() {
                   <div className="flex items-start justify-between gap-3">
                     {/* Right column: Customer, Address, Parcel count, Order ID */}
                     <div className="min-w-0 flex-1 space-y-1">
-                      {/* Secondary Order ID with Copy action */}
+                      {/* Secondary Order ID with Location Stop badge & Copy action */}
                       <div
                         className="flex items-center gap-1.5 text-xs text-bw-ink-subtle"
                         onClick={(e) => {
@@ -303,6 +474,9 @@ export default function DriverRoute() {
                       >
                         <span className="font-mono text-xs text-bw-ink-soft">
                           #{stop.orderNumber.replace(/^ORD-/, '').slice(0, 8)}
+                        </span>
+                        <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-bw-sunken text-bw-ink-soft border border-bw-line">
+                          محطة {stop.sequence}
                         </span>
                         <CopyId value={stop.orderNumber} muted className="text-[11px]" />
                       </div>
