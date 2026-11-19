@@ -15,6 +15,7 @@ import {
   MapPin,
   MessageCircle,
   Navigation,
+  Package,
   Phone,
   Scan,
   ShieldCheck,
@@ -193,38 +194,44 @@ function StopOperationalBody({
       )}
 
       {/* ── 1. Customer & Address Primary Card ── */}
-      <section className="rounded-2xl border border-bw-line bg-bw-surface p-4 space-y-3.5 shadow-bw-card">
+      <section className="rounded-2xl border border-bw-line bg-bw-surface p-4 space-y-3 shadow-bw-card">
         {/* Customer Header */}
-        <div className="flex items-start justify-between gap-2 border-b border-bw-line pb-3">
+        <div className="flex items-start justify-between gap-2 border-b border-bw-line/70 pb-3">
           <div className="min-w-0 space-y-1">
-            <span className="text-[11px] font-semibold text-bw-ink-soft">العميل المستلم</span>
             <div className="flex items-center gap-2">
               <UserRound className="size-5 text-bw-ink-soft shrink-0" aria-hidden />
               <h1 className="text-lg font-bold text-bw-ink truncate">{stop.recipientName}</h1>
             </div>
-            <div className="flex items-center gap-2 text-xs text-bw-ink-soft pt-0.5">
-              <span className="text-bw-ink-subtle">طلب:</span>
-              <CopyId value={stop.orderNumber} muted className="text-xs" />
+            <div className="flex items-center gap-2 text-xs text-bw-ink-soft">
+              <span className="font-mono text-xs">#{stop.orderNumber.replace(/^ORD-/, '').slice(0, 8)}</span>
+              <CopyId value={stop.orderNumber} muted className="text-[11px]" />
               <span>·</span>
               <span><Code>{stop.itemCount}</Code> قطع</span>
             </div>
           </div>
 
           <div className="shrink-0 text-end">
-            <Status map={SHIPMENT_STATUS} value={stop.status} />
-            <div className="mt-1.5">
-              {stop.handedOver ? (
-                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-bw-emerald bg-bw-emerald-soft px-2 py-0.5 rounded-full border border-bw-emerald/30">
-                  <span className="size-1.5 rounded-full bg-bw-emerald" />
-                  في عهدتك
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-bw-warn bg-bw-warn-soft px-2 py-0.5 rounded-full border border-bw-warn/30">
-                  <Clock className="size-3" />
-                  لم يُستلم بعد
-                </span>
-              )}
-            </div>
+            {isDelivered ? (
+              <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/30">
+                <CheckCircle2 className="size-3.5" aria-hidden />
+                تم التسليم
+              </span>
+            ) : isFailed ? (
+              <span className="inline-flex items-center gap-1 text-xs font-bold text-rose-400 bg-rose-500/10 px-2.5 py-1 rounded-full border border-rose-500/30">
+                <AlertCircle className="size-3.5" aria-hidden />
+                تعذر التسليم
+              </span>
+            ) : stop.handedOver ? (
+              <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/30">
+                <Package className="size-3.5" aria-hidden />
+                في عهدتك
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/30">
+                <Clock className="size-3.5" aria-hidden />
+                لم يُستلم بعد
+              </span>
+            )}
           </div>
         </div>
 
@@ -239,7 +246,7 @@ function StopOperationalBody({
           </p>
           {stop.deliveryNotes ? (
             <div className="rounded-xl bg-amber-500/10 border border-amber-500/25 p-2.5 text-xs text-amber-300 flex items-start gap-2 mt-2">
-              <span className="font-bold text-amber-400 shrink-0">ملاحظة العميل:</span>
+              <span className="font-bold text-amber-400 shrink-0">ملاحظة:</span>
               <span className="leading-snug">{stop.deliveryNotes}</span>
             </div>
           ) : null}
@@ -255,43 +262,40 @@ function StopOperationalBody({
           </Notice>
         ) : null}
 
-        {/* ── 2. Three Large Thumb Action Cards (Call, WhatsApp, Map) ── */}
-        <div className="grid grid-cols-3 gap-2 pt-1.5">
-          {/* Phone call */}
+        {/* ── 2. Three Action Buttons (Call, WhatsApp, Map) ── */}
+        <div className="grid grid-cols-3 gap-2 pt-1">
           {phoneUrl ? (
             <a
               href={phoneUrl}
-              className="flex flex-col items-center justify-center gap-1 h-14 rounded-2xl border border-blue-500/30 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 active:scale-95 transition-all cursor-pointer shadow-sm"
+              className="flex flex-col items-center justify-center gap-1 h-13 rounded-2xl border border-blue-500/25 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 active:scale-95 transition-all cursor-pointer shadow-sm"
             >
-              <Phone className="size-5" aria-hidden />
+              <Phone className="size-4.5" aria-hidden />
               <span className="text-xs font-bold">اتصال</span>
             </a>
           ) : (
-            <div className="flex flex-col items-center justify-center gap-1 h-14 rounded-2xl border border-bw-line bg-bw-sunken text-bw-ink-subtle cursor-not-allowed opacity-60">
-              <Phone className="size-5" aria-hidden />
+            <div className="flex flex-col items-center justify-center gap-1 h-13 rounded-2xl border border-bw-line bg-bw-sunken text-bw-ink-subtle cursor-not-allowed opacity-60">
+              <Phone className="size-4.5" aria-hidden />
               <span className="text-xs font-medium">لا يوجد هاتف</span>
             </div>
           )}
 
-          {/* WhatsApp deep link */}
           {whatsAppUrl ? (
             <a
               href={whatsAppUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex flex-col items-center justify-center gap-1 h-14 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 active:scale-95 transition-all cursor-pointer shadow-sm"
+              className="flex flex-col items-center justify-center gap-1 h-13 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 active:scale-95 transition-all cursor-pointer shadow-sm"
             >
-              <MessageCircle className="size-5" aria-hidden />
+              <MessageCircle className="size-4.5" aria-hidden />
               <span className="text-xs font-bold">واتساب</span>
             </a>
           ) : (
-            <div className="flex flex-col items-center justify-center gap-1 h-14 rounded-2xl border border-bw-line bg-bw-sunken text-bw-ink-subtle cursor-not-allowed opacity-60">
-              <MessageCircle className="size-5" aria-hidden />
+            <div className="flex flex-col items-center justify-center gap-1 h-13 rounded-2xl border border-bw-line bg-bw-sunken text-bw-ink-subtle cursor-not-allowed opacity-60">
+              <MessageCircle className="size-4.5" aria-hidden />
               <span className="text-xs font-medium">لا يوجد واتساب</span>
             </div>
           )}
 
-          {/* Navigation / Map */}
           {navResult.url ? (
             <a
               href={navResult.url}
@@ -299,58 +303,64 @@ function StopOperationalBody({
               rel="noopener noreferrer"
               onClick={handleStartNavigation}
               className={cn(
-                'flex flex-col items-center justify-center gap-1 h-14 rounded-2xl border active:scale-95 transition-all cursor-pointer shadow-sm',
+                'flex flex-col items-center justify-center gap-1 h-13 rounded-2xl border active:scale-95 transition-all cursor-pointer shadow-sm',
                 isActiveDelivery
                   ? 'border-emerald-500 bg-emerald-600 text-white shadow-[0_0_16px_rgba(16,185,129,0.35)] animate-pulse'
                   : 'border-bw-cobalt/40 bg-bw-cobalt text-white hover:bg-bw-cobalt-hover'
               )}
             >
-              <Navigation className={cn('size-5', isActiveDelivery && 'animate-spin')} style={isActiveDelivery ? { animationDuration: '4s' } : undefined} aria-hidden />
+              <Navigation className={cn('size-4.5', isActiveDelivery && 'animate-spin')} style={isActiveDelivery ? { animationDuration: '4s' } : undefined} aria-hidden />
               <span className="text-xs font-bold">{isActiveDelivery ? 'الخريطة مفعلة' : 'الطريق'}</span>
             </a>
           ) : (
-            <div className="flex flex-col items-center justify-center gap-1 h-14 rounded-2xl border border-bw-line bg-bw-sunken text-bw-ink-subtle cursor-not-allowed opacity-60">
-              <Navigation className="size-5" aria-hidden />
+            <div className="flex flex-col items-center justify-center gap-1 h-13 rounded-2xl border border-bw-line bg-bw-sunken text-bw-ink-subtle cursor-not-allowed opacity-60">
+              <Navigation className="size-4.5" aria-hidden />
               <span className="text-xs font-medium">مافيش موقع</span>
             </div>
           )}
         </div>
       </section>
 
-      {/* ── 3. Giant High-Contrast Cash Collection Display ── */}
-      <section className="rounded-2xl border-2 border-emerald-500/40 bg-emerald-950/25 p-4 text-center space-y-1 shadow-bw-card">
-        {stop.codDue > 0 ? (
-          <>
-            <span className="text-xs font-bold text-emerald-400 block">
-              المطلوب استلامه كاش من العميل
+      {/* ── 3. Modern Sleek Payment Widget (Only shown when not yet delivered) ── */}
+      {!isDelivered && (
+        <section className="rounded-2xl border border-bw-line bg-gradient-to-b from-bw-surface to-bw-sunken/80 p-4 shadow-bw-card">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-bw-ink-soft flex items-center gap-1.5">
+              <Coins className="size-4 text-emerald-400" aria-hidden />
+              {stop.codDue > 0 ? 'التحصيل المطلوب' : 'حالة الدفع'}
             </span>
-            <p className="font-bw-display text-3xl sm:text-4xl font-black text-emerald-400 tracking-tight">
-              <Egp value={stop.codDue} />
-            </p>
-            <span className="text-[11px] text-bw-ink-soft block font-medium">
-              تأكد من استلام كامل المبلغ قبل تسليم الطرد
-            </span>
-          </>
-        ) : (
-          <>
-            <span className="text-xs font-bold text-bw-cobalt block">
-              طلب مدفوع مسبقاً (أونلاين)
-            </span>
-            <p className="font-bw-display text-2xl sm:text-3xl font-black text-bw-ink">
-              0 ج.م
-            </p>
-            <span className="text-xs font-bold text-bw-cobalt block">
-              لا تستلم أي مبالغ نقدية من العميل!
-            </span>
-          </>
-        )}
-
-        {stop.cashDeclared !== null ? (
-          <div className="pt-2 border-t border-emerald-500/20 text-xs text-bw-ok font-semibold">
-            أعلنت تحصيل: <Egp value={stop.cashDeclared} />
+            {stop.codDue > 0 ? (
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/25">
+                <span className="size-1.5 rounded-full bg-emerald-400" />
+                استلام كاش نقدي
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-bw-cobalt/10 text-bw-cobalt border border-bw-cobalt/25">
+                مدفوع أونلاين بالكامل
+              </span>
+            )}
           </div>
-        ) : null}
-      </section>
+
+          <div className="mt-3 flex items-baseline justify-between border-t border-bw-line/60 pt-3">
+            <div className="flex items-baseline gap-1.5">
+              <span className="font-bw-display text-3xl font-black text-bw-ink tracking-tight">
+                {stop.codDue > 0 ? stop.codDue : 0}
+              </span>
+              <span className="text-sm font-bold text-bw-ink-soft">ج.م</span>
+            </div>
+
+            {stop.codDue > 0 ? (
+              <span className="text-[11px] text-bw-ink-subtle font-medium">
+                تحصيل قبل تسليم الطرد
+              </span>
+            ) : (
+              <span className="text-xs font-bold text-bw-cobalt">
+                لا تستلم كاش من العميل
+              </span>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* ── 4. Contextual Delivery Actions ── */}
 
@@ -377,35 +387,80 @@ function StopOperationalBody({
         <DispatchedOutcomeAction stop={stop} onChanged={onChanged} />
       )}
 
-      {/* State D: Failed Attempt Result — Clearly indicates custody retention awaiting Hub return */}
+      {/* State D: Failed Attempt Result */}
       {isFailed && (
-        <section className="rounded-2xl border border-bw-danger/30 bg-bw-danger-soft p-4 space-y-2.5">
-          <div className="flex items-center gap-2 text-bw-danger font-bold text-sm">
-            <AlertCircle className="size-5 shrink-0" aria-hidden />
-            <span>محاولة فاشلة مسجلة — الطرد في عهدتك</span>
+        <section className="rounded-2xl border border-rose-500/25 bg-gradient-to-b from-rose-950/20 via-bw-surface to-bw-surface p-4 space-y-2 shadow-bw-card">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <span className="size-8 rounded-full bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-400">
+                <AlertCircle className="size-4.5" aria-hidden />
+              </span>
+              <div>
+                <h2 className="text-sm font-bold text-bw-ink">تعذر تسليم الطلب</h2>
+                <p className="text-[11px] text-bw-ink-soft">الطرد في عهدتك للعودة للمخزن</p>
+              </div>
+            </div>
+            <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-rose-500/15 text-rose-400 border border-rose-500/30">
+              مرتجع عهدة
+            </span>
           </div>
-          <p className="text-xs text-bw-ink-soft leading-relaxed">
-            الطرد لا يزال في عهدتك الشخصية. سيتم تسليمه لمسؤول المخزن في نهاية المشوار لإتمام التسوية.
-          </p>
         </section>
       )}
 
-      {/* State E: Successfully Delivered Result */}
+      {/* State E: Successfully Delivered Result — Sleek unified modern receipt */}
       {isDelivered && (
-        <section className="rounded-2xl border border-bw-emerald/30 bg-bw-emerald-soft p-4 space-y-2">
-          <div className="flex items-center gap-2 text-bw-emerald font-bold text-sm">
-            <CheckCircle2 className="size-5 shrink-0" aria-hidden />
-            <span>تم تسليم الطلب بنجاح</span>
+        <section className="rounded-2xl border border-emerald-500/25 bg-gradient-to-b from-emerald-950/20 via-bw-surface to-bw-surface p-4 space-y-3.5 shadow-bw-card">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <span className="size-8 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                <CheckCircle2 className="size-4.5" aria-hidden />
+              </span>
+              <div>
+                <h2 className="text-sm font-bold text-bw-ink">تم التسليم بنجاح</h2>
+                <p className="text-[11px] text-bw-ink-soft">المحطة مكتملة وبانتظار تسوية المخزن</p>
+              </div>
+            </div>
+            <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+              مكتمل ✔
+            </span>
           </div>
-          <p className="text-xs text-bw-ink-soft leading-relaxed">
-            {stop.cashDeclared !== null ? (
-              <>
-                أعلنت استلام مبلغ <strong className="text-bw-ok"><Egp value={stop.cashDeclared} /></strong> نقدياً من العميل. سيتم تأكيد العد في المخزن.
-              </>
-            ) : (
-              'تم تأكيد التسليم وإغلاق المحطة بنجاح.'
-            )}
-          </p>
+
+          {/* Clean Receipt Breakdown */}
+          {stop.codDue > 0 ? (
+            <div className="rounded-xl border border-bw-line/70 bg-bw-sunken/80 p-3 flex items-center justify-between text-xs">
+              <div className="space-y-0.5">
+                <span className="text-[10px] text-bw-ink-subtle block">المطلوب</span>
+                <span className="font-bold text-bw-ink"><Egp value={stop.codDue} /></span>
+              </div>
+
+              <div className="space-y-0.5 text-center">
+                <span className="text-[10px] text-bw-ink-subtle block">المحصل</span>
+                <span className="font-bold text-emerald-400">
+                  <Egp value={stop.cashDeclared ?? stop.codDue} />
+                </span>
+              </div>
+
+              {stop.cashDeclared !== null && stop.cashDeclared < stop.codDue ? (
+                <div className="space-y-0.5 text-end border-s border-bw-line ps-3">
+                  <span className="text-[10px] text-rose-400 block font-medium">عجز مالي</span>
+                  <span className="font-bold text-rose-400">
+                    -<Egp value={stop.codDue - stop.cashDeclared} />
+                  </span>
+                </div>
+              ) : (
+                <div className="space-y-0.5 text-end border-s border-bw-line ps-3">
+                  <span className="text-[10px] text-bw-ink-subtle block">الحالة</span>
+                  <span className="font-semibold text-emerald-400">مسدد بالكامل</span>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="rounded-xl border border-bw-line/70 bg-bw-sunken/80 px-3 py-2 flex items-center justify-between text-xs">
+              <span className="text-bw-ink-soft">طلب مدفوع أونلاين</span>
+              <span className="font-semibold text-bw-cobalt">لم يتم تحصيل كاش</span>
+            </div>
+          )}
         </section>
       )}
     </div>
@@ -668,12 +723,15 @@ function DispatchedOutcomeAction({
         variant="sheet"
       >
         <form className="space-y-4" onSubmit={handleDeliveredSubmit}>
-          {/* Amount Due Overview */}
-          <div className="rounded-2xl border-2 border-emerald-500/40 bg-emerald-950/20 p-4 text-center space-y-1">
-            <span className="text-xs font-semibold text-emerald-300">المبلغ المطلوب استلامه نقداً من العميل</span>
-            <p className="font-bw-display text-3xl font-black text-emerald-400">
-              <Egp value={stop.codDue} />
-            </p>
+          {/* Sleek Modern Amount Due Overview */}
+          <div className="rounded-2xl border border-bw-line bg-gradient-to-b from-bw-surface to-bw-sunken p-3.5 flex items-center justify-between">
+            <div className="space-y-0.5">
+              <span className="text-xs font-bold text-bw-ink block">المطلوب تحصيله كاش</span>
+              <span className="text-[11px] text-bw-ink-soft">المبلغ المسجل على البوليصة</span>
+            </div>
+            <div className="flex items-baseline gap-1">
+              <span className="font-bw-display text-2xl font-black text-bw-ink"><Egp value={stop.codDue} /></span>
+            </div>
           </div>
 
           {/* Actual Collected Amount Input */}
