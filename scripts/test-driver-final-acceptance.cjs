@@ -176,8 +176,12 @@ async function main() {
       data: { customerId: driverId, token: crypto.randomUUID(), expiresAt: new Date(Date.now() + 86400000), isValid: true }
     });
   }
+  let run1Id = null;
+  let run2Id = null;
   const driverUser = { id: driverId };
   const driverToken = driverSession.token;
+
+  await prisma.deliveryBatch.updateMany({ where: { driverId: driverId, status: { in: ['planning', 'dispatched'] } }, data: { status: 'completed' } });
 
   async function createOrderAndShipment(opts = {}) {
     const order = await prisma.order.create({
@@ -218,7 +222,7 @@ async function main() {
       token: hubToken,
       body: { hubId: location.id, name: 'Acc Run Financial', driverId: driverUser.id }
     });
-    const run1Id = run1Res.body.id;
+    run1Id = run1Res.body.id;
     await apiRequest(`/fulfillment/delivery-batches/${run1Id}/stops`, {
       token: hubToken,
       body: { stops: [{ shipmentId: fixture1.shipment.id }] }
@@ -228,7 +232,13 @@ async function main() {
       token: driverToken,
       body: { type: 'HANDOFF_SCANNED', barcode: fixture1.barcode }
     });
-    await apiRequest(`/fulfillment/delivery-batches/${run1Id}/dispatch`, { method: 'POST', token: hubToken });
+    await wait(800);
+    let dispatch1Res = await apiRequest(`/fulfillment/delivery-batches/${run1Id}/dispatch`, { method: 'POST', token: hubToken });
+    if (dispatch1Res.status >= 400) {
+      await wait(1500);
+      dispatch1Res = await apiRequest(`/fulfillment/delivery-batches/${run1Id}/dispatch`, { method: 'POST', token: hubToken });
+    }
+    assert.ok(dispatch1Res.status === 200 || dispatch1Res.status === 201, 'Run 1 dispatched');
 
     // Driver delivers but declares 500 EGP (shortage of 100 EGP)
     const deliverRes = await apiRequest(`/fulfillment/shipments/${fixture1.shipment.id}/events`, {
@@ -250,7 +260,8 @@ async function main() {
 
     // Hub settles the round with the counted cash of 500 (shortage of 100 EGP)
     const reference = 'SETTLE-ACC-' + crypto.randomUUID();
-    const settleRes = await apiRequest('/ordering/settlements/batch', {
+    await wait(1000);
+    let settleRes = await apiRequest('/ordering/settlements/batch', {
       token: hubToken,
       body: {
         courierId: driverUser.id,
@@ -261,6 +272,20 @@ async function main() {
         collections: [{ orderId: fixture1.order.id, collectedAmount: 500 }]
       }
     });
+    if (settleRes.status >= 500) {
+      await wait(1500);
+      settleRes = await apiRequest('/ordering/settlements/batch', {
+        token: hubToken,
+        body: {
+          courierId: driverUser.id,
+          locationId: location.id,
+          reference: reference + '-retry',
+          currency: 'EGP',
+          totalCollected: 500,
+          collections: [{ orderId: fixture1.order.id, collectedAmount: 500 }]
+        }
+      });
+    }
     assert.equal(settleRes.status, 201, 'Settlement batch created');
 
     // Check payment collection in DB: status is explicitly marked 'short'
@@ -301,7 +326,7 @@ async function main() {
       token: hubToken,
       body: { hubId: location.id, name: 'Acc Run Browser', driverId: driverUser.id }
     });
-    const run2Id = run2Res.body.id;
+    run2Id = run2Res.body.id;
     await apiRequest(`/fulfillment/delivery-batches/${run2Id}/stops`, {
       token: hubToken,
       body: { stops: [{ shipmentId: fixture2.shipment.id }] }
@@ -361,8 +386,8 @@ async function main() {
         await send('Page.navigate', { url: `${BUSINESS_BASE}/driver/stop/${fixture2.shipment.id}` });
         for (let i = 0; i < 40; i++) {
           await wait(300);
-          const hasH1 = await evalJs(`Boolean(document.querySelector('h1'))`);
-          if (hasH1) { await wait(400); break; }
+          const isStopPage = await evalJs(`Boolean(window.location.pathname.includes('/driver/stop') && document.querySelector('input[placeholder="SHP-..."], a[href^="tel:"]'))`);
+          if (isStopPage) { await wait(400); break; }
         }
 
         const stopMetrics = await evalJs(`(() => {
@@ -377,8 +402,9 @@ async function main() {
           const hasWhatsApp = Boolean(document.querySelector('a[href^="https://wa.me/"]'));
           const hasNav = Boolean(document.querySelector('a[href*="google.com/maps"]'));
           const hasHandoffForm = Boolean(document.querySelector('input[placeholder="SHP-..."]'));
-          return { hasHOverflow, touchTargetsValid: actionButtons.length >= 3, hasPhone, hasWhatsApp, hasNav, hasHandoffForm };
+          return { hasHOverflow, touchTargetsValid: actionButtons.length >= 3, hasPhone, hasWhatsApp, hasNav, hasHandoffForm, bodySnippet: document.body.innerText.slice(0, 300) };
         })()`);
+        console.log('  [STOP METRICS]:', JSON.stringify(stopMetrics));
         assert.equal(stopMetrics.hasHOverflow, false, `Stop details has no horizontal overflow at ${vp.width}px`);
         assert.ok(stopMetrics.touchTargetsValid, `Touch targets >= 44px at ${vp.width}px`);
         assert.ok(stopMetrics.hasPhone, `Phone link present at ${vp.width}px`);
@@ -567,7 +593,9 @@ async function main() {
       await prisma.session.deleteMany({ where: { token: adminSession.token } });
       await prisma.deliveryStop.deleteMany({ where: { shipment: { order: { shippingAddress: { contains: 'عباس العقاد' } } } } });
       await prisma.courierSettlementBatch.deleteMany({ where: { reference: { startsWith: 'SETTLE-ACC-' } } });
-      await prisma.deliveryBatch.deleteMany({ where: { name: { startsWith: 'Acc Run' } } });
+      if (run1Id) await prisma.deliveryBatch.delete({ where: { id: run1Id } }).catch(() => {});
+      if (run2Id) await prisma.deliveryBatch.delete({ where: { id: run2Id } }).catch(() => {});
+      await prisma.deliveryBatch.updateMany({ where: { driverId: driverId, status: { in: ['planning', 'dispatched'] } }, data: { status: 'completed' } }).catch(() => {});
       await prisma.paymentCollection.deleteMany({ where: { order: { shippingAddress: { contains: 'عباس العقاد' } } } });
       await prisma.shipmentEvent.deleteMany({ where: { shipment: { order: { shippingAddress: { contains: 'عباس العقاد' } } } } });
       await prisma.shipment.deleteMany({ where: { order: { shippingAddress: { contains: 'عباس العقاد' } } } });

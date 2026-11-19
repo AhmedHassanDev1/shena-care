@@ -1,7 +1,51 @@
+import * as React from 'react'
+
 /**
  * Helper actions for driver communication and navigation.
  * Formats tel:, WhatsApp deep links, and Google Maps navigation safely.
  */
+
+const ACTIVE_STOP_STORAGE_KEY = 'sc_driver_active_stop_id'
+
+export function getActiveDeliveryStopId(): string | null {
+  if (typeof window === 'undefined') return null
+  try {
+    return localStorage.getItem(ACTIVE_STOP_STORAGE_KEY)
+  } catch {
+    return null
+  }
+}
+
+export function setActiveDeliveryStopId(shipmentId: string | null): void {
+  if (typeof window === 'undefined') return
+  try {
+    if (shipmentId) {
+      localStorage.setItem(ACTIVE_STOP_STORAGE_KEY, shipmentId)
+    } else {
+      localStorage.removeItem(ACTIVE_STOP_STORAGE_KEY)
+    }
+    window.dispatchEvent(new Event('sc_active_stop_changed'))
+  } catch {}
+}
+
+export function useActiveDeliveryStop() {
+  const [activeId, setActiveId] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    setActiveId(getActiveDeliveryStopId())
+    const handleUpdate = () => {
+      setActiveId(getActiveDeliveryStopId())
+    }
+    window.addEventListener('sc_active_stop_changed', handleUpdate)
+    window.addEventListener('storage', handleUpdate)
+    return () => {
+      window.removeEventListener('sc_active_stop_changed', handleUpdate)
+      window.removeEventListener('storage', handleUpdate)
+    }
+  }, [])
+
+  return [activeId, setActiveDeliveryStopId] as const
+}
 
 export function sanitizeEgyptianPhone(phone: string | null | undefined): string | null {
   if (!phone) return null

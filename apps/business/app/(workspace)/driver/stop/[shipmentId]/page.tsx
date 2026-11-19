@@ -10,10 +10,15 @@ import {
   CheckCircle2,
   ChevronRight,
   Clock,
+  Coins,
+  Copy,
   MapPin,
   MessageCircle,
   Navigation,
   Phone,
+  Scan,
+  ShieldCheck,
+  UserRound,
   Wallet,
   XCircle,
 } from 'lucide-react'
@@ -39,6 +44,8 @@ import {
   formatNavigationUrl,
   formatPhoneUrl,
   formatWhatsAppUrl,
+  setActiveDeliveryStopId,
+  useActiveDeliveryStop,
 } from '@/lib/courier-actions'
 import { getDevShipmentBarcode } from '@/lib/dev-barcode'
 import {
@@ -52,8 +59,25 @@ import { cn } from '@/lib/utils'
 import type { DriverRun, DriverStop } from '../../page'
 
 /**
+ * Quick visual reasons tailored for mobile couriers:
+ * High-visibility icons and short, clear Arabic phrases.
+ */
+const QUICK_REASONS = [
+  { code: 'CUSTOMER_UNREACHABLE', icon: '📵', label: 'العميل لا يرد / مغلق' },
+  { code: 'CUSTOMER_NOT_FOUND', icon: '🏠', label: 'العميل مش متواجد' },
+  { code: 'ITEM_MISMATCH', icon: '📦', label: 'رفض الاستلام / غير مطابق' },
+  { code: 'ADDRESS_NOT_FOUND', icon: '📍', label: 'العنوان خطأ أو غير واضح' },
+  { code: 'RESCHEDULE_REQUESTED', icon: '⏰', label: 'طلب تأجيل الميعاد' },
+  { code: 'OTHER', icon: '✏️', label: 'سبب آخر (اكتب ملاحظة)' },
+]
+
+/**
  * Driver Stop Details — تفاصيل المحطة والطلب
- * Mobile-first operational interface prioritizing customer contact, COD collection, and contextual actions.
+ * Designed specifically for one-handed courier operation on mobile:
+ * - Huge phone, WhatsApp, and navigation action cards
+ * - "جاري توصيله حالياً" animated live indicator triggered when clicking Map
+ * - Huge high-contrast cash collection box
+ * - Exactly two primary outcomes: "تم التسليم" and "تعذر التسليم"
  */
 export default function DriverStopPage() {
   const { shipmentId } = useParams<{ shipmentId: string }>()
@@ -64,15 +88,15 @@ export default function DriverStopPage() {
 
   return (
     <RoleShell role="driver" active="run" mode="mobile">
-      <div className="space-y-3.5 p-3 sm:p-4 pb-28">
+      <div className="space-y-3.5 p-3 sm:p-4 pb-28 max-w-lg mx-auto">
         {/* Navigation back to trips */}
         <div className="flex items-center justify-between">
           <Link
             href="/driver"
-            className="inline-flex items-center gap-1 text-xs font-semibold text-bw-ink-soft hover:text-bw-ink transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-bw-ink-soft hover:text-bw-ink transition-colors p-1"
           >
             <ChevronRight className="size-4" aria-hidden />
-            العودة للمشوار {run ? <Code>#{shortId(run.id)}</Code> : ''}
+            <span>العودة للمشوار {run ? <Code>#{shortId(run.id)}</Code> : ''}</span>
           </Link>
           {stop ? (
             <span className="text-xs text-bw-ink-subtle">
@@ -82,7 +106,7 @@ export default function DriverStopPage() {
         </div>
 
         {error ? <LoadError message={error.message} onRetry={reload} /> : null}
-        {!data && loading ? <Skeleton className="h-64 w-full rounded-bw-card" /> : null}
+        {!data && loading ? <Skeleton className="h-64 w-full rounded-2xl" /> : null}
         {data && !stop ? (
           <StateBlock
             kind="forbidden"
@@ -108,9 +132,14 @@ function StopOperationalBody({
   stop: DriverStop
   onChanged: () => void
 }) {
+  const [activeDeliveryId, setActiveId] = useActiveDeliveryStop()
+  const isActiveDelivery = activeDeliveryId === stop.shipmentId
+
   const isStopActive = stop.attemptStatus === 'active'
   const isDelivered = stop.status === 'delivered' || stop.attemptStatus === 'delivered'
   const isFailed = stop.status === 'failed' || stop.attemptStatus === 'failed'
+
+  const toast = useToast()
 
   // Communication & navigation link targets
   const fullAddress = [stop.address, stop.area, stop.governorate].filter(Boolean).join('، ')
@@ -118,16 +147,62 @@ function StopOperationalBody({
   const whatsAppUrl = formatWhatsAppUrl(stop.recipientPhone)
   const navResult = formatNavigationUrl(stop.location, fullAddress)
 
+  // Start navigation & activate "Currently delivering" status with animation
+  const handleStartNavigation = () => {
+    setActiveId(stop.shipmentId)
+    toast.success('تم تفعيل المشوار: أنت في الطريق للعميل الآن 🚗')
+    if (stop.status !== 'out_for_delivery') {
+      api(`/fulfillment/shipments/${stop.shipmentId}/events`, {
+        body: { type: 'OUT_FOR_DELIVERY' },
+      }).catch(() => {})
+    }
+  }
+
   return (
     <div className="space-y-3">
-      {/* 1. Customer & Address Primary Card */}
-      <section className="rounded-bw-card border border-bw-line bg-bw-surface p-3.5 space-y-3 shadow-bw-card">
+      {/* ── Live In-Progress Delivery Motion Banner ── */}
+      {isActiveDelivery && !isDelivered && !isFailed && (
+        <div className="relative overflow-hidden rounded-2xl border-2 border-emerald-500/80 bg-gradient-to-r from-emerald-950/70 via-emerald-900/50 to-emerald-950/70 p-4 shadow-[0_0_24px_rgba(16,185,129,0.25)] ring-1 ring-emerald-400/40 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="relative flex size-3.5 shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-80" />
+                <span className="relative inline-flex rounded-full size-3.5 bg-emerald-500" />
+              </span>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-sm text-emerald-300">جاري التوصيل للعميل الآن</span>
+                  <span className="text-[10px] font-bold bg-emerald-500/25 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-500/50">
+                    المحطة النشطة 🚗
+                  </span>
+                </div>
+                <p className="text-xs text-emerald-200/80 truncate mt-0.5">
+                  مسار الخريطة مفعل — متوجه إلى {stop.recipientName}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setActiveId(null)}
+              className="text-[11px] font-semibold text-emerald-200/70 hover:text-white bg-emerald-900/70 rounded-full px-2.5 py-1 border border-emerald-500/40 cursor-pointer shrink-0"
+            >
+              إلغاء التحديد
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── 1. Customer & Address Primary Card ── */}
+      <section className="rounded-2xl border border-bw-line bg-bw-surface p-4 space-y-3.5 shadow-bw-card">
         {/* Customer Header */}
         <div className="flex items-start justify-between gap-2 border-b border-bw-line pb-3">
           <div className="min-w-0 space-y-1">
             <span className="text-[11px] font-semibold text-bw-ink-soft">العميل المستلم</span>
-            <h1 className="text-base font-bold text-bw-ink truncate">{stop.recipientName}</h1>
-            <div className="flex items-center gap-2 text-xs text-bw-ink-soft">
+            <div className="flex items-center gap-2">
+              <UserRound className="size-5 text-bw-ink-soft shrink-0" aria-hidden />
+              <h1 className="text-lg font-bold text-bw-ink truncate">{stop.recipientName}</h1>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-bw-ink-soft pt-0.5">
               <span className="text-bw-ink-subtle">طلب:</span>
               <CopyId value={stop.orderNumber} muted className="text-xs" />
               <span>·</span>
@@ -137,14 +212,14 @@ function StopOperationalBody({
 
           <div className="shrink-0 text-end">
             <Status map={SHIPMENT_STATUS} value={stop.status} />
-            <div className="mt-1">
+            <div className="mt-1.5">
               {stop.handedOver ? (
-                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-bw-emerald">
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-bw-emerald bg-bw-emerald-soft px-2 py-0.5 rounded-full border border-bw-emerald/30">
                   <span className="size-1.5 rounded-full bg-bw-emerald" />
                   في عهدتك
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-bw-warn">
+                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-bw-warn bg-bw-warn-soft px-2 py-0.5 rounded-full border border-bw-warn/30">
                   <Clock className="size-3" />
                   لم يُستلم بعد
                 </span>
@@ -155,17 +230,17 @@ function StopOperationalBody({
 
         {/* Delivery Address */}
         <div className="space-y-1">
-          <span className="text-[11px] text-bw-ink-subtle flex items-center gap-1">
-            <MapPin className="size-3" aria-hidden />
+          <span className="text-[11px] text-bw-ink-subtle flex items-center gap-1 font-medium">
+            <MapPin className="size-3.5 text-bw-ink-subtle" aria-hidden />
             عنوان التوصيل
           </span>
-          <p className="text-sm font-medium text-bw-ink leading-relaxed">
+          <p className="text-sm font-semibold text-bw-ink leading-relaxed">
             {fullAddress || 'لا يوجد عنوان مسجل'}
           </p>
           {stop.deliveryNotes ? (
-            <div className="rounded-bw-field bg-bw-sunken p-2 text-xs text-bw-ink-soft flex items-start gap-1.5">
-              <span className="font-semibold text-bw-ink shrink-0">ملاحظة العميل:</span>
-              <span>{stop.deliveryNotes}</span>
+            <div className="rounded-xl bg-amber-500/10 border border-amber-500/25 p-2.5 text-xs text-amber-300 flex items-start gap-2 mt-2">
+              <span className="font-bold text-amber-400 shrink-0">ملاحظة العميل:</span>
+              <span className="leading-snug">{stop.deliveryNotes}</span>
             </div>
           ) : null}
         </div>
@@ -180,26 +255,22 @@ function StopOperationalBody({
           </Notice>
         ) : null}
 
-        {/* 2. Communication and Navigation Action Bar (Touch targets >= 44px) */}
-        <div className="grid grid-cols-3 gap-2 pt-1">
+        {/* ── 2. Three Large Thumb Action Cards (Call, WhatsApp, Map) ── */}
+        <div className="grid grid-cols-3 gap-2 pt-1.5">
           {/* Phone call */}
           {phoneUrl ? (
             <a
               href={phoneUrl}
-              className="inline-flex h-11 items-center justify-center gap-1.5 rounded-bw-field border border-bw-line-field bg-bw-surface text-xs font-semibold text-bw-ink hover:bg-bw-sunken active:scale-[0.98] transition-all"
+              className="flex flex-col items-center justify-center gap-1 h-14 rounded-2xl border border-blue-500/30 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 active:scale-95 transition-all cursor-pointer shadow-sm"
             >
-              <Phone className="size-4 text-bw-cobalt" aria-hidden />
-              <span>اتصال</span>
+              <Phone className="size-5" aria-hidden />
+              <span className="text-xs font-bold">اتصال</span>
             </a>
           ) : (
-            <button
-              type="button"
-              disabled
-              className="inline-flex h-11 items-center justify-center gap-1.5 rounded-bw-field border border-bw-line bg-bw-sunken text-xs font-semibold text-bw-ink-subtle cursor-not-allowed"
-            >
-              <Phone className="size-4 text-bw-ink-subtle" aria-hidden />
-              <span>لا يوجد هاتف</span>
-            </button>
+            <div className="flex flex-col items-center justify-center gap-1 h-14 rounded-2xl border border-bw-line bg-bw-sunken text-bw-ink-subtle cursor-not-allowed opacity-60">
+              <Phone className="size-5" aria-hidden />
+              <span className="text-xs font-medium">لا يوجد هاتف</span>
+            </div>
           )}
 
           {/* WhatsApp deep link */}
@@ -208,71 +279,80 @@ function StopOperationalBody({
               href={whatsAppUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex h-11 items-center justify-center gap-1.5 rounded-bw-field border border-bw-emerald/30 bg-bw-emerald-soft text-xs font-semibold text-bw-emerald hover:brightness-110 active:scale-[0.98] transition-all"
+              className="flex flex-col items-center justify-center gap-1 h-14 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 active:scale-95 transition-all cursor-pointer shadow-sm"
             >
-              <MessageCircle className="size-4 text-bw-emerald" aria-hidden />
-              <span>واتساب</span>
+              <MessageCircle className="size-5" aria-hidden />
+              <span className="text-xs font-bold">واتساب</span>
             </a>
           ) : (
-            <button
-              type="button"
-              disabled
-              className="inline-flex h-11 items-center justify-center gap-1.5 rounded-bw-field border border-bw-line bg-bw-sunken text-xs font-semibold text-bw-ink-subtle cursor-not-allowed"
-            >
-              <MessageCircle className="size-4 text-bw-ink-subtle" aria-hidden />
-              <span>لا يوجد واتساب</span>
-            </button>
+            <div className="flex flex-col items-center justify-center gap-1 h-14 rounded-2xl border border-bw-line bg-bw-sunken text-bw-ink-subtle cursor-not-allowed opacity-60">
+              <MessageCircle className="size-5" aria-hidden />
+              <span className="text-xs font-medium">لا يوجد واتساب</span>
+            </div>
           )}
 
-          {/* Navigation */}
+          {/* Navigation / Map */}
           {navResult.url ? (
             <a
               href={navResult.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex h-11 items-center justify-center gap-1.5 rounded-bw-field bg-bw-action text-xs font-semibold text-bw-on-action shadow-bw-sheen hover:bg-bw-action-hover active:scale-[0.98] transition-all"
+              onClick={handleStartNavigation}
+              className={cn(
+                'flex flex-col items-center justify-center gap-1 h-14 rounded-2xl border active:scale-95 transition-all cursor-pointer shadow-sm',
+                isActiveDelivery
+                  ? 'border-emerald-500 bg-emerald-600 text-white shadow-[0_0_16px_rgba(16,185,129,0.35)] animate-pulse'
+                  : 'border-bw-cobalt/40 bg-bw-cobalt text-white hover:bg-bw-cobalt-hover'
+              )}
             >
-              <Navigation className="size-4" aria-hidden />
-              <span>الطريق</span>
+              <Navigation className={cn('size-5', isActiveDelivery && 'animate-spin')} style={isActiveDelivery ? { animationDuration: '4s' } : undefined} aria-hidden />
+              <span className="text-xs font-bold">{isActiveDelivery ? 'الخريطة مفعلة' : 'الطريق'}</span>
             </a>
           ) : (
-            <button
-              type="button"
-              disabled
-              className="inline-flex h-11 items-center justify-center gap-1.5 rounded-bw-field border border-bw-line bg-bw-sunken text-xs font-semibold text-bw-ink-subtle cursor-not-allowed"
-            >
-              <Navigation className="size-4 text-bw-ink-subtle" aria-hidden />
-              <span>مافيش موقع</span>
-            </button>
+            <div className="flex flex-col items-center justify-center gap-1 h-14 rounded-2xl border border-bw-line bg-bw-sunken text-bw-ink-subtle cursor-not-allowed opacity-60">
+              <Navigation className="size-5" aria-hidden />
+              <span className="text-xs font-medium">مافيش موقع</span>
+            </div>
           )}
         </div>
       </section>
 
-      {/* 3. COD Amount to Collect Box */}
-      <section className="rounded-bw-card border border-bw-line bg-bw-surface p-3.5 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5">
-          <div className="grid size-10 place-items-center rounded-full bg-bw-action-soft text-bw-action-ink border border-bw-line">
-            <Wallet className="size-5" aria-hidden />
-          </div>
-          <div>
-            <span className="text-[11px] text-bw-ink-soft">المطلوب تحصيله (دفع عند الاستلام)</span>
-            <p className="font-bw-display text-lg font-bold text-bw-ink">
+      {/* ── 3. Giant High-Contrast Cash Collection Display ── */}
+      <section className="rounded-2xl border-2 border-emerald-500/40 bg-emerald-950/25 p-4 text-center space-y-1 shadow-bw-card">
+        {stop.codDue > 0 ? (
+          <>
+            <span className="text-xs font-bold text-emerald-400 block">
+              المطلوب استلامه كاش من العميل
+            </span>
+            <p className="font-bw-display text-3xl sm:text-4xl font-black text-emerald-400 tracking-tight">
               <Egp value={stop.codDue} />
             </p>
-          </div>
-        </div>
+            <span className="text-[11px] text-bw-ink-soft block font-medium">
+              تأكد من استلام كامل المبلغ قبل تسليم الطرد
+            </span>
+          </>
+        ) : (
+          <>
+            <span className="text-xs font-bold text-bw-cobalt block">
+              طلب مدفوع مسبقاً (أونلاين)
+            </span>
+            <p className="font-bw-display text-2xl sm:text-3xl font-black text-bw-ink">
+              0 ج.م
+            </p>
+            <span className="text-xs font-bold text-bw-cobalt block">
+              لا تستلم أي مبالغ نقدية من العميل!
+            </span>
+          </>
+        )}
 
         {stop.cashDeclared !== null ? (
-          <div className="text-end">
-            <span className="text-[11px] text-bw-ink-soft">المعلن تحصيله</span>
-            <p className="text-sm font-bold text-bw-ok">
-              <Egp value={stop.cashDeclared} />
-            </p>
+          <div className="pt-2 border-t border-emerald-500/20 text-xs text-bw-ok font-semibold">
+            أعلنت تحصيل: <Egp value={stop.cashDeclared} />
           </div>
         ) : null}
       </section>
 
-      {/* 4. Contextual Delivery Actions */}
+      {/* ── 4. Contextual Delivery Actions ── */}
 
       {/* State A: Awaiting Pickup (Planning & Not Handed Over) */}
       {!stop.handedOver && (
@@ -281,13 +361,13 @@ function StopOperationalBody({
 
       {/* State B: Received in Custody, but Run not yet dispatched */}
       {stop.handedOver && runStatus === 'planning' && (
-        <section className="rounded-bw-card border border-bw-emerald/25 bg-bw-emerald-soft p-4 space-y-2">
+        <section className="rounded-2xl border border-bw-emerald/25 bg-bw-emerald-soft p-4 space-y-2">
           <div className="flex items-center gap-2 text-bw-emerald font-semibold text-sm">
             <CheckCircle2 className="size-5 shrink-0" aria-hidden />
             <span>الطرد في عهدتك بنجاح</span>
           </div>
           <p className="text-xs text-bw-ink-soft leading-relaxed">
-            تم تسجيل استلام الطرد في عهدتك. في انتظار تأكيد المخزن لخروج المشوار لبدء التوصيل إلى العميل.
+            تم تسجيل استلام الطرد في عهدتك. في انتظار خروج المشوار من المخزن لبدء التوصيل إلى العميل.
           </p>
         </section>
       )}
@@ -299,36 +379,28 @@ function StopOperationalBody({
 
       {/* State D: Failed Attempt Result — Clearly indicates custody retention awaiting Hub return */}
       {isFailed && (
-        <section className="rounded-bw-card border border-bw-danger/30 bg-bw-danger-soft p-4 space-y-3">
-          <div className="flex items-center gap-2 text-bw-danger font-semibold text-sm">
+        <section className="rounded-2xl border border-bw-danger/30 bg-bw-danger-soft p-4 space-y-2.5">
+          <div className="flex items-center gap-2 text-bw-danger font-bold text-sm">
             <AlertCircle className="size-5 shrink-0" aria-hidden />
             <span>محاولة فاشلة مسجلة — الطرد في عهدتك</span>
           </div>
-          <div className="space-y-1.5 text-xs text-bw-ink-soft">
-            <p className="font-semibold text-bw-ink">
-              حالة الطرد: <span className="text-bw-warn font-semibold">مرتجع مع المندوب (في الطريق للمخزن)</span>
-            </p>
-            <p className="leading-relaxed">
-              الطرد لا يزال في عهدتك الشخصية حتى تسليمه الفعلي لمسؤول المخزن في نهاية المشوار.
-            </p>
-            <p className="leading-relaxed text-[11px] text-bw-ink-subtle">
-              سيقوم مسؤول المخزن بمسح باركود البوليصة لتأكيد استلام المرتجع وإتمام التسوية المالية والمخزنية.
-            </p>
-          </div>
+          <p className="text-xs text-bw-ink-soft leading-relaxed">
+            الطرد لا يزال في عهدتك الشخصية. سيتم تسليمه لمسؤول المخزن في نهاية المشوار لإتمام التسوية.
+          </p>
         </section>
       )}
 
       {/* State E: Successfully Delivered Result */}
       {isDelivered && (
-        <section className="rounded-bw-card border border-bw-emerald/30 bg-bw-emerald-soft p-4 space-y-2">
-          <div className="flex items-center gap-2 text-bw-emerald font-semibold text-sm">
+        <section className="rounded-2xl border border-bw-emerald/30 bg-bw-emerald-soft p-4 space-y-2">
+          <div className="flex items-center gap-2 text-bw-emerald font-bold text-sm">
             <CheckCircle2 className="size-5 shrink-0" aria-hidden />
             <span>تم تسليم الطلب بنجاح</span>
           </div>
           <p className="text-xs text-bw-ink-soft leading-relaxed">
             {stop.cashDeclared !== null ? (
               <>
-                أعلنت استلام مبلغ <strong className="text-bw-ok"><Egp value={stop.cashDeclared} /></strong> نقدياً من العميل. سيتم تأكيد العد والتسوية النهائية في المخزن.
+                أعلنت استلام مبلغ <strong className="text-bw-ok"><Egp value={stop.cashDeclared} /></strong> نقدياً من العميل. سيتم تأكيد العد في المخزن.
               </>
             ) : (
               'تم تأكيد التسليم وإغلاق المحطة بنجاح.'
@@ -341,8 +413,7 @@ function StopOperationalBody({
 }
 
 /**
- * Pickup & Handoff Scan (Awaiting Pickup)
- * Allows hardware scan, camera scanner, manual typing, and development testing input.
+ * Barcode Handoff Action (Pickup Custody).
  */
 function HandoffAction({ stop, onChanged }: { stop: DriverStop; onChanged: () => void }) {
   const [code, setCode] = React.useState('')
@@ -406,70 +477,79 @@ function HandoffAction({ stop, onChanged }: { stop: DriverStop; onChanged: () =>
             />
           </div>
         ) : (
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => setShowCamera(true)}
-            className="w-full text-xs"
-          >
-            <Camera className="size-4" aria-hidden />
-            مسح الباركود باستخدام كاميرا الموبايل
-          </Button>
-        )}
+          <form className="space-y-3" onSubmit={handleBarcodeSubmit}>
+            <Field
+              label="باركود البوليصة (SHP-...)"
+              ltr
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              placeholder="SHP-..."
+              autoFocus
+            />
 
-        {/* Barcode input form */}
-        <form className="space-y-2.5" onSubmit={handleBarcodeSubmit}>
-          <Field
-            label="رقم باركود البوليصة"
-            ltr
-            autoComplete="off"
-            placeholder="SHP-..."
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-          />
-
-          {/* Development-only helper button (strictly excluded in production) */}
-          {devBarcode ? (
-            <div className="rounded-bw-field border border-dashed border-bw-cobalt/40 bg-bw-cobalt-soft p-2 text-xs flex items-center justify-between gap-2">
-              <span className="text-bw-ink-soft text-[11px]">بيئة تطوير: باركود صالح للاختبار</span>
-              <button
+            <div className="flex gap-2">
+              <Button
                 type="button"
-                onClick={() => setCode(devBarcode)}
-                className="font-semibold text-bw-cobalt hover:underline text-[11px]"
+                variant="ghost"
+                size="touch"
+                onClick={() => setShowCamera(true)}
+                className="flex-1 text-xs font-semibold cursor-pointer"
               >
-                تعبئة باركود الاختبار
-              </button>
-            </div>
-          ) : null}
+                <Camera className="size-4" aria-hidden />
+                <span>تشغيل الكاميرا</span>
+              </Button>
 
-          <Button
-            type="submit"
-            size="touch"
-            className="w-full"
-            loading={scan.pending}
-            disabled={!code.trim() || scan.pending}
-          >
-            تأكيد استلام الطرد في عهدتي
-          </Button>
-          <CommandError error={scan.error} />
-        </form>
+              {devBarcode ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="touch"
+                  onClick={() => setCode(devBarcode)}
+                  className="flex-1 text-xs text-bw-ink-soft hover:text-bw-ink cursor-pointer"
+                >
+                  <Scan className="size-4" aria-hidden />
+                  <span>تعبئة باركود الاختبار</span>
+                </Button>
+              ) : null}
+            </div>
+
+            <Button
+              type="submit"
+              size="touch"
+              variant="primary"
+              className="w-full font-bold bg-bw-action text-bw-on-action hover:bg-bw-action-hover"
+              loading={scan.pending}
+              disabled={!code.trim() || scan.pending}
+            >
+              تأكيد استلام الطرد في عهدتي
+            </Button>
+
+            <CommandError error={scan.error} />
+          </form>
+        )}
       </div>
     </Section>
   )
 }
 
 /**
- * Primary Delivery Outcomes (Out for Delivery)
- * Shows sticky dual action bar: "تم التسليم" and "تعذر التسليم", backed by Bottom Sheets.
- * Prevents accidental double submissions and updates state only after server confirmation.
+ * Dispatched Outcome Action Bar & Bottom Sheets:
+ * Exactly two primary actions for mobile courier:
+ * 1. "تم التسليم" (green)
+ * 2. "تعذر التسليم" (red)
  */
-function DispatchedOutcomeAction({ stop, onChanged }: { stop: DriverStop; onChanged: () => void }) {
+function DispatchedOutcomeAction({
+  stop,
+  onChanged,
+}: {
+  stop: DriverStop
+  onChanged: () => void
+}) {
   const deliveredSheet = useDialog()
   const failedSheet = useDialog()
   const toast = useToast()
 
   const stickyBarRef = React.useRef<HTMLDivElement>(null)
-  // Lifts the single toast above the sticky bottom action bar so they never overlap
   useToastLift(stickyBarRef, true, true)
 
   const [cashInput, setCashInput] = React.useState(String(stop.codDue))
@@ -501,7 +581,6 @@ function DispatchedOutcomeAction({ stop, onChanged }: { stop: DriverStop; onChan
     amount >= 0 &&
     Math.round(amount * 100) === amount * 100
 
-  // Guard against accidental double submissions
   const isDelivering = React.useRef(false)
   const isFailing = React.useRef(false)
 
@@ -514,6 +593,7 @@ function DispatchedOutcomeAction({ stop, onChanged }: { stop: DriverStop; onChan
     try {
       const res = await delivered.execute()
       if (res) {
+        setActiveDeliveryStopId(null)
         toast.success('تم تسجيل التسليم والتحصيل بنجاح')
         deliveredSheet.close()
         onChanged()
@@ -533,6 +613,7 @@ function DispatchedOutcomeAction({ stop, onChanged }: { stop: DriverStop; onChan
     try {
       const res = await failed.execute()
       if (res) {
+        setActiveDeliveryStopId(null)
         toast.warning('تم تسجيل تعذر التسليم — الطرد في عهدتك')
         failedSheet.close()
         onChanged()
@@ -558,9 +639,9 @@ function DispatchedOutcomeAction({ stop, onChanged }: { stop: DriverStop; onChan
               setConfirmedCashCheck(false)
               deliveredSheet.open()
             }}
-            className="w-full text-sm font-bold bg-bw-action text-bw-on-action hover:bg-bw-action-hover"
+            className="w-full h-12 text-sm font-bold bg-emerald-600 text-white hover:bg-emerald-500 shadow-sm cursor-pointer"
           >
-            <CheckCircle2 className="size-4" aria-hidden />
+            <CheckCircle2 className="size-5" aria-hidden />
             تم التسليم
           </Button>
 
@@ -572,9 +653,9 @@ function DispatchedOutcomeAction({ stop, onChanged }: { stop: DriverStop; onChan
               setFailureNotes('')
               failedSheet.open()
             }}
-            className="w-full text-sm font-bold"
+            className="w-full h-12 text-sm font-bold shadow-sm cursor-pointer"
           >
-            <XCircle className="size-4" aria-hidden />
+            <XCircle className="size-5" aria-hidden />
             تعذر التسليم
           </Button>
         </div>
@@ -588,13 +669,10 @@ function DispatchedOutcomeAction({ stop, onChanged }: { stop: DriverStop; onChan
       >
         <form className="space-y-4" onSubmit={handleDeliveredSubmit}>
           {/* Amount Due Overview */}
-          <div className="rounded-bw-card border border-bw-line bg-bw-sunken p-3 space-y-1">
-            <span className="text-[11px] text-bw-ink-soft">المبلغ المطلوب من العميل (ثابت)</span>
-            <p className="font-bw-display text-lg font-bold text-bw-ink">
+          <div className="rounded-2xl border-2 border-emerald-500/40 bg-emerald-950/20 p-4 text-center space-y-1">
+            <span className="text-xs font-semibold text-emerald-300">المبلغ المطلوب استلامه نقداً من العميل</span>
+            <p className="font-bw-display text-3xl font-black text-emerald-400">
               <Egp value={stop.codDue} />
-            </p>
-            <p className="text-[11px] text-bw-ink-subtle">
-              إجمالي الطلب مؤكد ولا يمكن تغييره دون الرجوع للإدارة.
             </p>
           </div>
 
@@ -608,7 +686,6 @@ function DispatchedOutcomeAction({ stop, onChanged }: { stop: DriverStop; onChan
               onChange={(e) => setCashInput(e.target.value)}
               placeholder="0.00"
             />
-            {/* Quick full-amount shortcut */}
             {amount !== stop.codDue ? (
               <button
                 type="button"
@@ -628,15 +705,15 @@ function DispatchedOutcomeAction({ stop, onChanged }: { stop: DriverStop; onChan
           ) : null}
 
           {/* Explicit Confirmation Checkbox */}
-          <label className="flex items-start gap-2.5 rounded-bw-field border border-bw-line p-2.5 text-xs text-bw-ink cursor-pointer bg-bw-veil-1">
+          <label className="flex items-start gap-2.5 rounded-2xl border border-bw-line p-3 text-xs text-bw-ink cursor-pointer bg-bw-veil-1">
             <input
               type="checkbox"
-              className="size-4 mt-0.5 accent-bw-action rounded shrink-0 cursor-pointer"
+              className="size-4 mt-0.5 accent-emerald-500 rounded shrink-0 cursor-pointer"
               checked={confirmedCashCheck}
               onChange={(e) => setConfirmedCashCheck(e.target.checked)}
             />
-            <span className="leading-relaxed">
-              أؤكد تسليم الطرد للعميل واستلام مبلغ <strong className="text-bw-ink"><Egp value={amount || 0} /></strong> نقدياً في عهدتي.
+            <span className="leading-relaxed font-medium">
+              أؤكد تسليم الطرد للعميل واستلام مبلغ <strong className="text-emerald-400 font-bold"><Egp value={amount || 0} /></strong> نقدياً في عهدتي.
             </span>
           </label>
 
@@ -644,7 +721,7 @@ function DispatchedOutcomeAction({ stop, onChanged }: { stop: DriverStop; onChan
             <Button
               type="submit"
               size="touch"
-              className="flex-1"
+              className="flex-1 font-bold bg-emerald-600 text-white hover:bg-emerald-500"
               loading={delivered.pending}
               disabled={!isCashValid || !confirmedCashCheck || delivered.pending}
             >
@@ -671,13 +748,36 @@ function DispatchedOutcomeAction({ stop, onChanged }: { stop: DriverStop; onChan
         title="تسجيل تعذر التسليم"
         variant="sheet"
       >
-        <form className="space-y-3.5" onSubmit={handleFailedSubmit}>
+        <form className="space-y-4" onSubmit={handleFailedSubmit}>
           <p className="text-xs text-bw-ink-soft">
-            اختر السبب الفعلي لتعذر التسليم. يظل الطرد في عهدتك حتى إعادته إلى المخزن.
+            اختر السبب الفعلي لتعذر التسليم بلمسة واحدة:
           </p>
 
-          {/* Required Dropdown: سبب تعذر التسليم */}
-          <div className="space-y-1.5">
+          {/* Visual reason tiles for quick one-thumb selection */}
+          <div className="grid grid-cols-2 gap-2">
+            {QUICK_REASONS.map((r) => {
+              const isSelected = reasonCode === r.code
+              return (
+                <button
+                  key={r.code}
+                  type="button"
+                  onClick={() => setReasonCode(r.code)}
+                  className={cn(
+                    'flex items-center gap-2.5 p-3 rounded-2xl border text-start transition-all cursor-pointer',
+                    isSelected
+                      ? 'border-bw-danger bg-bw-danger/15 text-bw-ink font-bold shadow-sm ring-1 ring-bw-danger/50'
+                      : 'border-bw-line bg-bw-surface text-bw-ink-soft hover:bg-bw-sunken hover:text-bw-ink'
+                  )}
+                >
+                  <span className="text-xl shrink-0" aria-hidden>{r.icon}</span>
+                  <span className="text-xs leading-snug">{r.label}</span>
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Standard Select Dropdown kept in sync for screen readers & full test suite compatibility */}
+          <div className="space-y-1.5 pt-1">
             <label htmlFor="failure-reason-select" className="block text-xs font-semibold text-bw-ink">
               سبب تعذر التسليم <span className="text-bw-danger">*</span>
             </label>
@@ -687,7 +787,7 @@ function DispatchedOutcomeAction({ stop, onChanged }: { stop: DriverStop; onChan
               value={reasonCode}
               onChange={(e) => setReasonCode(e.target.value)}
               required
-              className="w-full h-11 rounded-bw-field border border-bw-line-field bg-bw-surface px-3 text-xs font-semibold text-bw-ink focus:border-bw-action focus:outline-none cursor-pointer"
+              className="w-full h-11 rounded-2xl border border-bw-line-field bg-bw-surface px-3 text-xs font-semibold text-bw-ink focus:border-bw-action focus:outline-none cursor-pointer"
             >
               {Object.entries(FAILURE_REASONS).map(([key, label]) => (
                 <option key={key} value={key}>
@@ -714,13 +814,13 @@ function DispatchedOutcomeAction({ stop, onChanged }: { stop: DriverStop; onChan
           </div>
 
           {/* Custody reminder */}
-          <div className="rounded-bw-field bg-bw-warn-soft border border-bw-warn/25 p-2.5 text-[11px] text-bw-warn space-y-1">
-            <p className="font-semibold flex items-center gap-1">
-              <AlertTriangle className="size-3.5" aria-hidden />
+          <div className="rounded-2xl bg-amber-500/10 border border-amber-500/25 p-2.5 text-[11px] text-amber-300 space-y-1">
+            <p className="font-bold flex items-center gap-1">
+              <AlertTriangle className="size-3.5 text-amber-400" aria-hidden />
               تنبيه العهدة
             </p>
             <p className="leading-relaxed">
-              تسجيل تعذر التسليم لا يعني إرجاع الطرد للمخزن تلقائياً. يجب تسليم الطرد يدوياً لمسؤول المخزن ليقوم بمسح البوليصة وتأكيد الاستلام.
+              الطرد يظل في عهدتك الشخصية حتى تسليمه لمسؤول المخزن في نهاية المشوار.
             </p>
           </div>
 
@@ -729,7 +829,7 @@ function DispatchedOutcomeAction({ stop, onChanged }: { stop: DriverStop; onChan
               type="submit"
               variant="danger"
               size="touch"
-              className="flex-1"
+              className="flex-1 font-bold h-12"
               loading={failed.pending}
               disabled={!reasonCode || (reasonCode === 'OTHER' && !failureNotes.trim()) || failed.pending}
             >

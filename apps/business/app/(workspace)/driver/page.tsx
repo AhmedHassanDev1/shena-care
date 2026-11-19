@@ -35,6 +35,7 @@ import { LoadError, RoleShell } from '@/components/workspace/role-shell'
 import { api } from '@/lib/api'
 import { getDevShipmentBarcode } from '@/lib/dev-barcode'
 import { shortId } from '@/lib/labels'
+import { useActiveDeliveryStop } from '@/lib/courier-actions'
 import { useApi, useCommand } from '@/lib/use-api'
 import { cn } from '@/lib/utils'
 
@@ -82,6 +83,7 @@ export default function DriverRoute() {
   const [activeTab, setActiveTab] = React.useState<TabFilter>('all')
   const [scanningRun, setScanningRun] = React.useState<DriverRun | null>(null)
   const [quickScanStop, setQuickScanStop] = React.useState<DriverStop | null>(null)
+  const [activeDeliveryId] = useActiveDeliveryStop()
 
   // Only display active runs assigned to this courier by the Hub (planning or dispatched); old completed runs are hidden
   const activeRuns = React.useMemo(() => {
@@ -265,6 +267,7 @@ export default function DriverRoute() {
           {filteredStops.map(({ stop, run }) => {
             const isDelivered = stop.status === 'delivered' || stop.attemptStatus === 'delivered'
             const isFailed = stop.status === 'failed' || stop.attemptStatus === 'failed'
+            const isActiveDelivery = activeDeliveryId === stop.shipmentId && !isDelivered && !isFailed
             const isCustody =
               (stop.handedOver && !isDelivered && !isFailed) ||
               (run.status === 'dispatched' && !isDelivered && !isFailed)
@@ -276,7 +279,9 @@ export default function DriverRoute() {
                   href={`/driver/stop/${stop.shipmentId}`}
                   className={cn(
                     'block rounded-2xl p-4 bg-bw-surface border transition-all hover:bg-bw-veil-1 active:bg-bw-sunken cursor-pointer',
-                    isCustody
+                    isActiveDelivery
+                      ? 'border-2 border-emerald-500 ring-2 ring-emerald-500/40 shadow-[0_0_24px_rgba(16,185,129,0.3)] bg-gradient-to-l from-emerald-950/25 to-bw-surface'
+                      : isCustody
                       ? 'border-emerald-500/50 shadow-sm'
                       : isAwaitingScan
                       ? 'border-bw-line hover:border-amber-500/40'
@@ -330,7 +335,15 @@ export default function DriverRoute() {
                       <div className="flex flex-col items-end justify-between self-stretch py-0.5 space-y-2">
                         {/* Status Tag or Interactive Quick Scanner */}
                         <div>
-                          {isDelivered ? (
+                          {isActiveDelivery ? (
+                            <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold bg-emerald-500/25 text-emerald-400 border border-emerald-500/60 shadow-[0_0_12px_rgba(16,185,129,0.35)] animate-pulse">
+                              <span className="relative flex size-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                                <span className="relative inline-flex rounded-full size-2 bg-emerald-500" />
+                              </span>
+                              <span>في الطريق الآن 🚗</span>
+                            </span>
+                          ) : isDelivered ? (
                             <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold bg-bw-sunken text-bw-ink-soft border border-bw-line">
                               <CheckCircle2 className="size-3.5 text-bw-ink-subtle" aria-hidden />
                               تم التسليم
@@ -508,7 +521,7 @@ function QuickScanSheet({
               label="امسح أو اكتب باركود البوليصة (SHP-...)"
               value={code}
               onChange={(e) => setCode(e.target.value)}
-              placeholder="SHP-XXXXXXXX-XXXXXXXX"
+              placeholder="SHP-..."
               ltr
               autoFocus
             />
