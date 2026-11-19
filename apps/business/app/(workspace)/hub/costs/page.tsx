@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { CopyId } from '@/components/bw/copy-id'
+import { CopyId } from '@/components/workspace/copy-id'
 import { Button, Code, Field, Notice, PageHeader, Section, Skeleton, StateBlock, StatusLabel } from '@/components/bw/primitives'
 import { HubShell } from '@/components/workspace/hub'
 import { CommandError, Egp, Page, Select } from '@/components/workspace/kit'

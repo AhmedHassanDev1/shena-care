@@ -33,6 +33,15 @@ Hub `/hub/dispatch`, Courier `/driver`, Admin, customer tracking (reads the same
    blockers): an empty run, a run with uncounted cash, or one with an open return can never be closed. A count scoped by `runId` only sweeps
    cash this run delivered (an unknown run is a 404, an empty scope a 409 `NO_OPEN_ROUND`, never "everything of the courier").
 
+7. **Hub desk = three tabs (`/hub/dispatch`).** *توزيع الطلبات* (ready parcels → suggested geographic groups or manual pick → a `planning` trip, reviewed here, sent out
+   with *خروج المشوار* only after the courier scanned every parcel in the Delivery workspace; the Hub has no scan button), *جاري التوصيل* (trips on the road: delivered /
+   failed / remaining and the expected COD, read-only) and *التسوية* (trips back at the hub: one centered modal / bottom sheet with one input — the cash actually received —
+   the backend's expected COD, a live matched / shortage / surplus line, label-scan confirmation of returned parcels and one *تأكيد التسوية* that counts the cash and then
+   closes the trip if the server says it may). Closed trips are read-only summaries behind *سجل المشاوير*. A trip is its own accounting batch: its reference is
+   `TRP-` + the first 8 hex of its id (no new column); every id, reference and order number on the page is a copy button that copies the complete value.
+   The run list rows carry `cod: { orders, expectedTotal }` = cash the whole trip should bring back (COD parcels not failed / returned / cancelled), computed by
+   `runCodExposure` from the expected collections fixed at dispatch.
+
 ## Safety rules enforced here
 
 - A confirmed order's **quantity, unit price, total and COD amount cannot be edited from the Hub or Delivery** (the desk line editor was removed);

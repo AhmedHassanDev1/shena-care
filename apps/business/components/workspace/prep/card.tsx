@@ -31,7 +31,7 @@ function DiscountField({ line, suggestedList, hubId, orderId, onOrder }: {
   const cost = line.cost
   const serverPercent = trimPercent(cost?.discountPercent)
   const [percent, setPercent] = React.useState(serverPercent)
-  const [list, setList] = React.useState(cost?.recorded ? '' : suggestedList ? String(Number(suggestedList)) : '')
+  const [list] = React.useState(cost?.recorded ? '' : suggestedList ? String(Number(suggestedList)) : '')
   const [state, setState] = React.useState<SaveState>({ kind: 'idle' })
   const dirty = React.useRef(false)
   const timer = React.useRef<number | null>(null)
@@ -48,7 +48,7 @@ function DiscountField({ line, suggestedList, hubId, orderId, onOrder }: {
     if (timer.current) { window.clearTimeout(timer.current); timer.current = null }
     const { percent: p, list: l } = latest.current
     if (!PERCENT.test(p) || Number(p) > 99.99) { setState({ kind: 'invalid', text: 'اكتب نسبة من 0 لـ 99.99' }); return }
-    if (!cost?.recorded && !MONEY.test(l)) { setState({ kind: 'invalid', text: 'اكتب سعر القائمة (ج.م) الأول' }); return }
+    if (!cost?.recorded && !MONEY.test(l)) { setState({ kind: 'invalid', text: 'سعر القائمة مش متسجّل. سجّله من المشتريات الأول.' }); return }
     const mine = ++seq.current
     setState({ kind: 'saving' })
     try {
@@ -76,29 +76,21 @@ function DiscountField({ line, suggestedList, hubId, orderId, onOrder }: {
   if (!cost) {
     return <p className="text-[12px] text-bw-ink-soft">خصم المورّد بيتسجّل بعد «اتشترت».</p>
   }
-  // The supplier's list price is not shown as text. It is typed only when the server has none to start from (a first purchase record);
-  // otherwise the recorded / suggested one is used as it is.
-  const showListInput = !cost.recorded && !MONEY.test(list)
+  // There is no price field on the card. The supplier's list price is the recorded one, or the one suggested from the last purchase of this
+  // product. With neither, the discount cannot be priced yet: the field stays off until the purchase is costed in Purchases.
+  const noList = !cost.recorded && !MONEY.test(list)
   const field = 'bw-control h-9 rounded-bw-field border bg-bw-surface px-2 text-center text-bw-small tabular-nums text-bw-ink'
   return (
     <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
       <div className="flex items-center gap-1.5">
         <label htmlFor={`${id}-p`} className="text-[12px] text-bw-ink-soft">خصم المورّد</label>
         <input id={`${id}-p`} dir="ltr" inputMode="decimal" autoComplete="off" value={percent} aria-invalid={state.kind === 'invalid' || undefined}
+          disabled={noList} title={noList ? 'سعر القائمة مش متسجّل. سجّله من المشتريات الأول.' : undefined}
           onChange={(event) => { const next = event.target.value.replace(/[^\d.]/g, ''); setPercent(next); touch(next, latest.current.list) }}
           onBlur={() => { if (dirty.current) void save() }}
-          className={cn(field, 'w-14', state.kind === 'invalid' || state.kind === 'error' ? 'border-bw-danger' : 'border-bw-line-field')} />
+          className={cn(field, 'w-14 disabled:cursor-not-allowed disabled:opacity-50', state.kind === 'invalid' || state.kind === 'error' ? 'border-bw-danger' : 'border-bw-line-field')} />
         <span aria-hidden className="text-[12px] text-bw-ink-soft">%</span>
       </div>
-      {showListInput ? (
-        <div className="flex items-center gap-1.5">
-          <label htmlFor={`${id}-l`} className="text-[12px] text-bw-ink-soft">سعر القائمة · ج.م</label>
-          <input id={`${id}-l`} dir="ltr" inputMode="decimal" autoComplete="off" value={list}
-            onChange={(event) => { const next = event.target.value.replace(/[^\d.]/g, ''); setList(next); touch(latest.current.percent, next) }}
-            onBlur={() => { if (dirty.current) void save() }}
-            className={cn(field, 'w-20 border-bw-line-field')} />
-        </div>
-      ) : null}
       <SaveStatus state={state} onRetry={() => { void save() }} />
     </div>
   )
@@ -118,7 +110,6 @@ function SaveStatus({ state, onRetry }: { state: SaveState; onRetry: () => void 
 }
 
 
-const squash = (text: string) => text.toLowerCase().replace(/\s+/g, '')
 
 /**
  * One product of the order, in the same structure as the purchases lists.
@@ -137,12 +128,12 @@ export function ProductCard({ line, order, hubId, lastCosts, canPrice, plus, min
   onMore: () => void
 }) {
   const done = line.received >= line.required
-  // The desk sends the size as printed ("200 ml"); it is a tag only when the name does not already say it.
+  // The desk sends the pack size as printed ("200 ml"); it is always one of the tags, next to the category (the type: cleanser, serum…) and the texture.
   const name = purchaseLineName({ productName: line.productName, brandName: line.brandName, variantName: line.variantName, size: null, sizeUnit: null, packCount: null })
   const full = [name.brand, name.name].filter(Boolean).join(' ') || productTitle(line)
   const category = categoryLabel(line.categoryName)
   const texture = textureLabel(line.texture)
-  const size = line.size && !squash(full).includes(squash(line.size)) ? line.size : ''
+  const size = line.size ?? ''
   const step = 'grid size-bw-control shrink-0 place-items-center rounded-full disabled:cursor-not-allowed'
   return (
     <li className={cn('space-y-2 rounded-bw-card border p-3', done ? 'border-bw-emerald/40 bg-bw-emerald-soft/25' : 'border-bw-line bg-bw-surface')}>

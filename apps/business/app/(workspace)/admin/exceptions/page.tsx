@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { CopyId } from '@/components/bw/copy-id'
+import { CopyId } from '@/components/workspace/copy-id'
 import Link from 'next/link'
 import { ArrowLeft, RefreshCw, ShieldAlert } from 'lucide-react'
 import { Code, Section, Skeleton, StateBlock } from '@/components/bw/primitives'

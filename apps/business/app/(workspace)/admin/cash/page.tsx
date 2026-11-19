@@ -12,7 +12,7 @@ import {
   Wallet,
 } from 'lucide-react'
 import { DataTable, Section, Skeleton, StateBlock } from '@/components/bw/primitives'
-import { CopyId } from '@/components/bw/copy-id'
+import { CopyId } from '@/components/workspace/copy-id'
 import { Egp, Page, Select, Status } from '@/components/workspace/kit'
 import { LoadError, RoleShell, useMe } from '@/components/workspace/role-shell'
 import { COLLECTION_STATUS, formatDateTime, shortId } from '@/lib/labels'

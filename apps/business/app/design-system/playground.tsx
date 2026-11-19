@@ -4,7 +4,7 @@ import * as React from 'react'
 import {
   Button, Checkbox, Code, DataTable, Dialog, Field, Notice, PageHeader, Search, Section, Select, Skeleton, StateBlock, StatusLabel, Switch, Tabs, Toast, useDialog,
 } from '@/components/bw/primitives'
-import { CopyId } from '@/components/bw/copy-id'
+import { CopyId } from '@/components/workspace/copy-id'
 import { useToast } from '@/components/bw/toast'
 import { type Role, type WorkspaceMode, WorkspaceFrame } from '@/components/bw/workspace-frame'
 
