@@ -228,6 +228,9 @@ describe('Delivery MVP: dispatch, verified handoff, courier delivery, COD settle
       return batch.id;
     };
     const first = await dispatchRun([a, b], d1, 'Morning');
+    // While the trip is out, the hub's list already carries the cash the whole trip should bring back (server-calculated, parcels on the road included).
+    const outList = (await http().get(`/fulfillment/locations/${locationId}/runs`).set(hub.auth).expect(200)).body.items.find((r: any) => r.id === first);
+    expect(outList.cod).toEqual({ orders: 2, expectedTotal: Math.round((a.cod + b.cod) * 100) / 100 });
 
     // Courier scope: the other courier sees nothing of this run and cannot act on its parcels.
     expect((await http().get('/fulfillment/driver/runs').set(d2.auth).expect(200)).body).toEqual([]);
@@ -248,6 +251,8 @@ describe('Delivery MVP: dispatch, verified handoff, courier delivery, COD settle
     // The hub's run list: the failed parcel is still an open attempt until it is taken back, but nothing is left for the courier to attempt.
     const listed = (await http().get(`/fulfillment/locations/${locationId}/runs`).set(hub.auth).expect(200)).body.items.find((r: any) => r.id === first);
     expect(listed).toMatchObject({ toAttempt: 0, attempts: { delivered: 1, active: 1 } });
+    // A failed parcel is no longer expected to bring cash back.
+    expect(listed.cod).toEqual({ orders: 1, expectedTotal: a.cod });
     // The run is not settled: declared cash is uncounted and the failed parcel is still in the courier's hands, so it cannot be closed.
     expect(listed.settlement).toMatchObject({ state: 'reconciliation_required', canComplete: false, stops: { delivered: 1, pendingReturns: 1 } });
     const refused = await http().post(`/fulfillment/delivery-batches/${first}/complete`).set(hub.auth).expect(409);

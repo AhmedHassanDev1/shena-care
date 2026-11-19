@@ -149,3 +149,21 @@ export function assessRunSettlement(input: { runStatus: string; stops: RunStopFa
     canComplete: dispatched && blockers.length === 0,
   };
 }
+
+/**
+ * What the courier is expected to bring back for the whole run, including parcels still on the road: every COD order whose
+ * parcel has not failed, been returned or been cancelled. `assessRunSettlement` only counts cash of orders already delivered, so
+ * this is the figure a trip card shows while the trip is still out. Computed by the backend from the fixed expected collections.
+ */
+export function runCodExposure(stops: RunStopFact[], collections: RunCollectionFact[]): { orders: number; expectedTotal: number } {
+  const byOrder = new Map(collections.map(c => [c.orderId, c]));
+  let orders = 0; let expectedTotal = 0;
+  for (const stop of stops) {
+    if (stop.stopStatus === 'failed' || stop.stopStatus === 'returned') continue;
+    if (['failed', 'returned', 'cancelled'].includes(stop.shipmentStatus)) continue;
+    const collection = byOrder.get(stop.orderId);
+    if (!collection || collection.status === 'voided') continue;
+    orders++; expectedTotal += collection.expectedAmount;
+  }
+  return { orders, expectedTotal: round2(expectedTotal) };
+}

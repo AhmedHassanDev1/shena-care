@@ -1,4 +1,4 @@
-import { assessRunSettlement, RunCollectionFact, RunStopFact } from '../../src/modules/fulfillment/services/run-settlement';
+import { assessRunSettlement, runCodExposure, RunCollectionFact, RunStopFact } from '../../src/modules/fulfillment/services/run-settlement';
 
 const stop = (n: number, stopStatus: string, shipmentStatus: string): RunStopFact => ({ stopStatus, shipmentStatus, shipmentId: `s${n}`, orderId: `o${n}` });
 const batch = { id: 'b1', reference: 'CNT-1', settledAt: new Date('2026-11-19T10:00:00Z'), totalExpected: 300, totalCollected: 290 };
@@ -73,5 +73,27 @@ describe('run settlement assessment', () => {
   it('disputed cash needs reconciliation', () => {
     const a = assessRunSettlement({ runStatus: 'dispatched', stops: [stop(1, 'delivered', 'delivered')], collections: [cash(1, 'disputed')] });
     expect(a).toMatchObject({ state: 'reconciliation_required', canComplete: false });
+  });
+});
+
+describe('run COD exposure', () => {
+  it('sums the expected cash of every COD parcel still expected back, on the road or delivered', () => {
+    const e = runCodExposure(
+      [stop(1, 'active', 'out_for_delivery'), stop(2, 'delivered', 'delivered'), stop(3, 'active', 'out_for_delivery')],
+      [cash(1, 'expected'), cash(2, 'collected'), cash(3, 'voided')],
+    );
+    expect(e).toEqual({ orders: 2, expectedTotal: 600 });
+  });
+
+  it('drops failed, returned and cancelled parcels and prepaid orders without a collection', () => {
+    const e = runCodExposure(
+      [stop(1, 'failed', 'failed'), stop(2, 'returned', 'returned'), stop(3, 'active', 'cancelled'), stop(4, 'delivered', 'delivered'), stop(5, 'delivered', 'delivered')],
+      [cash(1, 'expected'), cash(2, 'expected'), cash(3, 'expected'), cash(4, 'collected')],
+    );
+    expect(e).toEqual({ orders: 1, expectedTotal: 300 });
+  });
+
+  it('an empty run expects nothing', () => {
+    expect(runCodExposure([], [])).toEqual({ orders: 0, expectedTotal: 0 });
   });
 });
