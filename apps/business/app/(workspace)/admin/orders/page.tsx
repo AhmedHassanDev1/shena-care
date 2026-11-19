@@ -111,11 +111,11 @@ function AdminOrdersContent() {
                       </span>
                       <span className="hidden text-bw-small tabular-nums text-bw-ink-soft md:block"><Code>{order.itemCount}</Code></span>
                       <span className="col-start-2 row-start-1 text-end md:col-start-auto md:row-start-auto md:text-start">
-                        <span className="block text-bw-small font-semibold text-bw-ink"><Egp value={order.totalAmount} /></span>
+                        <span className="block text-bw-body font-semibold leading-tight text-bw-ink"><Egp value={order.totalAmount} /></span>
                         <span className="block text-[11px] text-bw-ink-subtle md:hidden"><Code>{order.itemCount}</Code> أصناف</span>
                       </span>
                       <span className="col-span-2 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-bw-ink-soft md:col-span-1">
-                        {needsLocation ? <StatusLabel tone="warn">الموقع غير مؤكد</StatusLabel> : NEXT_STEP[order.status] ? <span className="truncate">{NEXT_STEP[order.status]}</span> : null}
+                        {needsLocation ? <StatusLabel tone="warn">الموقع غير مؤكد</StatusLabel> : NEXT_STEP[order.status] ? <span className="truncate font-medium text-bw-ink">{NEXT_STEP[order.status]}</span> : null}
                         <span className="text-bw-ink-subtle">{when(order.createdAt)}</span>
                       </span>
                       <ChevronLeft className="hidden size-4 text-bw-ink-subtle transition-transform group-hover:-translate-x-0.5 group-hover:text-bw-ink md:block" aria-hidden />

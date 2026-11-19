@@ -3,6 +3,7 @@
 import * as React from 'react'
 import { ChevronDown, Layers, Pencil, Plus, Power, Trash2 } from 'lucide-react'
 import { Button, Code, Dialog, Field, Skeleton, StateBlock, Switch, useDialog } from '@/components/bw/primitives'
+import { useToast } from '@/components/bw/toast'
 import { LoadError } from '@/components/workspace/role-shell'
 import { api, ApiError } from '@/lib/api'
 import { cn } from '@/lib/utils'
@@ -35,8 +36,7 @@ export function BrandsTab({ brands, loading, error, onReload, onViewProducts }: 
   onViewProducts: (brandId: string) => void
 }) {
   const [query, setQuery] = React.useState('')
-  const [notice, setNotice] = React.useState<string | null>(null)
-  const [failure, setFailure] = React.useState<string | null>(null)
+  const toast = useToast()
   const [editing, setEditing] = React.useState<BrandSummary | null>(null)
   const [linesOf, setLinesOf] = React.useState<string | null>(null)
   const [deleting, setDeleting] = React.useState<BrandSummary | null>(null)
@@ -50,13 +50,12 @@ export function BrandsTab({ brands, loading, error, onReload, onViewProducts }: 
 
   const later = (fn: () => void) => window.setTimeout(fn, 0)
   const toggleActive = async (brand: BrandSummary) => {
-    setFailure(null)
     try {
       await api(`/brands/${brand.id}`, { method: 'PATCH', body: { isActive: !brand.isActive } })
-      setNotice(brand.isActive ? `تم إيقاف «${brand.name}»` : `تم تفعيل «${brand.name}»`)
+      toast.success(brand.isActive ? `تم إيقاف «${brand.name}»` : `تم تفعيل «${brand.name}»`)
       onReload()
     } catch (err) {
-      setFailure(catalogErrorMessage(err as ApiError, 'تعذر تغيير حالة الماركة'))
+      toast.error(catalogErrorMessage(err as ApiError, 'تعذر تغيير حالة الماركة'))
     }
   }
 
@@ -67,8 +66,6 @@ export function BrandsTab({ brands, loading, error, onReload, onViewProducts }: 
         <Button className="ms-auto" onClick={() => { setEditing(null); later(() => formDialog.open()) }}><Plus className="size-4" aria-hidden />إضافة ماركة</Button>
       </div>
 
-      {notice ? <Banner tone="ok" onClose={() => setNotice(null)}>{notice}</Banner> : null}
-      {failure ? <Banner tone="danger" onClose={() => setFailure(null)}>{failure}</Banner> : null}
       {error ? <LoadError message={error} onRetry={onReload} /> : null}
       {loading && brands.length === 0 ? <Skeleton className="h-56 w-full" /> : null}
       {!loading && brands.length > 0 && visible.length === 0 ? <StateBlock kind="empty" title="لا توجد ماركة بهذا الاسم" body="جرّب اسمًا آخر أو مرادفًا عربيًا." /> : null}
@@ -114,9 +111,9 @@ export function BrandsTab({ brands, loading, error, onReload, onViewProducts }: 
         </ul>
       ) : null}
 
-      <BrandModal key={editing?.id ?? 'new'} dialogRef={formDialog.ref} brand={editing} onClose={() => formDialog.close()} onSaved={(m) => { formDialog.close(); setNotice(m); onReload() }} />
+      <BrandModal key={editing?.id ?? 'new'} dialogRef={formDialog.ref} brand={editing} onClose={() => formDialog.close()} onSaved={(m) => { formDialog.close(); toast.success(m); onReload() }} />
       <LinesDialog dialogRef={linesDialog.ref} brand={linesBrand} onChanged={onReload} onClose={() => linesDialog.close()} />
-      <DeleteDialog dialogRef={deleteDialog.ref} brand={deleting} onClose={() => deleteDialog.close()} onDeactivate={(b) => { deleteDialog.close(); void toggleActive(b) }} onDeleted={(m) => { deleteDialog.close(); setNotice(m); onReload() }} />
+      <DeleteDialog dialogRef={deleteDialog.ref} brand={deleting} onClose={() => deleteDialog.close()} onDeactivate={(b) => { deleteDialog.close(); void toggleActive(b) }} onDeleted={(m) => { deleteDialog.close(); toast.success(m); onReload() }} />
     </div>
   )
 }

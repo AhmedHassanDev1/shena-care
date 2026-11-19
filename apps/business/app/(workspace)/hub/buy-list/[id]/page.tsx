@@ -6,6 +6,8 @@ import { useParams } from 'next/navigation'
 import { ArrowRight, Check, ChevronDown, Copy, MessageCircle, Printer, RefreshCw, Undo2 } from 'lucide-react'
 import { Button, Code, Field, Notice, PageHeader, Skeleton, StateBlock, StatusLabel } from '@/components/bw/primitives'
 import { Flash } from '@/components/bw/ops'
+import { CopyId, copyText as writeClipboard } from '@/components/workspace/copy-id'
+import { useToast } from '@/components/bw/toast'
 import { ProductIdentity } from '@/components/bw/product-card'
 import { CommandError, Page } from '@/components/workspace/kit'
 import { LoadError, RoleShell } from '@/components/workspace/role-shell'
@@ -35,30 +37,10 @@ const EVENT_LABEL: Record<string, string> = {
 
 const batchTone = (batch: BatchDetail) => (batch.status === 'closed' ? (batch.closeReason === 'cancelled' ? 'neutral' : 'ok') : batch.status === 'sent' ? 'info' : 'warn') as 'neutral' | 'ok' | 'info' | 'warn'
 
-/** Clipboard API first; a hidden textarea when the page is not a secure context (e.g. opened over the LAN). */
-async function writeClipboard(text: string): Promise<boolean> {
-  try {
-    await navigator.clipboard.writeText(text)
-    return true
-  } catch {
-    try {
-      const area = document.createElement('textarea')
-      area.value = text
-      area.setAttribute('readonly', '')
-      area.style.cssText = 'position:fixed;opacity:0;inset-block-start:0'
-      document.body.appendChild(area)
-      area.select()
-      const ok = document.execCommand('copy')
-      area.remove()
-      return ok
-    } catch { return false }
-  }
-}
-
 function BatchBody() {
   const { id } = useParams<{ id: string }>()
   const { data, error, loading, reload } = useApi<BatchDetail>(id ? `/purchase-batches/${id}` : null, { pollMs: 20000 })
-  const [copied, setCopied] = React.useState<'ok' | 'failed' | null>(null)
+  const toast = useToast()
 
   // `rows` are the lines still to buy (what is copied, shared, printed and bulk-selected); `lines` is every line of the batch, open ones first,
   // so what was bought, closed out or parked as unavailable stays on the same list instead of a second one.
@@ -80,8 +62,8 @@ function BatchBody() {
   const toggleAll = () => setSelected((current) => (current.size === rows.length ? new Set() : new Set(rows.map((line) => line.id))))
 
   const copyText = async (text: string) => {
-    setCopied((await writeClipboard(text)) ? 'ok' : 'failed')
-    window.setTimeout(() => setCopied(null), 2500)
+    if (await writeClipboard(text)) toast.success('تم نسخ قائمة المشتريات')
+    else toast.error('تعذر النسخ', { detail: 'المتصفح منع النسخ. افتح الصفحة من localhost أو من اتصال آمن، أو استخدم واتساب.' })
   }
   const copy = async () => { if (data) await copyText(purchaseListText(data)) }
   const print = () => {
@@ -102,6 +84,7 @@ function BatchBody() {
         meta={data && totals ? (
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
             <StatusLabel tone={batchTone(data)}>{STATUS_LABEL[data.status]}</StatusLabel>
+            <CopyId value={String(data.number)} label="رقم الدفعة" className="text-bw-ink-subtle" />
             <span>{formatDateTime(data.cutoffAt)}</span>
             <span><Code>{totals.products}</Code> منتج</span>
             <span><Code>{totals.units}</Code> قطعة</span>
@@ -111,8 +94,8 @@ function BatchBody() {
         ) : undefined}
         actions={<>
           <Button size="sm" disabled={!data || !hasOpen} onClick={copy}>
-            {copied === 'ok' ? <Check className="size-4" aria-hidden /> : <Copy className="size-4" aria-hidden />}
-            {copied === 'ok' ? 'اتنسخت' : 'نسخ قائمة المشتريات'}
+            <Copy className="size-4" aria-hidden />
+            نسخ قائمة المشتريات
           </Button>
           {data && hasOpen
             ? <a href={whatsappUrl(purchaseListText(data))} target="_blank" rel="noopener noreferrer" className={secondary}><MessageCircle className="size-4" aria-hidden />واتساب</a>
@@ -122,8 +105,6 @@ function BatchBody() {
           <Link href="/hub/buy-list" className="inline-flex h-9 items-center gap-1.5 rounded-bw-field px-3 text-bw-small font-semibold text-bw-ink-soft transition-colors hover:bg-bw-sunken hover:text-bw-ink"><ArrowRight className="size-4" aria-hidden />كل الدفعات</Link>
         </>}
       />
-      <p role="status" className="sr-only">{copied === 'ok' ? 'اتنسخت قائمة المشتريات' : ''}</p>
-      {copied === 'failed' ? <Flash tone="warn">المتصفح منع النسخ. افتح الصفحة من localhost أو من اتصال آمن، أو استخدم واتساب.</Flash> : null}
 
       {error ? (error.status === 404
         ? <div className="bw-panel"><StateBlock kind="empty" title="الدفعة مش موجودة" action={<Link href="/hub/buy-list" className="text-bw-small font-semibold text-bw-cobalt">رجوع للدفعات</Link>} /></div>
@@ -185,7 +166,7 @@ function PurchaseRow({ batch, line, checked, onToggle, onChanged }: { batch: Bat
   const [showCost, setShowCost] = React.useState(false)
   const [showOrders, setShowOrders] = React.useState(false)
   const [confirmUnavailable, setConfirmUnavailable] = React.useState(false)
-  const [message, setMessage] = React.useState<{ tone: 'ok' | 'warn'; text: string } | null>(null)
+  const toast = useToast()
   // One key per physical count: a retry after a lost response replays instead of counting twice; a new number or price is a new count.
   const key = React.useRef(newKey())
   React.useEffect(() => { setQuantity(String(line.remaining)); key.current = newKey() }, [line.remaining])
@@ -211,12 +192,11 @@ function PurchaseRow({ batch, line, checked, onToggle, onChanged }: { batch: Bat
     ? 'الكمية المتبقية اتغيّرت (طلب اتلغى أو اتعدّل). اتحدّثت بالأرقام الحالية.' : null
 
   const submit = async () => {
-    setMessage(null)
     const result = await receive.execute()
     if (result) {
       key.current = newKey()
       setShowCost(false); setListPrice(''); setDiscountPercent('')
-      setMessage({ tone: 'ok', text: `اتسجّل شراء ${qty} قطعة.` })
+      toast.success(`تم تسجيل شراء ${qty} قطعة`)
     }
     onChanged() // a stale count (cancelled order, another purchase) is refreshed so the next try uses the fresh numbers
   }
@@ -290,7 +270,7 @@ function PurchaseRow({ batch, line, checked, onToggle, onChanged }: { batch: Bat
                   ? <StatusLabel tone="warn">مش هيوصل <Code>{line.closedOut}</Code> قطعة</StatusLabel>
                   : <StatusLabel tone="ok">اتشترى بالكامل</StatusLabel>}
               {parked ? (
-                <button type="button" disabled={busy} onClick={async () => { if (await reopen.execute()) { setMessage({ tone: 'ok', text: 'رجع للقائمة — هيدخل في الدفعة الجاية' }); onChanged() } }}
+                <button type="button" disabled={busy} onClick={async () => { if (await reopen.execute()) { toast.success('رجع للقائمة — هيدخل في الدفعة الجاية'); onChanged() } }}
                   className="inline-flex h-9 items-center gap-1 rounded-bw-field px-2 text-[12px] font-semibold text-bw-cobalt hover:bg-bw-sunken">
                   <Undo2 className="size-3.5" aria-hidden />لقيته — رجّعه للقائمة
                 </button>
@@ -300,9 +280,8 @@ function PurchaseRow({ batch, line, checked, onToggle, onChanged }: { batch: Bat
         </div>
       </div>
 
-      {message || stale || receive.error || unavailable.error || reopen.error ? (
+      {stale || receive.error || unavailable.error || reopen.error ? (
         <div className="mt-2 space-y-2">
-          {message ? <Flash tone={message.tone}>{message.text}</Flash> : null}
           {stale ? <Flash tone="warn">{stale}</Flash> : <CommandError error={receive.error ?? unavailable.error ?? reopen.error} />}
         </div>
       ) : null}
@@ -311,7 +290,7 @@ function PurchaseRow({ batch, line, checked, onToggle, onChanged }: { batch: Bat
         <ul className="mt-2 divide-y divide-bw-line rounded-bw-field border border-bw-line bg-bw-surface">
           {line.orders.map((order) => (
             <li key={order.orderItemId} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-1.5 text-bw-small">
-              <Code className="font-semibold text-bw-ink">{order.orderNumber.replace(/^ORD-/, '#')}</Code>
+              <CopyId value={order.orderNumber} display={order.orderNumber.replace(/^ORD-/, '#')} label="رقم الطلب" textClassName="font-semibold text-bw-ink" />
               <span className="text-bw-ink-soft">مطلوب <Code>{order.quantity}</Code></span>
               <span className="text-bw-ink-soft">اتشترى <Code>{order.received}</Code></span>
               <span className="ms-auto">

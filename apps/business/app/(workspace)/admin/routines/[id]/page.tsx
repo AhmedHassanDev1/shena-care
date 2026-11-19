@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { ArrowDown, ArrowUp, ArrowRight, Plus, Trash2 } from 'lucide-react'
 import { Button, Code, Field, Notice, PageHeader, Section, Select, Skeleton, StatusLabel } from '@/components/bw/primitives'
+import { useToast } from '@/components/bw/toast'
 import { CommandError, Page, Status } from '@/components/workspace/kit'
 import { LoadError, RoleShell } from '@/components/workspace/role-shell'
 import { api, ApiError } from '@/lib/api'
@@ -40,7 +41,7 @@ function Editor({ routine, reload }: { routine: RoutineView | null; reload: () =
   const router = useRouter()
   const [draft, setDraft] = React.useState<RoutineDraft>(routine ? draftFromView(routine) : EMPTY)
   const [issues, setIssues] = React.useState<Issue[]>([])
-  const [notice, setNotice] = React.useState<string | null>(null)
+  const toast = useToast()
   const concerns = useApi<Array<{ slug: string; name: string; careArea: string }>>('/care/concerns')
   const locked = routine?.status === 'PUBLISHED'
   const problems = draftProblems(draft)
@@ -56,16 +57,16 @@ function Editor({ routine, reload }: { routine: RoutineView | null; reload: () =
   const unpublish = useCommand(() => api<RoutineView>(`/care/admin/studio/routines/${routine!.id}/unpublish`, { body: {} }))
 
   const onSave = async () => {
-    setNotice(null); setIssues([])
+    setIssues([])
     const saved = await save.execute()
     if (!saved) return
-    setNotice('اتحفظت المسودة')
+    toast.success('تم حفظ المسودة')
     if (!routine) router.replace(`/admin/routines/${saved.id}`)
     else reload()
   }
   const onPublish = async () => {
-    setNotice(null); setIssues([])
-    if (await publish.execute()) { setNotice('الروتين اتنشر'); reload() }
+    setIssues([])
+    if (await publish.execute()) { toast.success('تم نشر الروتين'); reload() }
   }
   React.useEffect(() => { keep(save.error ?? publish.error) }, [save.error, publish.error])
 
@@ -79,7 +80,6 @@ function Editor({ routine, reload }: { routine: RoutineView | null; reload: () =
         meta={routine ? <span className="flex flex-wrap items-center gap-2"><Status map={ROUTINE_STATUS} value={routine.status} /> إصدار <Code>{routine.version}</Code> · آخر تعديل {formatDateTime(routine.updatedAt)}</span> : 'مسودة جديدة — مش هتظهر للعملاء قبل النشر'}
         actions={<Link href="/admin/routines" className="inline-flex"><Button variant="secondary" type="button"><ArrowRight className="size-4" aria-hidden />كل الروتينات</Button></Link>} />
       {locked ? <Notice tone="info" title="الروتين منشور">لتعديله ألغِ النشر أولًا؛ التعديل بيتسجّل في السجل.</Notice> : null}
-      {notice ? <Notice tone="ok" title={notice} /> : null}
       {general.length ? <IssueList issues={general} /> : null}
 
       <Section title="البيانات الأساسية">
@@ -151,7 +151,7 @@ function Editor({ routine, reload }: { routine: RoutineView | null; reload: () =
       <div className="flex flex-wrap items-center gap-2">
         {!locked ? <Button onClick={onSave} loading={save.pending} disabled={problems.length > 0}>{routine ? 'حفظ التعديلات' : 'حفظ كمسودة'}</Button> : null}
         {routine && routine.status !== 'PUBLISHED' ? <Button variant="secondary" onClick={onPublish} loading={publish.pending}>نشر</Button> : null}
-        {routine?.status === 'PUBLISHED' ? <Button variant="danger" loading={unpublish.pending} onClick={async () => { if (await unpublish.execute()) { setNotice('اتلغى النشر'); reload() } }}>إلغاء النشر</Button> : null}
+        {routine?.status === 'PUBLISHED' ? <Button variant="danger" loading={unpublish.pending} onClick={async () => { if (await unpublish.execute()) { toast.success('تم إلغاء النشر'); reload() } }}>إلغاء النشر</Button> : null}
       </div>
       {routine ? <History id={routine.id} version={routine.version} /> : null}
     </>

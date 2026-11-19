@@ -4,6 +4,8 @@ import * as React from 'react'
 import {
   Button, Checkbox, Code, DataTable, Dialog, Field, Notice, PageHeader, Search, Section, Select, Skeleton, StateBlock, StatusLabel, Switch, Tabs, Toast, useDialog,
 } from '@/components/bw/primitives'
+import { CopyId } from '@/components/workspace/copy-id'
+import { useToast } from '@/components/bw/toast'
 import { type Role, type WorkspaceMode, WorkspaceFrame } from '@/components/bw/workspace-frame'
 
 const colors = [
@@ -27,6 +29,7 @@ const shellPreviews: Array<{ role: Role; active: string; mode: WorkspaceMode; la
 export function Playground() {
   const [tab, setTab] = React.useState('one')
   const dialog = useDialog()
+  const toast = useToast()
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
@@ -98,6 +101,17 @@ export function Playground() {
               لا تُنفّذ هذه المعاينة أي إجراء تشغيلي.
             </Dialog>
             <Toast tone="ok" title="تم الحفظ">مثال على رسالة الحالة.</Toast>
+            <div className="space-y-2">
+              <p className="text-bw-small font-semibold">إشعار مؤقت واحد فقط (يستبدل السابق فورًا)</p>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="secondary" onClick={() => toast.success('تم الحفظ')}>نجاح</Button>
+                <Button size="sm" variant="secondary" onClick={() => toast.error('فشل الحفظ', { detail: 'تعذر تنفيذ الإجراء. حاول مرة أخرى.', action: { label: 'حاول تاني', onSelect: () => toast.info('جاري إعادة المحاولة') } })}>خطأ</Button>
+                <Button size="sm" variant="secondary" onClick={() => toast.warning('الكمية أقل من المطلوب')}>تحذير</Button>
+                <Button size="sm" variant="secondary" onClick={() => toast.info('تم تحديث القائمة')}>معلومة</Button>
+                <Button size="sm" variant="ghost" onClick={() => { toast.success('الأولى'); toast.warning('الثانية'); toast.info('الثالثة تستبدل ما قبلها') }}>ثلاثة متتالية</Button>
+              </div>
+              <p className="text-bw-small text-bw-ink-soft">معرّف قابل للنسخ: <CopyId value="6f1c2a9e-3b7d-4c55-9a10-0e5d8b2f7a41" display="6F1C2A9E" label="رقم المشوار" /></p>
+            </div>
           </div>
         </Section>
       </div>

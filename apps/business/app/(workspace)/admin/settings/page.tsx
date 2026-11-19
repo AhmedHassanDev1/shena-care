@@ -1,8 +1,9 @@
 'use client'
 
 import * as React from 'react'
-import { Check, ChevronDown, RefreshCw, RotateCcw } from 'lucide-react'
+import { ChevronDown, RefreshCw, RotateCcw } from 'lucide-react'
 import { Button, Field, PageHeader, Select, Skeleton, Switch } from '@/components/bw/primitives'
+import { useToast, useToastLift } from '@/components/bw/toast'
 import { CommandError, Page } from '@/components/workspace/kit'
 import { LoadError, RoleShell } from '@/components/workspace/role-shell'
 import { api } from '@/lib/api'
@@ -32,7 +33,7 @@ export default function SettingsPage() {
   const [draft,setDraft] = React.useState<Record<string,unknown>>({})
   const [areas,setAreas] = React.useState<string[]>([])
   const [delivery,setDelivery] = React.useState<DeliveryPolicy|null>(null)
-  const [saved,setSaved] = React.useState(false)
+  const toast = useToast()
   const hydrate = React.useCallback((settings:Setting[])=>{
     const values=Object.fromEntries(settings.map(s=>[s.key,s.value]))
     setDraft(values)
@@ -40,7 +41,6 @@ export default function SettingsPage() {
     setDelivery(values[keys.delivery] as DeliveryPolicy)
   },[])
   React.useEffect(()=>{ if(data) hydrate(data) },[data,hydrate])
-  React.useEffect(()=>{ if(!saved) return; const id=window.setTimeout(()=>setSaved(false),3500); return ()=>window.clearTimeout(id) },[saved])
 
   const save=useCommand((changes:Record<string,unknown>)=>api('/operations/settings',{method:'PATCH',body:{changes}}))
   const reset=useCommand((key:string)=>api(`/operations/settings/${encodeURIComponent(key)}/reset`,{method:'POST'}))
@@ -58,7 +58,9 @@ export default function SettingsPage() {
     return out
   },[data,draft,delivery,areas])
   const dirty=Object.keys(changes).length>0
-  const saveAll=async()=>{ if(dirty&&await save.execute(changes)){ setSaved(true); reload() } }
+  const saveBar=React.useRef<HTMLDivElement>(null)
+  useToastLift(saveBar,dirty||!!save.error)
+  const saveAll=async()=>{ if(dirty&&await save.execute(changes)){ toast.success("تم حفظ التغييرات"); reload() } }
   const restore=async(key:string)=>{if(await reset.execute(key)){reload()}}
 
   return <RoleShell role="admin" active="settings" mode="desktop"><Page>
@@ -144,9 +146,8 @@ export default function SettingsPage() {
     </details>:null}
 
     {/* One save bar for everything edited above; it only exists while there is something to save. */}
-    {(dirty||saved||save.error)?<div role="region" aria-label="حفظ الإعدادات" className="bw-glass-raised bw-arrive sticky bottom-20 z-20 mx-auto flex w-full max-w-2xl flex-wrap items-center gap-3 rounded-bw-card px-4 py-3 lg:bottom-4">
+    {(dirty||save.error)?<div ref={saveBar} role="region" aria-label="حفظ الإعدادات" className="bw-glass-raised bw-arrive sticky bottom-20 z-20 mx-auto flex w-full max-w-2xl flex-wrap items-center gap-3 rounded-bw-card px-4 py-3 lg:bottom-4">
       {save.error?<div className="min-w-0 flex-1"><CommandError error={save.error}/></div>
-        :saved&&!dirty?<p className="flex flex-1 items-center gap-2 text-bw-small text-bw-ink"><Check className="size-4 text-bw-emerald" aria-hidden/>اتحفظت التغييرات</p>
         :<p className="flex-1 text-bw-small text-bw-ink"><bdi className="bw-code">{Object.keys(changes).length}</bdi> تغيير مستني الحفظ</p>}
       {dirty?<Button variant="ghost" size="sm" onClick={()=>data&&hydrate(data)} disabled={save.pending}>تجاهل</Button>:null}
       {dirty?<Button size="sm" onClick={saveAll} loading={save.pending}>حفظ التغييرات</Button>:null}
@@ -190,7 +191,7 @@ function PurchaseBatchSchedule(){
   const [interval,setIntervalValue]=React.useState('')
   const [start,setStart]=React.useState('')
   const [zone,setZone]=React.useState('')
-  const [saved,setSaved]=React.useState(false)
+  const toast = useToast()
   React.useEffect(()=>{ if(data){ setIntervalValue(String(data.settings.intervalMinutes)); setStart(data.settings.startTime); setZone(data.settings.timeZone) } },[data])
   const save=useCommand(()=>api<Schedule>('/purchase-batches/settings',{method:'PUT',body:{intervalMinutes:Number(interval),startTime:start,timeZone:zone,expectedVersion:data!.settings.version}}))
   if(error) return <Group title="دفعات الشراء"><p className="text-bw-small text-bw-danger">{error.message}</p></Group>
@@ -202,12 +203,12 @@ function PurchaseBatchSchedule(){
   return <Group title="دفعات الشراء" hint="الطلبات المؤكدة بتتجمّع في دفعة مرقّمة كل فترة. التغيير بيسري على الدفعات الجاية بس، والدفعات القديمة وطلباتها مابتتغيّرش.">
     <div className="space-y-3">
       <div className="grid gap-4 sm:grid-cols-3">
-        <Field label="كل كام دقيقة" type="number" min="15" max="1440" step="5" inputMode="numeric" value={interval} onChange={e=>{setIntervalValue(e.target.value);setSaved(false)}} hint="الافتراضي 180 (3 ساعات)" ltr/>
-        <Field label="أول قفل في اليوم" type="time" value={start} onChange={e=>{setStart(e.target.value);setSaved(false)}} ltr/>
-        <Select label="المنطقة الزمنية" value={zone} onChange={e=>{setZone(e.target.value);setSaved(false)}} options={zones.map(z=>({value:z,label:z}))}/>
+        <Field label="كل كام دقيقة" type="number" min="15" max="1440" step="5" inputMode="numeric" value={interval} onChange={e=>{setIntervalValue(e.target.value)}} hint="الافتراضي 180 (3 ساعات)" ltr/>
+        <Field label="أول قفل في اليوم" type="time" value={start} onChange={e=>{setStart(e.target.value)}} ltr/>
+        <Select label="المنطقة الزمنية" value={zone} onChange={e=>{setZone(e.target.value)}} options={zones.map(z=>({value:z,label:z}))}/>
       </div>
       <p className="text-[12px] text-bw-ink-subtle">القفل الجاي: <strong className="font-semibold text-bw-ink">{formatDateTime(data.nextCutoffAt)}</strong>{data.settings.isDefault?' · إعدادات افتراضية':''}. موظف الهب يقدر يقفل دفعة بدري من صفحة قائمة المشتريات.</p>
-      <div className="flex flex-wrap items-center justify-between gap-3"><CommandError error={save.error}/>{saved&&!dirty?<span className="text-bw-small text-bw-ink">اتحفظ</span>:null}<Button size="sm" variant={dirty?'primary':'secondary'} onClick={async()=>{ if(await save.execute()){ setSaved(true); reload() } }} loading={save.pending} disabled={!dirty||!valid}>حفظ الجدول</Button></div>
+      <div className="flex flex-wrap items-center justify-between gap-3"><CommandError error={save.error}/><Button size="sm" variant={dirty?'primary':'secondary'} onClick={async()=>{ if(await save.execute()){ toast.success("تم حفظ الجدول"); reload() } }} loading={save.pending} disabled={!dirty||!valid}>حفظ الجدول</Button></div>
     </div>
   </Group>
 }

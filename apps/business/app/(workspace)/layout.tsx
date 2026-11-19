@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { bwFontVariables } from '@/lib/fonts'
+import { ToastProvider } from '@/components/bw/toast'
 import { SessionProvider } from '@/lib/session'
 
 export const metadata: Metadata = {
@@ -11,7 +12,7 @@ export const metadata: Metadata = {
 export default function WorkspaceLayout({ children }: { children: React.ReactNode }) {
   return (
     <div lang="ar" dir="rtl" className={`bw ${bwFontVariables}`}>
-      <SessionProvider>{children}</SessionProvider>
+      <SessionProvider><ToastProvider>{children}</ToastProvider></SessionProvider>
     </div>
   )
 }

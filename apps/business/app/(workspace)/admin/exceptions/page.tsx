@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { CopyId } from '@/components/workspace/copy-id'
 import Link from 'next/link'
 import { ArrowLeft, RefreshCw, ShieldAlert } from 'lucide-react'
 import { Code, Section, Skeleton, StateBlock } from '@/components/bw/primitives'
@@ -77,7 +78,7 @@ function ExceptionsContent() {
             <Queue title="فروق في عدّ الجولات (الكبيرة الأول)" page={data.roundVariances}
               row={(r) => (
                 <li key={r.batchId} className="flex items-center justify-between border-t border-bw-line py-2 text-bw-small">
-                  <span><Code>{r.reference}</Code> · {r.severity === 'large' ? 'فرق كبير' : 'فرق صغير'} {r.variance} · متوقع <Code>{r.expectedTotal}</Code> · اتعدّ <Code>{r.countedTotal}</Code> · {formatDateTime(r.settledAt)}</span>
+                  <span className="inline-flex flex-wrap items-center gap-x-1"><CopyId value={r.reference} label="مرجع التسوية" /> · {r.severity === 'large' ? 'فرق كبير' : 'فرق صغير'} {r.variance} · متوقع <Code>{r.expectedTotal}</Code> · اتعدّ <Code>{r.countedTotal}</Code> · {formatDateTime(r.settledAt)}</span>
                   <Link href="/admin/cash" className="flex items-center gap-1 underline">افتح النقدية<ArrowLeft className="size-3.5" /></Link>
                 </li>
               )} />
@@ -144,7 +145,7 @@ function Queue<T>({ title, page, row }: { title: string; page: Paged<T>; row: (i
 function OrderRow({ orderId, label, note, at }: { orderId: string; label: string | null; note?: string; at?: string }) {
   return (
     <li className="flex items-center justify-between border-t border-bw-line py-2 text-bw-small">
-      <span><Code>{label ?? shortId(orderId)}</Code>{note ? ` · ${note}` : ''}{at ? ` · ${formatDateTime(at)}` : ''}</span>
+      <span className="inline-flex flex-wrap items-center gap-x-1"><CopyId value={label ?? orderId} display={label ?? shortId(orderId)} label="رقم الطلب" />{note ? ` · ${note}` : ''}{at ? ` · ${formatDateTime(at)}` : ''}</span>
       <Link href={`/admin/orders/${orderId}`} className="flex items-center gap-1 underline">افتح الطلب<ArrowLeft className="size-3.5" /></Link>
     </li>
   )

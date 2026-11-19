@@ -110,10 +110,10 @@ function BatchRow({ batch }: { batch: BatchSummary }) {
   return (
     <li>
       <Link href={`/hub/buy-list/${batch.id}`} className="bw-row grid items-center gap-x-5 gap-y-2 px-4 py-3.5 md:grid-cols-[5rem_minmax(0,1fr)_minmax(0,1fr)_9rem_auto]">
-        <span className="text-[1.25rem] font-semibold leading-none text-bw-ink"><Code>#{batch.number}</Code></span>
+        <span className="text-bw-heading font-semibold leading-none text-bw-ink-soft"><Code>#{batch.number}</Code></span>
         <span className="min-w-0 text-bw-small text-bw-ink-soft">
-          <span className="block text-bw-ink">{formatDateTime(batch.cutoffAt)}</span>
-          <span className="block"><Code>{batch.skus}</Code> صنف · <Code>{batch.units}</Code> قطعة{batch.kind === 'manual' ? ' · قفل يدوي' : ''}</span>
+          <span className="block text-bw-body font-semibold text-bw-ink"><Code>{batch.units}</Code> قطعة <span className="font-normal text-bw-ink-soft">· <Code>{batch.skus}</Code> صنف{batch.kind === 'manual' ? ' · قفل يدوي' : ''}</span></span>
+          <span className="block text-[12px] text-bw-ink-subtle">{formatDateTime(batch.cutoffAt)}</span>
         </span>
         <span className="min-w-0 text-bw-small text-bw-ink-soft">
           <span className="flex items-center gap-2">
@@ -125,7 +125,7 @@ function BatchRow({ batch }: { batch: BatchSummary }) {
         </span>
         <span className="text-[12px] text-bw-ink-subtle">
           <Meter value={batch.received} max={batch.units} tone={batch.remaining === 0 ? 'emerald' : 'cobalt'} label={`اتستلم ${batch.received} من ${batch.units}`} />
-          <span className="mt-1 block">اتستلم <Code>{batch.received}/{batch.units}</Code></span>
+          <span className="mt-1 block text-bw-small font-semibold text-bw-ink-soft">اتستلم <Code>{batch.received}/{batch.units}</Code></span>
         </span>
         <span className={cn('inline-flex h-9 items-center gap-1.5 justify-self-start rounded-bw-field px-3 text-bw-small font-semibold md:justify-self-end',
           batch.nextAction ? 'bg-bw-action text-bw-on-action' : 'text-bw-ink-soft')}>

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { notFound } from 'next/navigation'
+import { ToastProvider } from '@/components/bw/toast'
 import { bwFontVariables } from '@/lib/fonts'
 import { Playground } from './playground'
 
@@ -16,7 +17,7 @@ export default function DesignSystemPage() {
 
   return (
     <div lang="ar" dir="rtl" className={`bw ${bwFontVariables}`}>
-      <Playground />
+      <ToastProvider><Playground /></ToastProvider>
     </div>
   )
 }

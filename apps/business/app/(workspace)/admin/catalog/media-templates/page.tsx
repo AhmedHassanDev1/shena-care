@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { useToast } from '@/components/bw/toast'
 import { Button, Code, Field, Notice, PageHeader, Section, Skeleton, StateBlock, StatusLabel } from '@/components/bw/primitives'
 import { CommandError, Page, Select, TextArea } from '@/components/workspace/kit'
 import { LoadError, RoleShell } from '@/components/workspace/role-shell'
@@ -41,7 +42,7 @@ function Register({ categories, onDone }: { categories: Array<{ id: string; name
   const [categoryId, setCategoryId] = React.useState('')
   const [rules, setRules] = React.useState('')
   const [file, setFile] = React.useState<File | null>(null)
-  const [saved, setSaved] = React.useState<string | null>(null)
+  const toast = useToast()
   const keyOk = /^[a-z0-9]+(-[a-z0-9]+)*$/.test(templateKey)
   const register = useCommand(async () => {
     const form = new FormData()
@@ -54,11 +55,10 @@ function Register({ categories, onDone }: { categories: Array<{ id: string; name
   })
   return (
     <Section title="قالب جديد أو نسخة جديدة">
-      {saved ? <Notice tone="ok" title={saved} /> : null}
       <form className="grid gap-3 md:grid-cols-2" onSubmit={async (e) => {
         e.preventDefault()
         const result = await register.execute()
-        if (result) { setSaved(`اتسجل ${result.name} نسخة ${result.version}`); setFile(null); onDone() }
+        if (result) { toast.success(`تم تسجيل ${result.name} نسخة ${result.version}`); setFile(null); onDone() }
       }}>
         <Field label="مفتاح القالب (نفس المفتاح = نسخة جديدة)" ltr value={templateKey} onChange={(e) => setTemplateKey(e.target.value)} error={templateKey && !keyOk ? 'حروف إنجليزية صغيرة وأرقام وشرطة' : undefined} />
         <Field label="الاسم" value={name} onChange={(e) => setName(e.target.value)} />

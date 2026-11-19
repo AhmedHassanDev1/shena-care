@@ -111,7 +111,7 @@ export function Notice({
 
 /* ── Layout ──────────────────────────────────────────────────────────── */
 
-export function PageHeader({ title, meta, actions }: { /** Retained for older callers; the heading carries its own weight, so it is not rendered. */ eyebrow?: string; title: string; meta?: React.ReactNode; actions?: React.ReactNode }) {
+export function PageHeader({ title, meta, actions }: { /** Retained for older callers; the heading carries its own weight, so it is not rendered. */ eyebrow?: string; title: React.ReactNode; meta?: React.ReactNode; actions?: React.ReactNode }) {
   return (
     <header className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
       <div className="min-w-0 space-y-1">
@@ -238,10 +238,31 @@ export function Tabs({ items, value, onChange, label, id }: {
   </div>
 }
 
-export function Toast({ tone, title, children }: { tone: Exclude<Tone, 'pending'>; title: string; children?: React.ReactNode }) {
-  return <div role={tone === 'danger' ? 'alert' : 'status'} className="max-w-sm rounded-bw-card border border-bw-line bg-bw-surface p-4 text-bw-ink shadow-bw-overlay">
-    <StatusLabel tone={tone}>{title}</StatusLabel>
-    {children ? <div className="mt-2 text-bw-small text-bw-ink-soft">{children}</div> : null}
+const toastAccent: Record<Exclude<Tone, 'pending'>, string> = {
+  ok: 'text-bw-ok', warn: 'text-bw-warn', danger: 'text-bw-danger', info: 'text-bw-info', neutral: 'text-bw-ink-soft',
+}
+
+/**
+ * Visual shell of a transient message. The live `ToastProvider` (components/bw/toast.tsx) renders exactly one of these
+ * at a time and owns the announcements; used on its own it is only a static preview, so it carries no live role.
+ */
+export function Toast({ tone, title, children, action, onClose }: {
+  tone: Exclude<Tone, 'pending'>
+  title: string
+  children?: React.ReactNode
+  /** One short follow-up, e.g. «حاول تاني». */
+  action?: { label: string; onSelect: () => void }
+  onClose?: () => void
+}) {
+  const Icon = toneIcon[tone]
+  return <div className="bw-glass-raised flex w-full max-w-md items-center gap-2.5 rounded-bw-card py-2 ps-3.5 pe-2 text-bw-ink">
+    <Icon className={cn('size-[18px] shrink-0', toastAccent[tone])} aria-hidden />
+    <div className="min-w-0 flex-1 py-0.5">
+      <p className="text-bw-small font-semibold leading-snug">{title}</p>
+      {children ? <div className="mt-0.5 text-[12px] leading-snug text-bw-ink-soft">{children}</div> : null}
+    </div>
+    {action ? <button type="button" onClick={action.onSelect} className="h-8 shrink-0 rounded-bw-field px-2.5 text-bw-small font-semibold text-bw-action-ink hover:bg-bw-sunken">{action.label}</button> : null}
+    {onClose ? <button type="button" aria-label="إغلاق الرسالة" onClick={onClose} className="grid size-8 shrink-0 place-items-center rounded-full text-bw-ink-subtle hover:bg-bw-sunken hover:text-bw-ink"><X className="size-4" aria-hidden /></button> : null}
   </div>
 }
 
@@ -384,7 +405,7 @@ export function Dialog({
   title: string
   children: React.ReactNode
   footer?: React.ReactNode
-  variant?: 'dialog' | 'drawer' | 'sheet'
+  variant?: 'dialog' | 'drawer' | 'drawer-start' | 'sheet'
   onClose?: () => void
 }) {
   const titleId = React.useId()
@@ -397,6 +418,8 @@ export function Dialog({
         'bw-dialog border border-bw-line bg-bw-surface text-bw-ink shadow-bw-overlay backdrop:bg-bw-kohl/60',
         variant === 'dialog' && 'm-auto w-[min(32rem,calc(100%-2rem))] rounded-bw-card',
         variant === 'drawer' && 'ms-auto me-0 h-dvh max-h-dvh w-[min(28rem,100%)] max-w-full',
+        // Slides in from the inline-start edge, the same side as the desktop sidebar.
+        variant === 'drawer-start' && 'bw-drawer-start me-auto ms-0 h-dvh max-h-dvh w-[min(20rem,86vw)] max-w-full',
         variant === 'sheet' && 'mx-auto mb-0 mt-auto max-h-[85dvh] w-full max-w-md rounded-t-bw-card',
       )}
     >

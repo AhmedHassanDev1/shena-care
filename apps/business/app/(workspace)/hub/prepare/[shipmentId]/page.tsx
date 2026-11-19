@@ -4,6 +4,7 @@ import * as React from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { Camera, CheckCircle2, CircleDashed, ScanLine } from 'lucide-react'
+import { useToast } from '@/components/bw/toast'
 import { Button, Code, Notice, Skeleton } from '@/components/bw/primitives'
 import { CameraScanner } from '@/components/workspace/camera-scanner'
 import { CommandError } from '@/components/workspace/kit'
@@ -40,7 +41,7 @@ export default function PrepStation() {
 function Station({ shipmentId }: { shipmentId: string }) {
   const { data, error, loading, reload } = useApi<PrepState>(`/fulfillment/shipments/${shipmentId}/preparation`)
   const [code, setCode] = React.useState('')
-  const [last, setLast] = React.useState<{ ok: boolean; text: string } | null>(null)
+  const toast = useToast()
   const input = React.useRef<HTMLInputElement>(null)
   const scan = useCommand((sessionId: string, barcode: string, clientScanId: string) =>
     api<ScanResult>(`/fulfillment/preparation-sessions/${sessionId}/scan`, { body: { barcodeScanned: barcode, clientScanId } }))
@@ -62,7 +63,7 @@ function Station({ shipmentId }: { shipmentId: string }) {
     // The scan id makes a retried submit (lost response, double Enter) count once on the server.
     const result = await scan.execute(session.id, barcode, newKey())
     if (result) {
-      setLast(result.isSuccessful ? { ok: true, text: `اتأكد: ${barcode}` } : { ok: false, text: REASONS[result.errorReason ?? ''] ?? result.errorReason ?? 'مرفوض' })
+      if (result.isSuccessful) toast.success(`تم تأكيد ${barcode}`); else toast.error(REASONS[result.errorReason ?? ''] ?? result.errorReason ?? 'مرفوض')
       reload()
     }
   }
@@ -86,7 +87,6 @@ function Station({ shipmentId }: { shipmentId: string }) {
           <Button type="submit" variant="onKohl" size="touch" loading={scan.pending} disabled={!code.trim()}>تأكيد</Button>
         </form>
       )}
-      {last && !finished ? <div className="text-bw-ink"><Notice tone={last.ok ? 'ok' : 'danger'} title={last.text} /></div> : null}
       {scan.error ? <div className="text-bw-ink"><CommandError error={scan.error} /></div> : null}
 
       <ul className="space-y-2">

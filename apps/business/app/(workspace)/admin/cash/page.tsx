@@ -11,7 +11,8 @@ import {
   ShieldAlert,
   Wallet,
 } from 'lucide-react'
-import { Code, DataTable, Section, Skeleton, StateBlock } from '@/components/bw/primitives'
+import { DataTable, Section, Skeleton, StateBlock } from '@/components/bw/primitives'
+import { CopyId } from '@/components/workspace/copy-id'
 import { Egp, Page, Select, Status } from '@/components/workspace/kit'
 import { LoadError, RoleShell, useMe } from '@/components/workspace/role-shell'
 import { COLLECTION_STATUS, formatDateTime, shortId } from '@/lib/labels'
@@ -318,9 +319,7 @@ function CashBody() {
                 return (
                   <tr key={c.orderId} className="hover:bg-bw-sunken transition-colors">
                     <td>
-                      <Link className="font-mono font-bold text-bw-ok underline" href={`/admin/orders/${c.orderId}`}>
-                        <Code>{c.orderNumber}</Code>
-                      </Link>
+                      <CopyId value={c.orderNumber} href={`/admin/orders/${c.orderId}`} label="رقم الطلب" textClassName="font-bold text-bw-ok" />
                     </td>
                     <td>{c.locationId ? hubName.get(c.locationId) ?? shortId(c.locationId) : 'المعادي'}</td>
                     <td>{c.courierId ? driverName.get(c.courierId) ?? shortId(c.courierId) : '—'}</td>
@@ -374,9 +373,7 @@ function CashBody() {
             >
               {batches.data.items.map((b) => (
                 <tr key={b.id} className="hover:bg-bw-sunken transition-colors">
-                  <td>
-                    <Code>{b.reference}</Code>
-                  </td>
+                  <td><CopyId value={b.reference} label="مرجع التسوية" /></td>
                   <td>{b.locationId ? hubName.get(b.locationId) ?? shortId(b.locationId) : 'المعادي'}</td>
                   <td>{driverName.get(b.courierId) ?? shortId(b.courierId)}</td>
                   <td className="font-mono text-bw-ink-soft">

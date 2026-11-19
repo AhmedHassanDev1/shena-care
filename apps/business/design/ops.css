@@ -10,19 +10,66 @@
     var(--color-bw-page);
 }
 
-/* Floating chrome: sticky toolbars, menus, dialogs. */
-.bw .bw-glass {
-  background: color-mix(in oklab, var(--color-bw-page) 74%, transparent);
-  -webkit-backdrop-filter: blur(16px) saturate(150%);
-  backdrop-filter: blur(16px) saturate(150%);
-  border: 1px solid rgb(255 255 255 / 0.075);
+/*
+ * Glass: only for surfaces that float over scrolling content — the mobile bars, the side menu, sticky toolbars, menus,
+ * dialogs and toasts. Never for cards or content panels. Three layers make it read as glass: a translucent tint that
+ * lets the page show through, a heavy blur + saturation boost, and a faint specular sheen with a bright top edge.
+ * Contrast is the limit, not taste: with pure white content behind, ink-soft text must still reach 4.5:1 and icons 3:1, which
+ * needs the tint >= ~80% (nav 86%: 6.1:1 / 4.2:1; computed against #fff + the sheen). Dark content behind shows the glass far more.
+ */
+.bw .bw-glass,
+.bw .bw-glass-raised,
+.bw .bw-glass-nav {
+  --glass-tint: var(--color-bw-page);
+  --glass-opacity: 80%;
+  background:
+    linear-gradient(135deg, rgb(255 255 255 / 0.085) 0%, rgb(255 255 255 / 0.02) 38%, rgb(255 255 255 / 0) 62%, rgb(255 255 255 / 0.03) 100%),
+    color-mix(in oklab, var(--glass-tint) var(--glass-opacity), transparent);
+  -webkit-backdrop-filter: blur(26px) saturate(190%) brightness(1.06);
+  backdrop-filter: blur(26px) saturate(190%) brightness(1.06);
+  border: 1px solid rgb(255 255 255 / 0.1);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.14), inset 0 -1px 0 rgb(0 0 0 / 0.25);
 }
 .bw .bw-glass-raised {
-  background: color-mix(in oklab, var(--color-bw-surface) 82%, transparent);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
-  backdrop-filter: blur(20px) saturate(160%);
-  border: 1px solid rgb(255 255 255 / 0.09);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05), 0 18px 48px rgb(0 0 0 / 0.5);
+  --glass-tint: var(--color-bw-surface);
+  --glass-opacity: 88%;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.16), inset 0 -1px 0 rgb(0 0 0 / 0.3), 0 18px 48px rgb(0 0 0 / 0.5);
+}
+/* Bottom bar: edge-to-edge, lit from above, with a soft shadow that lifts it off the content. */
+.bw .bw-glass-nav {
+  --glass-opacity: 86%;
+  border-width: 1px 0 0;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.16), 0 -14px 34px rgb(0 0 0 / 0.4);
+}
+
+/* Side menu and dialogs: glass panes that keep forms readable (denser tint than the bars). */
+.bw dialog.bw-dialog {
+  background:
+    linear-gradient(135deg, rgb(255 255 255 / 0.07), rgb(255 255 255 / 0.015) 45%, rgb(255 255 255 / 0)),
+    color-mix(in oklab, var(--color-bw-surface) 88%, transparent);
+  -webkit-backdrop-filter: blur(28px) saturate(170%);
+  backdrop-filter: blur(28px) saturate(170%);
+  border-color: rgb(255 255 255 / 0.11);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.12), var(--shadow-bw-overlay);
+}
+.bw dialog.bw-drawer-start {
+  background:
+    linear-gradient(160deg, rgb(255 255 255 / 0.1), rgb(255 255 255 / 0.02) 40%, rgb(255 255 255 / 0)),
+    color-mix(in oklab, var(--color-bw-surface) 84%, transparent);
+  -webkit-backdrop-filter: blur(34px) saturate(200%) brightness(1.05);
+  backdrop-filter: blur(34px) saturate(200%) brightness(1.05);
+}
+/* The side menu dims the page less so the glass has something to blur. */
+.bw dialog.bw-drawer-start::backdrop { background: rgb(0 0 0 / 0.38); }
+
+/* Without blur support, or when the user asks for less transparency, fall back to solid surfaces. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .bw .bw-glass, .bw .bw-glass-raised, .bw .bw-glass-nav { --glass-opacity: 96%; }
+  .bw dialog.bw-dialog, .bw dialog.bw-drawer-start { background: var(--color-bw-surface); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .bw .bw-glass, .bw .bw-glass-raised, .bw .bw-glass-nav { --glass-opacity: 97%; -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .bw dialog.bw-dialog, .bw dialog.bw-drawer-start { background: var(--color-bw-surface); -webkit-backdrop-filter: none; backdrop-filter: none; }
 }
 
 /* Panels: a faint top highlight gives depth without a drop shadow. */
@@ -69,11 +116,39 @@
   backdrop-filter: blur(4px);
 }
 
+/* Side drawer (mobile «المزيد»): slides in from the inline-start edge, i.e. from the right in Arabic. */
+.bw dialog.bw-drawer-start[open] { animation: bw-drawer-in 200ms var(--ease-bw-standard) both; }
+.bw[dir='rtl'] dialog.bw-drawer-start { --bw-drawer-from: 100%; }
+@keyframes bw-drawer-in { from { transform: translateX(var(--bw-drawer-from, -100%)); } to { transform: none; } }
+
+/* Toast: one bottom-centre slot, lifted above the mobile bottom navigation and the safe area. */
+.bw .bw-toast {
+  position: fixed;
+  inset: auto 0 calc(env(safe-area-inset-bottom, 0px) + 4.75rem + var(--bw-toast-lift, 0px)) 0;
+  margin: 0 auto;
+  display: flex;
+  justify-content: center;
+  width: min(28rem, calc(100vw - 2rem));
+  height: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  overflow: visible;
+  pointer-events: none;
+  animation: bw-toast-in 180ms var(--ease-bw-standard) both;
+}
+.bw .bw-toast > * { pointer-events: auto; }
+@media (min-width: 1024px) { .bw .bw-toast { inset-block-end: calc(1.5rem + var(--bw-toast-lift, 0px)); } }
+@keyframes bw-toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
 /* Bars and meters grow into place. */
 .bw .bw-meter-fill { transition: width 420ms var(--ease-bw-standard), background-color 200ms; }
 
 @media (prefers-reduced-motion: reduce) {
   .bw .bw-skeleton { animation: none; }
   .bw .bw-arrive { animation: none; }
+  .bw .bw-toast { animation: none; }
+  .bw dialog.bw-drawer-start[open] { animation: none; }
   .bw .bw-meter-fill { transition: none; }
 }

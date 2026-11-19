@@ -4,6 +4,7 @@ import * as React from 'react'
 import Link from 'next/link'
 import { ExternalLink, Wallet } from 'lucide-react'
 import { Code, DataTable, PageHeader, Skeleton, StateBlock } from '@/components/bw/primitives'
+import { CopyId } from '@/components/workspace/copy-id'
 import { PanelHead, Stat, StatStrip } from '@/components/bw/ops'
 import { Page, Status } from '@/components/workspace/kit'
 import { LoadError, RoleShell, useMe } from '@/components/workspace/role-shell'
@@ -84,7 +85,7 @@ function AdminDeliveryContent() {
           <DataTable caption="مشاوير التوصيل" head={['المشوار', 'المندوب', 'الحالة', 'المحطات', 'اتسلّم', 'فشل', 'خرج']}>
             {runItems.map((r) => (
               <tr key={r.id}>
-                <td><Code className="font-semibold">{shortId(r.id)}</Code></td>
+                <td><CopyId value={r.id} display={shortId(r.id)} label="رقم المشوار" textClassName="font-semibold" /></td>
                 <td>{driverName(r.driverId)}</td>
                 <td><Status map={RUN_STATUS} value={r.status} /></td>
                 <td><Code>{r.stops}</Code></td>
@@ -105,7 +106,7 @@ function AdminDeliveryContent() {
           <DataTable caption="شحنات فشل تسليمها" head={['الطلب', 'المنطقة', 'القطع', 'الحالة', 'آخر تحديث']}>
             {failedItems.map((s) => (
               <tr key={s.shipmentId}>
-                <td><Code className="font-semibold">{(s.orderNumber ?? shortId(s.shipmentId)).replace(/^ORD-/, '#')}</Code></td>
+                <td><CopyId value={s.orderNumber ?? s.shipmentId} display={(s.orderNumber ?? shortId(s.shipmentId)).replace(/^ORD-/, '#')} label="رقم الطلب" textClassName="font-semibold" /></td>
                 <td className="text-bw-ink-soft">{[s.governorate, s.area].filter(Boolean).join(' - ') || '—'}</td>
                 <td><Code>{s.itemCount}</Code></td>
                 <td><Status map={SHIPMENT_STATUS} value={s.status} /></td>

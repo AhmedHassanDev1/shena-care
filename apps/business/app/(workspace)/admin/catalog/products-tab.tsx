@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Archive, ChevronLeft, ChevronRight, CircleCheck, FileSpreadsheet, ImageIcon, Pencil, RotateCcw, SquarePen, TriangleAlert } from 'lucide-react'
 import { Button, Code, Dialog, Field, Money, Select, Skeleton, StateBlock, useDialog } from '@/components/bw/primitives'
 import { FilterSelect, SearchField, Segmented, Toolbar } from '@/components/bw/ops'
+import { useToast } from '@/components/bw/toast'
 import { LoadError } from '@/components/workspace/role-shell'
 import { api, ApiError } from '@/lib/api'
 import { useApi } from '@/lib/use-api'
@@ -53,8 +54,7 @@ export function ProductsTab({ brands, categories, filters, setFilters, selectedI
   React.useEffect(() => { if (debounced !== filters.q) setFilters({ q: debounced, page: 1 }) }, [debounced])
   React.useEffect(() => setSearch(filters.q), [filters.q])
 
-  const [notice, setNotice] = React.useState<string | null>(null)
-  const [error, setError] = React.useState<string | null>(null)
+  const toast = useToast()
   const [busyId, setBusyId] = React.useState<string | null>(null)
   const [editorProduct, setEditorProduct] = React.useState<CatalogItem | null>(null)
   const editor = useDialog()
@@ -72,13 +72,12 @@ export function ProductsTab({ brands, categories, filters, setFilters, selectedI
 
   const restore = async (product: CatalogItem) => {
     setBusyId(product.id)
-    setError(null)
     try {
       await api(`/catalog/items/${product.id}/restore`, { method: 'POST' })
-      setNotice(`تمت استعادة «${product.name}» كمسودة`)
+      toast.success(`تمت استعادة «${product.name}» كمسودة`)
       list.reload()
     } catch (err) {
-      setError(catalogErrorMessage(err as ApiError, 'تعذر استعادة المنتج'))
+      toast.error(catalogErrorMessage(err as ApiError, 'تعذر استعادة المنتج'))
     } finally {
       setBusyId(null)
     }
@@ -131,8 +130,6 @@ export function ProductsTab({ brands, categories, filters, setFilters, selectedI
         </div>
       </Toolbar>
 
-      {notice ? <Banner tone="ok" onClose={() => setNotice(null)}>{notice}</Banner> : null}
-      {error ? <Banner tone="danger" onClose={() => setError(null)}>{error}</Banner> : null}
       {list.error ? <LoadError message={list.error.message} onRetry={list.reload} /> : null}
       {!list.data && list.loading ? <Skeleton className="h-64 w-full" /> : null}
 
@@ -177,7 +174,7 @@ export function ProductsTab({ brands, categories, filters, setFilters, selectedI
         categories={categories}
         onClose={() => setSelectedId(null)}
         onFullEditor={openEditor}
-        onChanged={(message: string) => { setNotice(message); list.reload() }}
+        onChanged={(message: string) => { toast.success(message); list.reload() }}
       />
 
       {/* The existing full editor (data, variants, publication, images) stays the home of complex edits. */}
@@ -187,7 +184,7 @@ export function ProductsTab({ brands, categories, filters, setFilters, selectedI
         brands={brands}
         categories={categories}
         onClose={() => { editor.close(); setEditorProduct(null) }}
-        onChanged={(message: string) => { setNotice(message); list.reload() }}
+        onChanged={(message: string) => { toast.success(message); list.reload() }}
       />
     </div>
   )

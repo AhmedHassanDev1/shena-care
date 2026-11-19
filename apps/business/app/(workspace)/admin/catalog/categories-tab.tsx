@@ -3,6 +3,7 @@
 import * as React from 'react'
 import { ChevronDown, FolderPlus, Pencil, Plus, Power, Trash2 } from 'lucide-react'
 import { Button, Code, Dialog, Field, Select, Skeleton, StateBlock, Switch, useDialog } from '@/components/bw/primitives'
+import { useToast } from '@/components/bw/toast'
 import { LoadError } from '@/components/workspace/role-shell'
 import { api, ApiError } from '@/lib/api'
 import { cn } from '@/lib/utils'
@@ -44,8 +45,7 @@ export function CategoriesTab({ categories, loading, error, onReload, onViewProd
 }) {
   const [query, setQuery] = React.useState('')
   const [open, setOpen] = React.useState<Record<string, boolean>>({})
-  const [notice, setNotice] = React.useState<string | null>(null)
-  const [failure, setFailure] = React.useState<string | null>(null)
+  const toast = useToast()
   const [editing, setEditing] = React.useState<{ node: Editable | null; parentId: string } | null>(null)
   const [deleting, setDeleting] = React.useState<Editable | null>(null)
   const formDialog = useDialog()
@@ -62,13 +62,12 @@ export function CategoriesTab({ categories, loading, error, onReload, onViewProd
     .filter((entry) => entry.show)
 
   const toggleActive = async (node: Editable) => {
-    setFailure(null)
     try {
       await api(`/categories/${node.id}`, { method: 'PATCH', body: { isActive: !node.isActive } })
-      setNotice(node.isActive ? `تم إيقاف «${node.name}»` : `تم تفعيل «${node.name}»`)
+      toast.success(node.isActive ? `تم إيقاف «${node.name}»` : `تم تفعيل «${node.name}»`)
       onReload()
     } catch (err) {
-      setFailure(catalogErrorMessage(err as ApiError, 'تعذر تغيير الحالة'))
+      toast.error(catalogErrorMessage(err as ApiError, 'تعذر تغيير الحالة'))
     }
   }
 
@@ -86,8 +85,6 @@ export function CategoriesTab({ categories, loading, error, onReload, onViewProd
         <Button className="ms-auto" onClick={() => { setEditing({ node: null, parentId: '' }); later(() => formDialog.open()) }}><Plus className="size-4" aria-hidden />تصنيف جديد</Button>
       </div>
 
-      {notice ? <Banner tone="ok" onClose={() => setNotice(null)}>{notice}</Banner> : null}
-      {failure ? <Banner tone="danger" onClose={() => setFailure(null)}>{failure}</Banner> : null}
       {error ? <LoadError message={error} onRetry={onReload} /> : null}
       {loading && categories.length === 0 ? <Skeleton className="h-56 w-full" /> : null}
       {!loading && !error && categories.length === 0 ? <StateBlock kind="empty" title="لا توجد تصنيفات بعد" body="أضف تصنيفًا رئيسيًا ثم تصنيفات فرعية تحته." /> : null}
@@ -140,9 +137,9 @@ export function CategoriesTab({ categories, loading, error, onReload, onViewProd
         target={editing}
         roots={categories}
         onClose={() => formDialog.close()}
-        onSaved={(m) => { formDialog.close(); setNotice(m); onReload() }}
+        onSaved={(m) => { formDialog.close(); toast.success(m); onReload() }}
       />
-      <DeleteDialog dialogRef={deleteDialog.ref} node={deleting} onClose={() => deleteDialog.close()} onDeleted={(m) => { deleteDialog.close(); setNotice(m); onReload() }} />
+      <DeleteDialog dialogRef={deleteDialog.ref} node={deleting} onClose={() => deleteDialog.close()} onDeleted={(m) => { deleteDialog.close(); toast.success(m); onReload() }} />
     </div>
   )
 }

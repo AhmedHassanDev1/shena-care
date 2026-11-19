@@ -3,7 +3,6 @@
 import * as React from 'react'
 import { History, RefreshCw } from 'lucide-react'
 import { Button, PageHeader } from '@/components/bw/primitives'
-import { CopyToaster } from '@/components/workspace/copy-id'
 import { HubShell, useHub } from '@/components/workspace/hub'
 import { Page } from '@/components/workspace/kit'
 import { LoadError } from '@/components/workspace/role-shell'
@@ -223,7 +222,6 @@ function DispatchBody() {
         />
       ) : null}
 
-      <CopyToaster />
     </Page>
   )
 }
