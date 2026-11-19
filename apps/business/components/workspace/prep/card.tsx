@@ -117,11 +117,11 @@ function SaveStatus({ state, onRetry }: { state: SaveState; onRetry: () => void 
  * Bottom row, under a hairline: required · supplier discount · − prepared/required +.
  * The rare actions live behind ⋯ (a popover on desktop, a bottom sheet on a phone).
  */
-export function ProductCard({ line, order, hubId, lastCosts, canPrice, plus, minus, busy, onPlus, onMinus, onOrder, onPick, onMore }: {
+export function ProductCard({ line, order, hubId, lastCosts, canPrice, quantity, onQtyMinus, onQtyPlus, onOrder, onPick, onMore }: {
   line: DeskLine; order: DeskOrder; hubId: string; lastCosts: Desk['lastCosts']; canPrice: boolean
-  /** `null` = allowed; a string = why the control is off (shown as its tooltip). */
-  plus: string | null; minus: string | null; busy: boolean
-  onPlus: () => void; onMinus: () => void; onOrder: (order: DeskOrder) => void
+  /** The declared quantity (default: the full required one). Separate from scan progress, which is `line.received`. */
+  quantity: number; onQtyMinus: () => void; onQtyPlus: () => void
+  onOrder: (order: DeskOrder) => void
   /** An action chosen from the popover (desktop). */
   onPick: (kind: ActionKind) => void
   /** Open the bottom sheet with the same actions (phone). */
@@ -163,21 +163,21 @@ export function ProductCard({ line, order, hubId, lastCosts, canPrice, plus, min
           <DiscountField line={line} suggestedList={lastCosts[line.skuId]?.listUnitPrice ?? null} hubId={hubId} orderId={order.orderId} onOrder={onOrder} />
         </div>
 
-        <div role="group" aria-label={`الكمية المجهزة من ${productTitle(line)}`} className="flex shrink-0 items-center gap-1">
-          <button type="button" disabled={!!minus || busy} title={minus ?? undefined} aria-label="نقّص قطعة" onClick={onMinus}
-            className={cn(step, 'border border-bw-line-field text-bw-ink hover:bg-bw-sunken disabled:border-bw-line disabled:text-bw-ink-subtle disabled:opacity-50')}>
+        <p className={cn("text-[12px]", done ? "font-semibold text-bw-emerald" : "text-bw-ink-soft")}>اتمسح <bdi className="tabular-nums" dir="ltr">{line.received}/{line.required}</bdi></p>
+
+        <div role="group" aria-label={`الكمية في الطرد من ${productTitle(line)}`} className="flex shrink-0 items-center gap-1">
+          <span className="me-1 text-[12px] text-bw-ink-soft">الكمية</span>
+          <button type="button" disabled={quantity <= 0} aria-label="نقّص الكمية" onClick={onQtyMinus}
+            className={cn(step, "border border-bw-line-field text-bw-ink hover:bg-bw-sunken disabled:border-bw-line disabled:text-bw-ink-subtle disabled:opacity-50")}>
             <Minus className="size-4" aria-hidden />
           </button>
-          <span className={cn('min-w-12 text-center text-bw-heading font-semibold tabular-nums', done ? 'text-bw-emerald' : 'text-bw-ink')} dir="ltr" aria-live="polite" aria-label={`${line.received} من ${line.required}`}>
-            {line.received}<span className="text-bw-ink-subtle">/{line.required}</span>
-          </span>
-          <button type="button" disabled={!!plus || busy} title={plus ?? undefined} aria-label="زوّد قطعة" onClick={onPlus}
-            className={cn(step, 'bg-bw-action text-bw-on-action hover:bg-bw-action-hover disabled:bg-bw-sunken disabled:text-bw-ink-subtle')}>
+          <span className={cn("min-w-10 text-center text-bw-heading font-semibold tabular-nums", quantity < line.required ? "text-bw-amber" : "text-bw-ink")} dir="ltr" aria-live="polite" aria-label={`الكمية ${quantity} من ${line.required}`}>{quantity}</span>
+          <button type="button" disabled={quantity >= line.required} aria-label="زوّد الكمية" onClick={onQtyPlus}
+            className={cn(step, "bg-bw-action text-bw-on-action hover:bg-bw-action-hover disabled:bg-bw-sunken disabled:text-bw-ink-subtle")}>
             <Plus className="size-4" aria-hidden />
           </button>
         </div>
       </div>
-      {plus && !done ? <p className="text-[12px] text-bw-ink-subtle">{plus}</p> : null}
     </li>
   )
 }
