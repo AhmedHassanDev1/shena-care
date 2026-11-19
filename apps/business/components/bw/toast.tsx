@@ -53,6 +53,26 @@ export function useToast(): ToastApi {
   return React.useContext(ToastContext)
 }
 
+/**
+ * A sticky bar that sits where the toast would (e.g. the settings save bar) registers its height here, so the toast rises above it
+ * instead of covering it. Pass the element's ref and whether it is currently shown.
+ */
+export function useToastLift(ref: React.RefObject<HTMLElement | null>, active: boolean, phoneOnly = false) {
+  React.useEffect(() => {
+    const node = ref.current
+    if (!active || !node) return
+    const root = document.documentElement
+    const apply = () => {
+      const docked = phoneOnly && window.matchMedia('(min-width: 1024px)').matches // inline on desktop: nothing to avoid
+      root.style.setProperty('--bw-toast-lift', docked ? '0px' : `${Math.ceil(node.getBoundingClientRect().height) + 16}px`)
+    }
+    apply()
+    const observer = new ResizeObserver(apply)
+    observer.observe(node)
+    return () => { observer.disconnect(); root.style.removeProperty('--bw-toast-lift') }
+  }, [ref, active, phoneOnly])
+}
+
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toast, setToast] = React.useState<ToastState | null>(null)
   const seq = React.useRef(0)

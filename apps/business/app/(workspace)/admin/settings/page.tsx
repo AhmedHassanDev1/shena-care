@@ -3,7 +3,7 @@
 import * as React from 'react'
 import { ChevronDown, RefreshCw, RotateCcw } from 'lucide-react'
 import { Button, Field, PageHeader, Select, Skeleton, Switch } from '@/components/bw/primitives'
-import { useToast } from '@/components/bw/toast'
+import { useToast, useToastLift } from '@/components/bw/toast'
 import { CommandError, Page } from '@/components/workspace/kit'
 import { LoadError, RoleShell } from '@/components/workspace/role-shell'
 import { api } from '@/lib/api'
@@ -58,6 +58,8 @@ export default function SettingsPage() {
     return out
   },[data,draft,delivery,areas])
   const dirty=Object.keys(changes).length>0
+  const saveBar=React.useRef<HTMLDivElement>(null)
+  useToastLift(saveBar,dirty||!!save.error)
   const saveAll=async()=>{ if(dirty&&await save.execute(changes)){ toast.success("تم حفظ التغييرات"); reload() } }
   const restore=async(key:string)=>{if(await reset.execute(key)){reload()}}
 
@@ -144,7 +146,7 @@ export default function SettingsPage() {
     </details>:null}
 
     {/* One save bar for everything edited above; it only exists while there is something to save. */}
-    {(dirty||save.error)?<div role="region" aria-label="حفظ الإعدادات" className="bw-glass-raised bw-arrive sticky bottom-20 z-20 mx-auto flex w-full max-w-2xl flex-wrap items-center gap-3 rounded-bw-card px-4 py-3 lg:bottom-4">
+    {(dirty||save.error)?<div ref={saveBar} role="region" aria-label="حفظ الإعدادات" className="bw-glass-raised bw-arrive sticky bottom-20 z-20 mx-auto flex w-full max-w-2xl flex-wrap items-center gap-3 rounded-bw-card px-4 py-3 lg:bottom-4">
       {save.error?<div className="min-w-0 flex-1"><CommandError error={save.error}/></div>
         :<p className="flex-1 text-bw-small text-bw-ink"><bdi className="bw-code">{Object.keys(changes).length}</bdi> تغيير مستني الحفظ</p>}
       {dirty?<Button variant="ghost" size="sm" onClick={()=>data&&hydrate(data)} disabled={save.pending}>تجاهل</Button>:null}
