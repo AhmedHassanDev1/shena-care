@@ -2,14 +2,14 @@
 
 import * as React from 'react'
 import { AlertTriangle, Check, CheckCircle2, ChevronDown, Loader2, PackageCheck, Printer, RotateCcw, Zap } from 'lucide-react'
-import { Button, Field } from '@/components/bw/primitives'
+import { Button, Dialog, Field, useDialog } from '@/components/bw/primitives'
 import { Flash } from '@/components/bw/ops'
 import { egp } from '@/components/workspace/buy-costs'
 import type { PackagingCosts } from '@/components/workspace/pack-card'
 import { api } from '@/lib/api'
 import { useCommand } from '@/lib/use-api'
 import { cn } from '@/lib/utils'
-import type { DeskOrder, Packaging } from './model'
+import { type DeskOrder, type Packaging, productTitle } from './model'
 
 const FAIL_REASONS = ['الورق انحشر', 'الحبر أو الورق خلص', 'الطابعة مش متصلة', 'الطباعة طلعت مقطوعة أو مش واضحة'] as const
 type Doc = 'receipt' | 'slip'
@@ -80,7 +80,11 @@ export function PrepBar({ order, packaging, costs, onPackaging, onChanged, onPac
     }
   }
 
-  const handleDeliver = async () => {
+  // Any difference between what the order asks for and what the server confirmed as prepared is shown before the parcel leaves.
+  const guard = useDialog()
+  const differences = order.lines.filter((line) => line.received !== line.required)
+
+  const proceedHandoff = async () => {
     if (!verified) return
     if (!packagingType) return
     if (!print.ready) {
@@ -91,6 +95,12 @@ export function PrepBar({ order, packaging, costs, onPackaging, onChanged, onPac
       onPacked()
       onChanged()
     }
+  }
+
+  const handleDeliver = async () => {
+    if (!verified || !packagingType) return
+    if (differences.length > 0) { guard.open(); return }
+    await proceedHandoff()
   }
 
   const error = (choose.error ?? label.error ?? event.error ?? handoff.error)?.message ?? null
@@ -267,6 +277,26 @@ export function PrepBar({ order, packaging, costs, onPackaging, onChanged, onPac
       {error ? <Flash tone="danger">{error}</Flash> : null}
       {costs && (costs.BAG === null || costs.BOX === null) ? <Flash tone="warn">حدّد تكلفة الشنطة والكرتونة في إعدادات الإدارة علشان تقدر تختار.</Flash> : null}
       {!ready && missing.length ? <p className="text-[12px] text-bw-ink-subtle">لسه: {missing.join(' · ')}</p> : null}
+
+      <Dialog dialogRef={guard.ref} title="في اختلاف في الكميات"
+        footer={<>
+          <Button variant="secondary" onClick={guard.close}>إلغاء التسليم</Button>
+          <Button variant="danger" loading={handoff.pending || bypassing} onClick={async () => { guard.close(); await proceedHandoff() }}>تسليم</Button>
+        </>}>
+        <div className="space-y-3">
+          <p className="text-bw-small text-bw-ink-soft">الكميات المجهّزة مش زي المطلوب في الطلب ده. راجعها قبل ما الطرد يتسلّم.</p>
+          <ul className="divide-y divide-bw-line rounded-bw-field border border-bw-line">
+            {differences.map((line) => (
+              <li key={line.orderItemId} className="flex items-center justify-between gap-3 px-3 py-2 text-bw-small">
+                <span className="min-w-0 flex-1 font-semibold text-bw-ink"><bdi>{productTitle(line)}</bdi></span>
+                <span className={cn('shrink-0 tabular-nums', line.received < line.required ? 'text-bw-amber' : 'text-bw-danger')}>
+                  <bdi dir="ltr">{line.received}/{line.required}</bdi> {line.received < line.required ? 'نقص' : 'زيادة'}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </Dialog>
     </section>
   )
 }
