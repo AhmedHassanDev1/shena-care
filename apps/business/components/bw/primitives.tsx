@@ -405,7 +405,7 @@ export function Dialog({
   title: string
   children: React.ReactNode
   footer?: React.ReactNode
-  variant?: 'dialog' | 'drawer' | 'sheet'
+  variant?: 'dialog' | 'drawer' | 'drawer-start' | 'sheet'
   onClose?: () => void
 }) {
   const titleId = React.useId()
@@ -418,6 +418,8 @@ export function Dialog({
         'bw-dialog border border-bw-line bg-bw-surface text-bw-ink shadow-bw-overlay backdrop:bg-bw-kohl/60',
         variant === 'dialog' && 'm-auto w-[min(32rem,calc(100%-2rem))] rounded-bw-card',
         variant === 'drawer' && 'ms-auto me-0 h-dvh max-h-dvh w-[min(28rem,100%)] max-w-full',
+        // Slides in from the inline-start edge, the same side as the desktop sidebar.
+        variant === 'drawer-start' && 'bw-drawer-start me-auto ms-0 h-dvh max-h-dvh w-[min(20rem,86vw)] max-w-full',
         variant === 'sheet' && 'mx-auto mb-0 mt-auto max-h-[85dvh] w-full max-w-md rounded-t-bw-card',
       )}
     >

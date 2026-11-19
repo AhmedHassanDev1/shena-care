@@ -318,7 +318,7 @@ export function WorkspaceFrame({
   )
 }
 
-/** Bottom bar: up to four primary destinations + «المزيد» (a bottom sheet with every remaining authorised page). */
+/** Bottom bar: up to four primary destinations + «المزيد» (a side drawer with every remaining authorised page). */
 function MobileNav({ title, accent, items, primary, isItemActive, getItemCount }: {
   title: string
   accent: 'cobalt' | 'action'
@@ -372,8 +372,8 @@ function MobileNav({ title, accent, items, primary, isItemActive, getItemCount }
         ) : null}
       </nav>
       {needsMore ? (
-        <Dialog dialogRef={sheet.ref} title="المزيد" variant="sheet">
-          <ul className="-mx-1 grid gap-0.5 pb-[env(safe-area-inset-bottom)]">
+        <Dialog dialogRef={sheet.ref} title="المزيد" variant="drawer-start">
+          <ul className="-mx-1 grid gap-0.5">
             {more.map((item) => {
               const isActive = isItemActive(item.id)
               const count = getItemCount(item.id)
