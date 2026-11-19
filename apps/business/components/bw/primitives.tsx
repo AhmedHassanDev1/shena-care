@@ -400,6 +400,7 @@ export function Dialog({
   footer,
   variant = 'dialog',
   onClose,
+  className,
 }: {
   dialogRef: React.RefObject<HTMLDialogElement | null>
   title: string
@@ -407,6 +408,7 @@ export function Dialog({
   footer?: React.ReactNode
   variant?: 'dialog' | 'drawer' | 'drawer-start' | 'sheet'
   onClose?: () => void
+  className?: string
 }) {
   const titleId = React.useId()
   return (
@@ -420,7 +422,8 @@ export function Dialog({
         variant === 'drawer' && 'ms-auto me-0 h-dvh max-h-dvh w-[min(28rem,100%)] max-w-full',
         // Slides in from the inline-start edge, the same side as the desktop sidebar.
         variant === 'drawer-start' && 'bw-drawer-start me-auto ms-0 h-dvh max-h-dvh w-[min(20rem,86vw)] max-w-full',
-        variant === 'sheet' && 'mx-auto mb-0 mt-auto max-h-[85dvh] w-full max-w-md rounded-t-bw-card',
+        variant === 'sheet' && 'mx-auto mb-0 mt-auto max-h-[85dvh] w-full max-w-md rounded-t-bw-card md:my-auto md:rounded-b-bw-card',
+        className,
       )}
     >
       <div className="flex max-h-[inherit] flex-col">

@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   ChevronRight,
   Clock,
+  MapPin,
   MessageCircle,
   Navigation,
   Phone,
@@ -28,7 +29,9 @@ import {
   StatusLabel,
   useDialog,
 } from '@/components/bw/primitives'
+import { useToast, useToastLift } from '@/components/bw/toast'
 import { CameraScanner } from '@/components/workspace/camera-scanner'
+import { CopyId } from '@/components/workspace/copy-id'
 import { CommandError, Egp, Status, TextArea } from '@/components/workspace/kit'
 import { LoadError, RoleShell } from '@/components/workspace/role-shell'
 import { api } from '@/lib/api'
@@ -61,14 +64,14 @@ export default function DriverStopPage() {
 
   return (
     <RoleShell role="driver" active="run" mode="mobile">
-      <div className="space-y-3.5 p-3 sm:p-4 pb-24">
+      <div className="space-y-3.5 p-3 sm:p-4 pb-28">
         {/* Navigation back to trips */}
         <div className="flex items-center justify-between">
           <Link
             href="/driver"
-            className="inline-flex items-center gap-1 text-xs font-semibold text-bw-ink-soft hover:text-bw-ink"
+            className="inline-flex items-center gap-1 text-xs font-semibold text-bw-ink-soft hover:text-bw-ink transition-colors"
           >
-            <ChevronRight className="size-4 rtl:rotate-0" aria-hidden />
+            <ChevronRight className="size-4" aria-hidden />
             العودة للمشوار {run ? <Code>#{shortId(run.id)}</Code> : ''}
           </Link>
           {stop ? (
@@ -121,12 +124,15 @@ function StopOperationalBody({
       <section className="rounded-bw-card border border-bw-line bg-bw-surface p-3.5 space-y-3 shadow-bw-card">
         {/* Customer Header */}
         <div className="flex items-start justify-between gap-2 border-b border-bw-line pb-3">
-          <div className="min-w-0 space-y-0.5">
+          <div className="min-w-0 space-y-1">
             <span className="text-[11px] font-semibold text-bw-ink-soft">العميل المستلم</span>
             <h1 className="text-base font-bold text-bw-ink truncate">{stop.recipientName}</h1>
-            <p className="text-xs text-bw-ink-soft">
-              طلب <Code>{stop.orderNumber}</Code> · <Code>{stop.itemCount}</Code> قطع
-            </p>
+            <div className="flex items-center gap-2 text-xs text-bw-ink-soft">
+              <span className="text-bw-ink-subtle">طلب:</span>
+              <CopyId value={stop.orderNumber} muted className="text-xs" />
+              <span>·</span>
+              <span><Code>{stop.itemCount}</Code> قطع</span>
+            </div>
           </div>
 
           <div className="shrink-0 text-end">
@@ -149,7 +155,10 @@ function StopOperationalBody({
 
         {/* Delivery Address */}
         <div className="space-y-1">
-          <span className="text-[11px] text-bw-ink-subtle">عنوان التوصيل</span>
+          <span className="text-[11px] text-bw-ink-subtle flex items-center gap-1">
+            <MapPin className="size-3" aria-hidden />
+            عنوان التوصيل
+          </span>
           <p className="text-sm font-medium text-bw-ink leading-relaxed">
             {fullAddress || 'لا يوجد عنوان مسجل'}
           </p>
@@ -171,7 +180,7 @@ function StopOperationalBody({
           </Notice>
         ) : null}
 
-        {/* 2. Communication and Navigation Action Bar */}
+        {/* 2. Communication and Navigation Action Bar (Touch targets >= 44px) */}
         <div className="grid grid-cols-3 gap-2 pt-1">
           {/* Phone call */}
           {phoneUrl ? (
@@ -288,19 +297,22 @@ function StopOperationalBody({
         <DispatchedOutcomeAction stop={stop} onChanged={onChanged} />
       )}
 
-      {/* State D: Failed Attempt Result */}
+      {/* State D: Failed Attempt Result — Clearly indicates custody retention awaiting Hub return */}
       {isFailed && (
         <section className="rounded-bw-card border border-bw-danger/30 bg-bw-danger-soft p-4 space-y-3">
           <div className="flex items-center gap-2 text-bw-danger font-semibold text-sm">
             <AlertCircle className="size-5 shrink-0" aria-hidden />
             <span>محاولة فاشلة مسجلة — الطرد في عهدتك</span>
           </div>
-          <div className="space-y-1 text-xs text-bw-ink-soft">
-            <p className="font-medium text-bw-ink">
-              حالة الطرد: <span className="text-bw-warn font-semibold">في انتظار الإرجاع للمخزن</span>
+          <div className="space-y-1.5 text-xs text-bw-ink-soft">
+            <p className="font-semibold text-bw-ink">
+              حالة الطرد: <span className="text-bw-warn font-semibold">مرتجع مع المندوب (في الطريق للمخزن)</span>
             </p>
             <p className="leading-relaxed">
-              الطرد لا يزال في عهدتك حتى تسليمه الفعلي للمخزن. سيقوم مسؤول المخزن بمسح البوليصة لتأكيد استلام المرتجع.
+              الطرد لا يزال في عهدتك الشخصية حتى تسليمه الفعلي لمسؤول المخزن في نهاية المشوار.
+            </p>
+            <p className="leading-relaxed text-[11px] text-bw-ink-subtle">
+              سيقوم مسؤول المخزن بمسح باركود البوليصة لتأكيد استلام المرتجع وإتمام التسوية المالية والمخزنية.
             </p>
           </div>
         </section>
@@ -313,7 +325,7 @@ function StopOperationalBody({
             <CheckCircle2 className="size-5 shrink-0" aria-hidden />
             <span>تم تسليم الطلب بنجاح</span>
           </div>
-          <p className="text-xs text-bw-ink-soft">
+          <p className="text-xs text-bw-ink-soft leading-relaxed">
             {stop.cashDeclared !== null ? (
               <>
                 أعلنت استلام مبلغ <strong className="text-bw-ok"><Egp value={stop.cashDeclared} /></strong> نقدياً من العميل. سيتم تأكيد العد والتسوية النهائية في المخزن.
@@ -336,6 +348,7 @@ function HandoffAction({ stop, onChanged }: { stop: DriverStop; onChanged: () =>
   const [code, setCode] = React.useState('')
   const [showCamera, setShowCamera] = React.useState(false)
   const [devBarcode, setDevBarcode] = React.useState<string | null>(null)
+  const toast = useToast()
 
   React.useEffect(() => {
     let cancelled = false
@@ -353,13 +366,24 @@ function HandoffAction({ stop, onChanged }: { stop: DriverStop; onChanged: () =>
     })
   )
 
+  const isSubmitting = React.useRef(false)
+
   const handleBarcodeSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!code.trim()) return
-    if (await scan.execute()) {
-      setCode('')
-      setShowCamera(false)
-      onChanged()
+    if (!code.trim() || isSubmitting.current || scan.pending) return
+    isSubmitting.current = true
+    try {
+      const res = await scan.execute()
+      if (res) {
+        toast.success('تم استلام الطرد في عهدتك بنجاح')
+        setCode('')
+        setShowCamera(false)
+        onChanged()
+      }
+    } catch {
+      // Handled by scan.error
+    } finally {
+      isSubmitting.current = false
     }
   }
 
@@ -404,7 +428,7 @@ function HandoffAction({ stop, onChanged }: { stop: DriverStop; onChanged: () =>
             onChange={(e) => setCode(e.target.value)}
           />
 
-          {/* Development-only helper button */}
+          {/* Development-only helper button (strictly excluded in production) */}
           {devBarcode ? (
             <div className="rounded-bw-field border border-dashed border-bw-cobalt/40 bg-bw-cobalt-soft p-2 text-xs flex items-center justify-between gap-2">
               <span className="text-bw-ink-soft text-[11px]">بيئة تطوير: باركود صالح للاختبار</span>
@@ -423,7 +447,7 @@ function HandoffAction({ stop, onChanged }: { stop: DriverStop; onChanged: () =>
             size="touch"
             className="w-full"
             loading={scan.pending}
-            disabled={!code.trim()}
+            disabled={!code.trim() || scan.pending}
           >
             تأكيد استلام الطرد في عهدتي
           </Button>
@@ -437,10 +461,16 @@ function HandoffAction({ stop, onChanged }: { stop: DriverStop; onChanged: () =>
 /**
  * Primary Delivery Outcomes (Out for Delivery)
  * Shows sticky dual action bar: "تم التسليم" and "تعذر التسليم", backed by Bottom Sheets.
+ * Prevents accidental double submissions and updates state only after server confirmation.
  */
 function DispatchedOutcomeAction({ stop, onChanged }: { stop: DriverStop; onChanged: () => void }) {
   const deliveredSheet = useDialog()
   const failedSheet = useDialog()
+  const toast = useToast()
+
+  const stickyBarRef = React.useRef<HTMLDivElement>(null)
+  // Lifts the single toast above the sticky bottom action bar so they never overlap
+  useToastLift(stickyBarRef, true, true)
 
   const [cashInput, setCashInput] = React.useState(String(stop.codDue))
   const [confirmedCashCheck, setConfirmedCashCheck] = React.useState(false)
@@ -471,30 +501,54 @@ function DispatchedOutcomeAction({ stop, onChanged }: { stop: DriverStop; onChan
     amount >= 0 &&
     Math.round(amount * 100) === amount * 100
 
+  // Guard against accidental double submissions
+  const isDelivering = React.useRef(false)
+  const isFailing = React.useRef(false)
+
   // Handle successful delivery submission
   const handleDeliveredSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!isCashValid) return
-    if (await delivered.execute()) {
-      deliveredSheet.close()
-      onChanged()
+    if (isDelivering.current || delivered.pending) return
+    if (!isCashValid || !confirmedCashCheck) return
+    isDelivering.current = true
+    try {
+      const res = await delivered.execute()
+      if (res) {
+        toast.success('تم تسجيل التسليم والتحصيل بنجاح')
+        deliveredSheet.close()
+        onChanged()
+      }
+    } finally {
+      isDelivering.current = false
     }
   }
 
   // Handle failed delivery submission
   const handleFailedSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (isFailing.current || failed.pending) return
+    if (!reasonCode) return
     if (reasonCode === 'OTHER' && !failureNotes.trim()) return
-    if (await failed.execute()) {
-      failedSheet.close()
-      onChanged()
+    isFailing.current = true
+    try {
+      const res = await failed.execute()
+      if (res) {
+        toast.warning('تم تسجيل تعذر التسليم — الطرد في عهدتك')
+        failedSheet.close()
+        onChanged()
+      }
+    } finally {
+      isFailing.current = false
     }
   }
 
   return (
     <>
       {/* Sticky Bottom Action Bar for Quick One-Thumb Mobile Access */}
-      <div className="fixed inset-x-0 bottom-14 z-20 border-t border-bw-line bg-bw-page p-3 max-w-md mx-auto">
+      <div
+        ref={stickyBarRef}
+        className="fixed inset-x-0 bottom-[52px] z-20 border-t border-bw-line bg-bw-page/95 backdrop-blur p-3 max-w-md mx-auto"
+      >
         <div className="grid grid-cols-2 gap-2.5">
           <Button
             size="touch"
@@ -559,7 +613,7 @@ function DispatchedOutcomeAction({ stop, onChanged }: { stop: DriverStop; onChan
               <button
                 type="button"
                 onClick={() => setCashInput(String(stop.codDue))}
-                className="text-xs font-semibold text-bw-cobalt hover:underline block text-start"
+                className="text-xs font-semibold text-bw-cobalt hover:underline block text-start cursor-pointer"
               >
                 تعبئة المبلغ المطلوب كاملاً (<Egp value={stop.codDue} />)
               </button>
@@ -577,7 +631,7 @@ function DispatchedOutcomeAction({ stop, onChanged }: { stop: DriverStop; onChan
           <label className="flex items-start gap-2.5 rounded-bw-field border border-bw-line p-2.5 text-xs text-bw-ink cursor-pointer bg-bw-veil-1">
             <input
               type="checkbox"
-              className="size-4 mt-0.5 accent-bw-action rounded shrink-0"
+              className="size-4 mt-0.5 accent-bw-action rounded shrink-0 cursor-pointer"
               checked={confirmedCashCheck}
               onChange={(e) => setConfirmedCashCheck(e.target.checked)}
             />
@@ -592,7 +646,7 @@ function DispatchedOutcomeAction({ stop, onChanged }: { stop: DriverStop; onChan
               size="touch"
               className="flex-1"
               loading={delivered.pending}
-              disabled={!isCashValid || !confirmedCashCheck}
+              disabled={!isCashValid || !confirmedCashCheck || delivered.pending}
             >
               تأكيد التسليم والتحصيل
             </Button>
@@ -600,6 +654,7 @@ function DispatchedOutcomeAction({ stop, onChanged }: { stop: DriverStop; onChan
               type="button"
               variant="ghost"
               size="touch"
+              disabled={delivered.pending}
               onClick={() => deliveredSheet.close()}
             >
               إلغاء
@@ -621,35 +676,25 @@ function DispatchedOutcomeAction({ stop, onChanged }: { stop: DriverStop; onChan
             اختر السبب الفعلي لتعذر التسليم. يظل الطرد في عهدتك حتى إعادته إلى المخزن.
           </p>
 
-          {/* Predefined Failure Reason Choices */}
+          {/* Required Dropdown: سبب تعذر التسليم */}
           <div className="space-y-1.5">
-            <label className="block text-xs font-semibold text-bw-ink">سبب تعذر التسليم</label>
-            <div className="space-y-1 rounded-bw-field border border-bw-line p-1 bg-bw-surface">
-              {Object.entries(FAILURE_REASONS).map(([key, label]) => {
-                const isSelected = reasonCode === key
-                return (
-                  <label
-                    key={key}
-                    className={cn(
-                      'flex items-center justify-between rounded-bw-field px-3 py-2 text-xs cursor-pointer transition-colors',
-                      isSelected
-                        ? 'bg-bw-sunken font-semibold text-bw-ink'
-                        : 'text-bw-ink-soft hover:bg-bw-veil-1'
-                    )}
-                  >
-                    <span>{label}</span>
-                    <input
-                      type="radio"
-                      name="failure_reason"
-                      value={key}
-                      checked={isSelected}
-                      onChange={() => setReasonCode(key)}
-                      className="size-3.5 accent-bw-danger"
-                    />
-                  </label>
-                )
-              })}
-            </div>
+            <label htmlFor="failure-reason-select" className="block text-xs font-semibold text-bw-ink">
+              سبب تعذر التسليم <span className="text-bw-danger">*</span>
+            </label>
+            <select
+              id="failure-reason-select"
+              name="reasonCode"
+              value={reasonCode}
+              onChange={(e) => setReasonCode(e.target.value)}
+              required
+              className="w-full h-11 rounded-bw-field border border-bw-line-field bg-bw-surface px-3 text-xs font-semibold text-bw-ink focus:border-bw-action focus:outline-none cursor-pointer"
+            >
+              {Object.entries(FAILURE_REASONS).map(([key, label]) => (
+                <option key={key} value={key}>
+                  {label}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Notes field: required if OTHER, optional otherwise */}
@@ -686,7 +731,7 @@ function DispatchedOutcomeAction({ stop, onChanged }: { stop: DriverStop; onChan
               size="touch"
               className="flex-1"
               loading={failed.pending}
-              disabled={reasonCode === 'OTHER' && !failureNotes.trim()}
+              disabled={!reasonCode || (reasonCode === 'OTHER' && !failureNotes.trim()) || failed.pending}
             >
               تسجيل تعذر التسليم
             </Button>
@@ -694,6 +739,7 @@ function DispatchedOutcomeAction({ stop, onChanged }: { stop: DriverStop; onChan
               type="button"
               variant="ghost"
               size="touch"
+              disabled={failed.pending}
               onClick={() => failedSheet.close()}
             >
               إلغاء

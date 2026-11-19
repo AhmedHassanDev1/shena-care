@@ -96,14 +96,17 @@ export const PAYABLE_STATUS: Labelled = {
 }
 
 export const FAILURE_REASONS: Record<string, string> = {
-  CUSTOMER_UNREACHABLE: 'العميل لا يرد',
-  CUSTOMER_REFUSED: 'العميل رفض الاستلام',
-  RESCHEDULE_REQUESTED: 'العميل طلب التأجيل',
+  CUSTOMER_UNREACHABLE: 'العميل لا يرد / الهاتف مغلق',
+  CUSTOMER_NOT_FOUND: 'العميل غير متواجد بالعنوان',
+  ITEM_MISMATCH: 'رفض الاستلام — غير مطابق للمواصفات أو الصور',
+  WRONG_ITEM: 'رفض الاستلام — اختلاف في الأصناف أو تالف',
+  CUSTOMER_REFUSED: 'رفض الاستلام — العميل تراجع عن الشراء',
   ADDRESS_NOT_FOUND: 'العنوان غير صحيح أو غير واضح',
+  RESCHEDULE_REQUESTED: 'العميل طلب التأجيل لموعد آخر',
   PIN_MISMATCH: 'تعذر الوصول إلى الموقع',
   NOT_SERVICEABLE: 'المكان خارج نطاق التوصيل',
   PACKAGE_DAMAGED: 'الطرد تالف',
-  OTHER: 'مشكلة أخرى',
+  OTHER: 'سبب آخر (اكتب في الملاحظات)',
 }
 
 export const SHORTFALL_REASONS: Record<string, string> = {

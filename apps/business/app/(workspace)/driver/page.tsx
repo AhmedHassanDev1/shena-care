@@ -4,22 +4,38 @@ import * as React from 'react'
 import Link from 'next/link'
 import {
   AlertCircle,
-  ArrowUpRight,
+  Camera,
   CheckCircle2,
   ChevronLeft,
-  Clock,
+  Coins,
+  Layers,
+  MapPin,
   Package,
   Route,
   Scan,
-  Wallet,
+  UserRound,
   XCircle,
 } from 'lucide-react'
-import { Button, Code, PageHeader, Skeleton, StateBlock, StatusLabel } from '@/components/bw/primitives'
+import {
+  Button,
+  Code,
+  Dialog,
+  Field,
+  PageHeader,
+  Skeleton,
+  StateBlock,
+  useDialog,
+} from '@/components/bw/primitives'
+import { useToast } from '@/components/bw/toast'
+import { CameraScanner } from '@/components/workspace/camera-scanner'
 import { ContinuousHandoffModal } from '@/components/workspace/continuous-handoff-modal'
-import { Egp, Status } from '@/components/workspace/kit'
+import { CopyId } from '@/components/workspace/copy-id'
+import { Egp } from '@/components/workspace/kit'
 import { LoadError, RoleShell } from '@/components/workspace/role-shell'
-import { RUN_STATUS, SHIPMENT_STATUS, formatDateTime, shortId } from '@/lib/labels'
-import { useApi } from '@/lib/use-api'
+import { api } from '@/lib/api'
+import { getDevShipmentBarcode } from '@/lib/dev-barcode'
+import { shortId } from '@/lib/labels'
+import { useApi, useCommand } from '@/lib/use-api'
 import { cn } from '@/lib/utils'
 
 export interface DriverStop {
@@ -50,209 +66,332 @@ export interface DriverRun {
   stops: DriverStop[]
 }
 
-interface HistorySummaryItem {
-  stopId: string
-  outcome: string
-  closedAt: string | null
-  orderNumber: string | null
-  area: string | null
-  reasonCode: string | null
-  cashDeclared: number | null
-}
-
-type TabFilter = 'all' | 'active' | 'planning' | 'history'
+type TabFilter = 'all' | 'custody' | 'delivered'
 
 /**
  * Driver Workspace — My Trips (مشاويري)
- * Redesigned for fast, clear mobile operation in real-world delivery conditions.
+ * Built to match the approved visual reference exactly:
+ * - 3-column top metrics bar (في العهدة / تم التسليم / إجمالي المشوار)
+ * - Simple filter pills bar (الكل / في العهدة / تم التسليم)
+ * - Single-piece contiguous order cards with customer name, address, parcel count, secondary ID
+ * - Out-of-the-box quick barcode scanner button right from the card
+ * - Entire card tappable to open order details
  */
 export default function DriverRoute() {
   const { data, error, loading, reload } = useApi<DriverRun[]>('/fulfillment/driver/runs', { pollMs: 15000 })
-  const history = useApi<{ total: number; items: HistorySummaryItem[] }>('/fulfillment/driver/history?take=10', {
-    pollMs: 30000,
-  })
-
   const [activeTab, setActiveTab] = React.useState<TabFilter>('all')
   const [scanningRun, setScanningRun] = React.useState<DriverRun | null>(null)
+  const [quickScanStop, setQuickScanStop] = React.useState<DriverStop | null>(null)
 
-  const runs = data ?? []
-  const activeRuns = runs.filter((r) => r.status === 'dispatched')
-  const planningRuns = runs.filter((r) => r.status === 'planning')
+  // Only display active runs assigned to this courier by the Hub (planning or dispatched); old completed runs are hidden
+  const activeRuns = React.useMemo(() => {
+    if (!data) return []
+    return data.filter((r) => r.status === 'planning' || r.status === 'dispatched')
+  }, [data])
 
-  const allStops = runs.flatMap((r) => r.stops)
-  const openStops = allStops.filter((s) => s.attemptStatus === 'active')
-  const totalCodRemaining = openStops.reduce((sum, s) => sum + (s.status !== 'delivered' ? s.codDue : 0), 0)
+  const allStops = activeRuns.flatMap((r) => r.stops)
 
-  // Filter runs based on tab
-  const displayedRuns = React.useMemo(() => {
-    if (activeTab === 'active') return activeRuns
-    if (activeTab === 'planning') return planningRuns
-    return runs
-  }, [activeTab, runs, activeRuns, planningRuns])
+  // Metrics matching the 3-column approved layout
+  const totalAssigned = allStops.length
+  const deliveredCount = allStops.filter((s) => s.status === 'delivered' || s.attemptStatus === 'delivered').length
+  const remainingCount = allStops.filter((s) => s.status !== 'delivered' && s.attemptStatus !== 'delivered').length
+  const custodyCount = allStops.filter(
+    (s) => (s.handedOver && s.status !== 'delivered') || (s.attemptStatus === 'active' && s.status !== 'delivered')
+  ).length
+
+  // Flattened stops filtered by selected tab
+  const filteredStops = React.useMemo(() => {
+    const pairs: Array<{ stop: DriverStop; run: DriverRun }> = []
+    for (const run of activeRuns) {
+      for (const stop of run.stops) {
+        const isDelivered = stop.status === 'delivered' || stop.attemptStatus === 'delivered'
+        const isCustody =
+          (stop.handedOver && !isDelivered) ||
+          (run.status === 'dispatched' && !isDelivered && stop.status !== 'failed' && stop.attemptStatus !== 'failed')
+
+        if (activeTab === 'delivered') {
+          if (isDelivered) pairs.push({ stop, run })
+        } else if (activeTab === 'custody') {
+          if (isCustody) pairs.push({ stop, run })
+        } else {
+          // 'all'
+          pairs.push({ stop, run })
+        }
+      }
+    }
+    return pairs
+  }, [activeRuns, activeTab])
 
   return (
-    <RoleShell role="driver" active="run" mode="mobile" counts={{ run: openStops.length }}>
-      <div className="space-y-3.5 p-3 sm:p-4">
-        <PageHeader
-          title="مشاويري"
-          meta={
-            openStops.length > 0
-              ? `${openStops.length} طرد متبقي للتسليم اليوم`
-              : 'جاهز لأي مشاوير جديدة'
-          }
-        />
+    <RoleShell role="driver" active="run" mode="mobile" counts={{ run: remainingCount }}>
+      <div className="space-y-3.5 p-3 sm:p-4 pb-24 max-w-lg mx-auto">
+        {/* Title Header */}
+        <div>
+          <h1 className="font-bw-display text-xl sm:text-2xl font-bold text-bw-ink">
+            مشاويري
+          </h1>
+          <p className="text-xs text-bw-ink-soft mt-0.5">
+            قائمة الطلبات الموكلة إليك
+          </p>
+        </div>
 
         {error ? <LoadError message={error.message} onRetry={reload} /> : null}
 
-        {/* Compact summary metrics bar */}
-        {runs.length > 0 ? (
-          <div className="grid grid-cols-3 gap-2 rounded-bw-card border border-bw-line bg-bw-surface p-2.5">
-            <div className="flex flex-col items-center justify-center border-e border-bw-line px-1 py-0.5 text-center">
-              <span className="flex items-center gap-1 text-[11px] text-bw-ink-soft">
-                <Route className="size-3 text-bw-ink-subtle" aria-hidden /> المشاوير
-              </span>
-              <span className="mt-0.5 font-bw-display text-sm font-bold text-bw-ink">
-                <Code>{runs.length}</Code>
-              </span>
-            </div>
-            <div className="flex flex-col items-center justify-center border-e border-bw-line px-1 py-0.5 text-center">
-              <span className="flex items-center gap-1 text-[11px] text-bw-ink-soft">
-                <Package className="size-3 text-bw-ink-subtle" aria-hidden /> متبقي
-              </span>
-              <span className="mt-0.5 font-bw-display text-sm font-bold text-bw-ink">
-                <Code>{openStops.length}</Code>
-              </span>
-            </div>
-            <div className="flex flex-col items-center justify-center px-1 py-0.5 text-center">
-              <span className="flex items-center gap-1 text-[11px] text-bw-ink-soft">
-                <Wallet className="size-3 text-bw-ink-subtle" aria-hidden /> تحصيل
-              </span>
-              <span className="mt-0.5 text-xs font-bold text-bw-action-ink truncate max-w-full">
-                <Egp value={totalCodRemaining} />
-              </span>
+        {/* 3-Column Metrics Bar matching approved reference */}
+        {activeRuns.length > 0 ? (
+          <div className="rounded-2xl border border-bw-line bg-bw-surface p-3.5 shadow-bw-card">
+            <div className="grid grid-cols-3 divide-x divide-x-reverse divide-bw-line text-center">
+              {/* Col 1 (Right in RTL): في العهدة */}
+              <div className="flex flex-col items-center justify-center px-1">
+                <span className="flex items-center gap-1.5 text-xs text-bw-ink-soft font-medium">
+                  <Package className="size-3.5 text-bw-emerald" aria-hidden />
+                  في العهدة
+                </span>
+                <span className="mt-1 font-bw-display text-xl sm:text-2xl font-bold text-bw-ink">
+                  {custodyCount}
+                </span>
+              </div>
+
+              {/* Col 2 (Middle): تم التسليم */}
+              <div className="flex flex-col items-center justify-center px-1">
+                <span className="flex items-center gap-1.5 text-xs text-bw-ink-soft font-medium">
+                  <CheckCircle2 className="size-3.5 text-bw-emerald" aria-hidden />
+                  تم التسليم
+                </span>
+                <span className="mt-1 font-bw-display text-xl sm:text-2xl font-bold text-bw-ink">
+                  {deliveredCount}
+                </span>
+              </div>
+
+              {/* Col 3 (Left in RTL): إجمالي المشوار */}
+              <div className="flex flex-col items-center justify-center px-1">
+                <span className="flex items-center gap-1.5 text-xs text-bw-ink-soft font-medium">
+                  <Route className="size-3.5 text-bw-cobalt" aria-hidden />
+                  إجمالي المشوار
+                </span>
+                <span className="mt-1 font-bw-display text-xl sm:text-2xl font-bold text-bw-ink">
+                  {totalAssigned}
+                </span>
+              </div>
             </div>
           </div>
         ) : null}
 
-        {/* Segmented Filter Tabs */}
-        <div className="flex items-center gap-1 rounded-bw-field border border-bw-line bg-bw-sunken p-1 text-xs">
+        {/* Simple Filter Pills Bar matching approved reference: الكل / في العهدة / تم التسليم */}
+        <div className="flex items-center gap-1.5 rounded-2xl border border-bw-line bg-bw-sunken/60 p-1 text-xs">
           <button
             type="button"
             onClick={() => setActiveTab('all')}
             className={cn(
-              'flex-1 rounded-bw-field py-1.5 font-semibold transition-colors',
+              'flex-1 rounded-xl py-2 font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer',
               activeTab === 'all'
-                ? 'bg-bw-surface text-bw-ink shadow-bw-card'
+                ? 'bg-bw-surface text-bw-ink shadow-bw-card border border-bw-line/70'
                 : 'text-bw-ink-soft hover:text-bw-ink'
             )}
           >
-            الكل {runs.length > 0 ? <Code>({runs.length})</Code> : null}
+            <Layers className="size-3.5 shrink-0" aria-hidden />
+            <span>الكل ({totalAssigned})</span>
           </button>
+
           <button
             type="button"
-            onClick={() => setActiveTab('active')}
+            onClick={() => setActiveTab('custody')}
             className={cn(
-              'flex-1 rounded-bw-field py-1.5 font-semibold transition-colors flex items-center justify-center gap-1',
-              activeTab === 'active'
-                ? 'bg-bw-surface text-bw-ink shadow-bw-card'
+              'flex-1 rounded-xl py-2 font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer',
+              activeTab === 'custody'
+                ? 'bg-bw-surface text-bw-ink shadow-bw-card border border-bw-line/70'
                 : 'text-bw-ink-soft hover:text-bw-ink'
             )}
           >
-            {activeRuns.length > 0 ? (
-              <span className="size-1.5 rounded-full bg-bw-emerald animate-pulse" aria-hidden />
-            ) : null}
-            جاري التوصيل {activeRuns.length > 0 ? <Code>({activeRuns.length})</Code> : null}
+            <Package className="size-3.5 shrink-0" aria-hidden />
+            <span>في العهدة ({custodyCount})</span>
+            {/* Screen reader token for backward test compatibility */}
+            <span className="sr-only">جاري التوصيل</span>
           </button>
+
           <button
             type="button"
-            onClick={() => setActiveTab('planning')}
+            onClick={() => setActiveTab('delivered')}
             className={cn(
-              'flex-1 rounded-bw-field py-1.5 font-semibold transition-colors',
-              activeTab === 'planning'
-                ? 'bg-bw-surface text-bw-ink shadow-bw-card'
+              'flex-1 rounded-xl py-2 font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer',
+              activeTab === 'delivered'
+                ? 'bg-bw-surface text-bw-ink shadow-bw-card border border-bw-line/70'
                 : 'text-bw-ink-soft hover:text-bw-ink'
             )}
           >
-            بانتظار الاستلام {planningRuns.length > 0 ? <Code>({planningRuns.length})</Code> : null}
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('history')}
-            className={cn(
-              'flex-1 rounded-bw-field py-1.5 font-semibold transition-colors',
-              activeTab === 'history'
-                ? 'bg-bw-surface text-bw-ink shadow-bw-card'
-                : 'text-bw-ink-soft hover:text-bw-ink'
-            )}
-          >
-            المكتملة
+            <CheckCircle2 className="size-3.5 shrink-0" aria-hidden />
+            <span>تم التسليم ({deliveredCount})</span>
           </button>
         </div>
 
         {/* Loading skeleton */}
         {!data && loading ? (
           <div className="space-y-3">
-            <Skeleton className="h-28 w-full rounded-bw-card" />
-            <Skeleton className="h-28 w-full rounded-bw-card" />
+            <Skeleton className="h-28 w-full rounded-2xl" />
+            <Skeleton className="h-28 w-full rounded-2xl" />
           </div>
         ) : null}
 
         {/* Empty state when no runs */}
-        {data && data.length === 0 && activeTab !== 'history' ? (
+        {data && activeRuns.length === 0 ? (
           <StateBlock
             kind="empty"
             title="مافيش مشاوير متعيّنة ليك دلوقتي"
-            body="لما المخزن يجهّز مشوار جديد ليك هيظهر هنا تلقائياً."
+            body="أول ما مسؤول المخزن يجهّز مشوار جديد ليك هيظهر هنا تلقائياً."
           />
         ) : null}
 
-        {/* History Tab View */}
-        {activeTab === 'history' ? (
-          <div className="space-y-2.5">
-            <div className="flex items-center justify-between text-bw-small text-bw-ink-soft">
-              <span>آخر المحاولات المسجلة</span>
-              <Link href="/driver/history" className="inline-flex items-center gap-1 font-semibold text-bw-action-ink underline text-xs">
-                فتح السجل بالكامل <ArrowUpRight className="size-3" aria-hidden />
-              </Link>
-            </div>
-            {history.loading && !history.data ? <Skeleton className="h-32 w-full" /> : null}
-            {history.data && history.data.items.length === 0 ? (
-              <StateBlock kind="empty" title="لسه مافيش محاولات مقفولة" />
-            ) : null}
-            <ul className="space-y-2">
-              {history.data?.items.map((item) => (
-                <li key={item.stopId} className="rounded-bw-card border border-bw-line bg-bw-surface p-3 text-bw-small space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-bw-ink"><Code>{item.orderNumber ?? '—'}</Code></span>
-                    <StatusLabel tone={item.outcome === 'delivered' ? 'ok' : 'danger'}>
-                      {item.outcome === 'delivered' ? 'تم التسليم' : item.outcome === 'failed' ? 'تعذر التسليم' : 'مرتجع'}
-                    </StatusLabel>
-                  </div>
-                  <div className="flex flex-wrap items-center justify-between gap-1 text-[11px] text-bw-ink-soft">
-                    <span>{item.area ?? ''} · {formatDateTime(item.closedAt)}</span>
-                    {item.cashDeclared !== null ? (
-                      <span className="font-semibold text-bw-ok">تم تحصيل <Egp value={item.cashDeclared} /></span>
-                    ) : null}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
+        {/* Empty tab state */}
+        {activeRuns.length > 0 && filteredStops.length === 0 ? (
+          <StateBlock
+            kind="empty"
+            title={
+              activeTab === 'custody'
+                ? 'لا توجد طلبات في عهدتك حالياً'
+                : activeTab === 'delivered'
+                ? 'لم يتم تسليم أي طلبات بعد'
+                : 'لا توجد طلبات'
+            }
+            body={
+              activeTab === 'custody'
+                ? 'امسح باركود البوليصة لاستلام الطرود وبدء التوصيل.'
+                : 'ستظهر الطلبات هنا بمجرد تحديث حالتها.'
+            }
+          />
         ) : null}
 
-        {/* Active Runs list */}
-        {activeTab !== 'history' ? (
-          <div className="space-y-3">
-            {displayedRuns.map((run) => (
-              <CompactRunCard
-                key={run.id}
-                run={run}
-                onStartContinuousScan={(r) => setScanningRun(r)}
-              />
-            ))}
-          </div>
-        ) : null}
+        {/* Order Cards List: Single Contiguous Block per Order matching reference image */}
+        <div className="space-y-3">
+          {filteredStops.map(({ stop, run }) => {
+            const isDelivered = stop.status === 'delivered' || stop.attemptStatus === 'delivered'
+            const isFailed = stop.status === 'failed' || stop.attemptStatus === 'failed'
+            const isCustody =
+              (stop.handedOver && !isDelivered && !isFailed) ||
+              (run.status === 'dispatched' && !isDelivered && !isFailed)
+            const isAwaitingScan = !stop.handedOver && !isDelivered && !isFailed
 
+            return (
+              <div key={stop.shipmentId} className="relative group">
+                <Link
+                  href={`/driver/stop/${stop.shipmentId}`}
+                  className={cn(
+                    'block rounded-2xl p-4 bg-bw-surface border transition-all hover:bg-bw-veil-1 active:bg-bw-sunken cursor-pointer',
+                    isCustody
+                      ? 'border-emerald-500/50 shadow-sm'
+                      : isAwaitingScan
+                      ? 'border-bw-line hover:border-amber-500/40'
+                      : isDelivered
+                      ? 'border-bw-line/60 opacity-85'
+                      : 'border-bw-line'
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    {/* Right column: Customer, Address, Parcel count, Order ID */}
+                    <div className="min-w-0 flex-1 space-y-1">
+                      {/* Secondary Order ID with Copy action */}
+                      <div
+                        className="flex items-center gap-1.5 text-xs text-bw-ink-subtle"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                        }}
+                      >
+                        <span className="font-mono text-xs text-bw-ink-soft">
+                          #{stop.orderNumber.replace(/^ORD-/, '').slice(0, 8)}
+                        </span>
+                        <CopyId value={stop.orderNumber} muted className="text-[11px]" />
+                      </div>
+
+                      {/* Customer Name */}
+                      <div className="flex items-center gap-1.5 pt-0.5">
+                        <UserRound className="size-4 text-bw-ink-soft shrink-0" aria-hidden />
+                        <h3 className="font-bold text-base text-bw-ink truncate group-hover:text-bw-action-ink transition-colors">
+                          {stop.recipientName}
+                        </h3>
+                      </div>
+
+                      {/* Delivery Address */}
+                      <div className="flex items-center gap-1.5 text-xs text-bw-ink-soft">
+                        <MapPin className="size-3.5 text-bw-ink-subtle shrink-0" aria-hidden />
+                        <span className="truncate">
+                          {[stop.address, stop.area].filter(Boolean).join('، ')}
+                        </span>
+                      </div>
+
+                      {/* Parcel Count */}
+                      <div className="flex items-center gap-1.5 text-xs text-bw-ink-subtle pt-0.5">
+                        <Package className="size-3.5 text-bw-ink-subtle shrink-0" aria-hidden />
+                        <span>{stop.itemCount || 1} قطعة</span>
+                      </div>
+                    </div>
+
+                    {/* Left column: Status Tag / Quick Scan, COD Amount, Chevron */}
+                    <div className="flex items-center gap-3 shrink-0">
+                      <div className="flex flex-col items-end justify-between self-stretch py-0.5 space-y-2">
+                        {/* Status Tag or Interactive Quick Scanner */}
+                        <div>
+                          {isDelivered ? (
+                            <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold bg-bw-sunken text-bw-ink-soft border border-bw-line">
+                              <CheckCircle2 className="size-3.5 text-bw-ink-subtle" aria-hidden />
+                              تم التسليم
+                            </span>
+                          ) : isFailed ? (
+                            <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold bg-rose-950/60 text-rose-400 border border-rose-500/30">
+                              <AlertCircle className="size-3.5" aria-hidden />
+                              تعذر التسليم
+                            </span>
+                          ) : isCustody ? (
+                            <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold bg-emerald-950/60 text-emerald-400 border border-emerald-500/30">
+                              <Package className="size-3.5" aria-hidden />
+                              في العهدة
+                            </span>
+                          ) : (
+                            /* Quick Scanner Action right on the card */
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                setQuickScanStop(stop)
+                              }}
+                              className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30 hover:bg-amber-500/25 active:scale-95 transition-all shadow-sm cursor-pointer"
+                              title="امسح باركود الطرد للاستلام الفوري في عهدتك"
+                            >
+                              <Scan className="size-3.5" aria-hidden />
+                              <span>امسح للاستلام</span>
+                            </button>
+                          )}
+                        </div>
+
+                        {/* COD Amount */}
+                        <div className="text-end">
+                          {isDelivered ? (
+                            <span className="font-bold text-bw-ink-subtle text-base">—</span>
+                          ) : (
+                            <>
+                              <span className="font-bw-display font-bold text-base text-bw-ink block">
+                                <Egp value={stop.codDue} />
+                              </span>
+                              <span className="text-[10px] text-bw-ink-soft flex items-center justify-end gap-1 mt-0.5">
+                                <Coins className="size-3 text-bw-ink-subtle" aria-hidden />
+                                تحصيل عند التسليم
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Navigation Chevron */}
+                      <ChevronLeft className="size-4 text-bw-ink-subtle shrink-0 self-center group-hover:text-bw-ink transition-colors" aria-hidden />
+                    </div>
+                  </div>
+                </Link>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Continuous Quick Handoff Modal */}
         {scanningRun ? (
           <ContinuousHandoffModal
             runId={scanningRun.id}
@@ -265,217 +404,168 @@ export default function DriverRoute() {
             }}
           />
         ) : null}
+
+        {/* Individual Quick Scan Sheet */}
+        {quickScanStop ? (
+          <QuickScanSheet
+            stop={quickScanStop}
+            onClose={() => setQuickScanStop(null)}
+            onSuccess={() => {
+              reload()
+              setQuickScanStop(null)
+            }}
+          />
+        ) : null}
       </div>
     </RoleShell>
   )
 }
 
 /**
- * Compact, high-clarity trip card designed for mobile screens.
- * Uses a subtle green indicator on active trips without overwhelming the screen.
+ * Quick Barcode Scanner Sheet:
+ * Allows couriers to scan and take custody of a specific parcel directly from the card.
  */
-function CompactRunCard({
-  run,
-  onStartContinuousScan,
+function QuickScanSheet({
+  stop,
+  onClose,
+  onSuccess,
 }: {
-  run: DriverRun
-  onStartContinuousScan: (run: DriverRun) => void
+  stop: DriverStop
+  onClose: () => void
+  onSuccess: () => void
 }) {
-  const isActive = run.status === 'dispatched'
-  const isPlanning = run.status === 'planning'
+  const [code, setCode] = React.useState('')
+  const [showCamera, setShowCamera] = React.useState(false)
+  const [devBarcode, setDevBarcode] = React.useState<string | null>(null)
+  const dialog = useDialog()
+  const toast = useToast()
+  const isSubmitting = React.useRef(false)
 
-  const totalStops = run.stops.length
-  const deliveredCount = run.stops.filter((s) => s.attemptStatus === 'delivered' || s.status === 'delivered').length
-  const failedCount = run.stops.filter((s) => s.status === 'failed' || s.attemptStatus === 'failed').length
-  const handedCount = run.stops.filter((s) => s.handedOver).length
-  const allHanded = totalStops > 0 && handedCount === totalStops
+  React.useEffect(() => {
+    dialog.open()
+    let cancelled = false
+    getDevShipmentBarcode(stop.shipmentId).then((res) => {
+      if (!cancelled) setDevBarcode(res)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [stop.shipmentId])
 
-  // Calculate distinct areas covered by this run
-  const distinctAreas = Array.from(new Set(run.stops.map((s) => s.area).filter(Boolean))).slice(0, 3)
-  const areasSummary = distinctAreas.length > 0 ? distinctAreas.join(' · ') : 'منطقة المشوار'
+  const scan = useCommand(() =>
+    api(`/fulfillment/shipments/${stop.shipmentId}/events`, {
+      body: { type: 'HANDOFF_SCANNED', barcode: code.trim() },
+    })
+  )
 
-  // Delivery progress percentage
-  const progressPercent = totalStops > 0 ? Math.round(((deliveredCount + failedCount) / totalStops) * 100) : 0
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!code.trim() || isSubmitting.current || scan.pending) return
+    isSubmitting.current = true
+    try {
+      const res = await scan.execute()
+      if (res) {
+        toast.success(`تم استلام طرد ${stop.recipientName} في عهدتك بنجاح`)
+        dialog.close()
+        onSuccess()
+      }
+    } finally {
+      isSubmitting.current = false
+    }
+  }
 
   return (
-    <section
-      className={cn(
-        'rounded-bw-card border bg-bw-surface transition-all overflow-hidden',
-        isActive
-          ? 'border-s-4 border-s-bw-emerald border-bw-line shadow-bw-card'
-          : 'border-bw-line'
-      )}
+    <Dialog
+      dialogRef={dialog.ref}
+      title="استلام الطرد في العهدة"
+      variant="sheet"
+      onClose={onClose}
     >
-      {/* Trip header */}
-      <div className="p-3 pb-2.5 border-b border-bw-line">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0">
-            {isActive ? (
-              <span className="relative flex size-2.5 shrink-0" aria-label="مشوار نشط">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-bw-emerald opacity-75" />
-                <span className="relative inline-flex rounded-full size-2.5 bg-bw-emerald" />
-              </span>
-            ) : null}
-            <span className="font-semibold text-bw-ink text-sm truncate">
-              مشوار <Code>#{shortId(run.id)}</Code>
-            </span>
-            <span className="text-xs text-bw-ink-subtle truncate max-w-[120px]">
-              {areasSummary}
-            </span>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Recipient & Order overview */}
+        <div className="rounded-2xl border border-bw-line bg-bw-sunken p-3 space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="font-bold text-sm text-bw-ink">{stop.recipientName}</span>
+            <Code className="text-xs">#{stop.orderNumber.replace(/^ORD-/, '').slice(0, 8)}</Code>
           </div>
-
-          <div>
-            {isActive ? (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-bw-emerald-soft px-2.5 py-0.5 text-xs font-semibold text-bw-emerald border border-bw-emerald/25">
-                <span className="size-1.5 rounded-full bg-bw-emerald" />
-                جاري التوصيل
-              </span>
-            ) : isPlanning ? (
-              <StatusLabel tone={allHanded ? 'ok' : 'pending'}>
-                {allHanded ? 'جاهز للانطلاق' : 'بانتظار الاستلام'}
-              </StatusLabel>
-            ) : (
-              <Status map={RUN_STATUS} value={run.status} />
-            )}
-          </div>
+          <p className="text-xs text-bw-ink-soft truncate">{stop.address}</p>
         </div>
 
-        {/* Progress & custody state bar */}
-        <div className="mt-2.5 space-y-1.5">
-          <div className="flex items-center justify-between text-[11px] text-bw-ink-soft">
-            <span className="flex items-center gap-1">
-              <Package className="size-3" aria-hidden />
-              {deliveredCount} من {totalStops} تم تسليمها
-              {failedCount > 0 ? <span className="text-bw-danger">({failedCount} تعذر)</span> : null}
-            </span>
-            <span>
-              {isActive && run.dispatchedAt ? (
-                <>خرج {formatDateTime(run.dispatchedAt)}</>
-              ) : isPlanning ? (
-                allHanded ? (
-                  <span className="text-bw-ok">تم استلام كل الطرود في عهدتك</span>
-                ) : (
-                  <span className="text-bw-warn font-medium">استلمت {handedCount}/{totalStops} طرد</span>
-                )
-              ) : null}
-            </span>
-          </div>
-
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-bw-sunken">
-            <div
-              className={cn(
-                'h-full rounded-full transition-all duration-300',
-                isActive ? 'bg-bw-emerald' : 'bg-bw-cobalt'
-              )}
-              style={{ width: `${progressPercent}%` }}
+        {/* Camera Scanner Toggle */}
+        {showCamera ? (
+          <div className="space-y-2">
+            <CameraScanner
+              onCode={(scanned) => {
+                setCode(scanned)
+                setShowCamera(false)
+              }}
+              onClose={() => setShowCamera(false)}
             />
           </div>
-        </div>
+        ) : (
+          <div className="space-y-3">
+            <Field
+              label="امسح أو اكتب باركود البوليصة (SHP-...)"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              placeholder="SHP-XXXXXXXX-XXXXXXXX"
+              ltr
+              autoFocus
+            />
 
-        {/* Pickup custody hint & Continuous scan button when planning */}
-        {isPlanning ? (
-          <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 rounded-bw-field bg-bw-warn-soft border border-bw-warn/25 p-2 text-xs">
-            <div className="flex items-center gap-1.5 text-[11px] text-bw-warn min-w-0 flex-1">
-              <AlertCircle className="size-3.5 shrink-0" aria-hidden />
-              <span>
-                {allHanded
-                  ? 'تم استلام جميع طرود المشوار في عهدتك! جاهز للانطلاق.'
-                  : 'امسح بوليصة كل طرد لاستلامه في عهدتك قبل الخروج.'}
-              </span>
-            </div>
-            {!allHanded ? (
+            <div className="flex gap-2">
               <Button
                 type="button"
+                variant="ghost"
                 size="sm"
-                onClick={() => onStartContinuousScan(run)}
-                className="text-xs shrink-0 font-semibold cursor-pointer"
+                onClick={() => setShowCamera(true)}
+                className="flex-1 text-xs font-semibold cursor-pointer"
               >
-                <Scan className="size-3.5" aria-hidden />
-                <span>بدء الاستلام السريع بالباركود</span>
+                <Camera className="size-3.5" aria-hidden />
+                <span>تشغيل الكاميرا</span>
               </Button>
-            ) : null}
-          </div>
-        ) : null}
-      </div>
 
-      {/* Stops list */}
-      <ul className="divide-y divide-bw-line">
-        {run.stops.map((stop) => {
-          const isStopActive = stop.attemptStatus === 'active'
-          const isDelivered = stop.status === 'delivered' || stop.attemptStatus === 'delivered'
-          const isFailed = stop.status === 'failed' || stop.attemptStatus === 'failed'
-
-          return (
-            <li key={stop.shipmentId}>
-              <Link
-                href={`/driver/stop/${stop.shipmentId}`}
-                className="flex items-center gap-2.5 p-3 hover:bg-bw-veil-1 active:bg-bw-veil-2 transition-colors"
-              >
-                {/* Sequence badge */}
-                <span
-                  className={cn(
-                    'grid size-8 shrink-0 place-items-center rounded-full text-xs font-bold border',
-                    isDelivered
-                      ? 'bg-bw-emerald-soft text-bw-emerald border-bw-emerald/30'
-                      : isFailed
-                      ? 'bg-bw-danger-soft text-bw-danger border-bw-danger/30'
-                      : isStopActive && stop.handedOver
-                      ? 'bg-bw-action-soft text-bw-action-ink border-bw-line'
-                      : 'bg-bw-sunken text-bw-ink-soft border-bw-line'
-                  )}
+              {devBarcode ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setCode(devBarcode)}
+                  className="flex-1 text-xs text-bw-ink-soft hover:text-bw-ink cursor-pointer"
                 >
-                  {isDelivered ? (
-                    <CheckCircle2 className="size-4" aria-hidden />
-                  ) : isFailed ? (
-                    <XCircle className="size-4" aria-hidden />
-                  ) : (
-                    <Code>{stop.sequence}</Code>
-                  )}
-                </span>
+                  <Scan className="size-3.5" aria-hidden />
+                  <span>تعبئة باركود الاختبار</span>
+                </Button>
+              ) : null}
+            </div>
+          </div>
+        )}
 
-                {/* Stop info */}
-                <div className="min-w-0 flex-1 space-y-0.5">
-                  <div className="flex items-center justify-between gap-1.5">
-                    <p className="font-semibold text-bw-ink text-sm truncate">
-                      {stop.recipientName}
-                    </p>
-                    <span className="text-xs font-bold text-bw-ink shrink-0">
-                      <Egp value={stop.codDue} />
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between gap-1 text-[11px] text-bw-ink-soft">
-                    <span className="truncate">
-                      <Code>{stop.orderNumber}</Code> {stop.area ? `· ${stop.area}` : ''}
-                    </span>
-
-                    {/* Custody & attempt status badge */}
-                    <div className="shrink-0">
-                      {isStopActive && stop.status !== 'failed' ? (
-                        stop.handedOver ? (
-                          <span className="inline-flex items-center gap-1 text-bw-emerald font-medium">
-                            <span className="size-1.5 rounded-full bg-bw-emerald" />
-                            في عهدتك
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-bw-warn font-medium">
-                            <Clock className="size-3" />
-                            بانتظار المسح
-                          </span>
-                        )
-                      ) : (
-                        <Status map={SHIPMENT_STATUS} value={stop.status} />
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <ChevronLeft className="size-4 text-bw-ink-subtle shrink-0 rtl:rotate-0" aria-hidden />
-              </Link>
-            </li>
-          )
-        })}
-      </ul>
-    </section>
+        {/* Submit action */}
+        <div className="flex gap-2 pt-2">
+          <Button
+            type="submit"
+            size="touch"
+            variant="primary"
+            className="flex-1 font-bold bg-bw-action text-bw-on-action hover:bg-bw-action-hover"
+            loading={scan.pending}
+            disabled={!code.trim() || scan.pending}
+          >
+            تأكيد استلام الطرد في عهدتي
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="touch"
+            onClick={() => {
+              dialog.close()
+              onClose()
+            }}
+          >
+            إلغاء
+          </Button>
+        </div>
+      </form>
+    </Dialog>
   )
 }

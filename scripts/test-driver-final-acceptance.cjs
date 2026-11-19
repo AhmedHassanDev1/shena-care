@@ -97,6 +97,15 @@ async function runBrowserCDP(port, callback) {
   const callbacks = new Map();
   ws.onmessage = (event) => {
     const res = JSON.parse(event.data);
+    if (res.method === 'Console.messageAdded') {
+      console.log('[BROWSER CONSOLE]', res.params.message.text);
+    }
+    if (res.method === 'Runtime.consoleAPICalled') {
+      console.log('[BROWSER LOG]', res.params.args.map(a => a.value || a.description).join(' '));
+    }
+    if (res.method === 'Runtime.exceptionThrown') {
+      console.error('[BROWSER EXCEPTION]', res.params.exceptionDetails);
+    }
     if (res.id && callbacks.has(res.id)) {
       callbacks.get(res.id)(res);
       callbacks.delete(res.id);
@@ -240,7 +249,7 @@ async function main() {
     assert.equal(collection.status, 'collected');
 
     // Hub settles the round with the counted cash of 500 (shortage of 100 EGP)
-    const reference = 'SETTLE-ACC-' + crypto.randomUUID().slice(0, 8);
+    const reference = 'SETTLE-ACC-' + crypto.randomUUID();
     const settleRes = await apiRequest('/ordering/settlements/batch', {
       token: hubToken,
       body: {
@@ -446,8 +455,14 @@ async function main() {
       });
       assert.ok(handoffEvent, 'Handoff scan successfully recorded via browser interaction');
 
+      await wait(800);
       // Now Hub dispatches the batch
-      await apiRequest(`/fulfillment/delivery-batches/${run2Id}/dispatch`, { method: 'POST', token: hubToken });
+      let dispatchRes = await apiRequest(`/fulfillment/delivery-batches/${run2Id}/dispatch`, { method: 'POST', token: hubToken });
+      if (dispatchRes.status >= 400) {
+        await wait(1500);
+        dispatchRes = await apiRequest(`/fulfillment/delivery-batches/${run2Id}/dispatch`, { method: 'POST', token: hubToken });
+      }
+      assert.ok(dispatchRes.status === 200 || dispatchRes.status === 201, 'Hub dispatch succeeded');
 
       // Refresh driver stop page in browser (now in dispatched state)
       await send('Page.navigate', { url: `${BUSINESS_BASE}/driver/stop/${fixture2.shipment.id}` });
@@ -484,11 +499,14 @@ async function main() {
       await wait(800);
 
       const failSheetUi = await evalJs(`(() => {
+        const select = document.querySelector('select[name="reasonCode"], select#failure-reason-select');
+        const options = select ? Array.from(select.options).filter(o => o.value) : [];
         const radios = Array.from(document.querySelectorAll('input[type="radio"]'));
-        const hasUnreachable = radios.some(r => r.value === 'CUSTOMER_UNREACHABLE');
-        const hasRefused = radios.some(r => r.value === 'CUSTOMER_REFUSED');
+        const reasonsCount = options.length || radios.length;
+        const hasUnreachable = options.some(r => r.value === 'CUSTOMER_UNREACHABLE') || radios.some(r => r.value === 'CUSTOMER_UNREACHABLE');
+        const hasRefused = options.some(r => r.value === 'CUSTOMER_REFUSED') || radios.some(r => r.value === 'CUSTOMER_REFUSED');
         const hasWarning = document.body.textContent.includes('تنبيه العهدة');
-        return { radiosCount: radios.length, hasUnreachable, hasRefused, hasWarning };
+        return { radiosCount: reasonsCount, hasUnreachable, hasRefused, hasWarning };
       })()`);
       assert.ok(failSheetUi.radiosCount >= 7, 'All failure reason radio options present');
       assert.ok(failSheetUi.hasUnreachable, 'CUSTOMER_UNREACHABLE option present');
@@ -525,49 +543,18 @@ async function main() {
       console.log('  [DIAG COD Checkbox]:', JSON.stringify(codDiag));
 
       console.log('  Submitting COD delivery form...');
-      const formDiag = await evalJs(`(() => {
-        const submitBtn = Array.from(document.querySelectorAll('button')).find(b => b.textContent && b.textContent.includes('تأكيد التسليم والتحصيل'));
-        const form = submitBtn ? submitBtn.closest('form') : null;
-        if (!form) return { error: 'no form' };
-        let reqErr = null;
-        try {
-          form.requestSubmit(submitBtn);
-        } catch (e) {
-          reqErr = String(e);
-        }
-        return {
-          checkValidity: form.checkValidity(),
-          validationMessage: Array.from(form.elements).map(e => ({ tag: e.tagName, type: e.type, valid: e.checkValidity ? e.checkValidity() : null, msg: e.validationMessage })),
-          reqErr
-        };
-      })()`);
-      console.log('  [FORM DIAG Before click]:', JSON.stringify(formDiag));
-
       await clickElement('button', 'تأكيد التسليم والتحصيل');
-      await evalJs(`(() => {
-        const submitBtn = Array.from(document.querySelectorAll('button')).find(b => b.textContent && b.textContent.includes('تأكيد التسليم والتحصيل'));
-        if (submitBtn) {
-          submitBtn.click();
-          const form = submitBtn.closest('form');
-          if (form) {
-            form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
-          }
-        }
-      })()`);
-      await wait(3500);
 
-      const codAfterSubmit = await evalJs(`(() => {
-        const alerts = Array.from(document.querySelectorAll('[role="alert"], .text-bw-danger')).map(e => e.innerText);
-        const dialogOpen = Boolean(document.querySelector('dialog[open]'));
-        return { alerts, dialogOpen, text: document.body.innerText.slice(0, 400) };
-      })()`);
-      console.log('  [DIAG COD After submit]:', JSON.stringify(codAfterSubmit));
-
-      // Verify DB delivery record
-      const finalShipment = await prisma.shipment.findUnique({ where: { id: fixture2.shipment.id } });
-      assert.equal(finalShipment.status, 'delivered', 'Shipment status transitioned to delivered via browser E2E');
+      // Poll until shipment status transitions to delivered (up to 12s)
+      let finalShipment = null;
+      for (let i = 0; i < 24; i++) {
+        await wait(500);
+        finalShipment = await prisma.shipment.findUnique({ where: { id: fixture2.shipment.id } });
+        if (finalShipment?.status === 'delivered') break;
+      }
+      assert.equal(finalShipment?.status, 'delivered', 'Shipment status transitioned to delivered via browser E2E');
       const finalCollection = await prisma.paymentCollection.findUnique({ where: { orderId: fixture2.order.id } });
-      assert.equal(Number(finalCollection.declaredAmount), 380, 'Payment collection declared amount persisted as 380');
+      assert.equal(Number(finalCollection?.declaredAmount), 380, 'Payment collection declared amount persisted as 380');
       console.log('✔ Check 3 passed: Real Browser E2E completed across all viewports and workflows.\n');
     });
 
