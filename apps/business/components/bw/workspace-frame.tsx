@@ -1,9 +1,14 @@
+'use client'
+
+import * as React from 'react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import {
-  ClipboardList, FileSpreadsheet, Heart, History, LayoutDashboard, ListChecks,
+  ClipboardList, Ellipsis, FileSpreadsheet, Heart, History, LayoutDashboard, ListChecks,
   LogOut, PackageOpen, Route, ScanLine,
   Radio, ShoppingBag, Settings2, Store, Truck, Undo2, UserRound, Users, Wallet,
 } from 'lucide-react'
+import { Dialog, useDialog } from '@/components/bw/primitives'
 import { cn } from '@/lib/utils'
 
 /*
@@ -24,9 +29,17 @@ type NavItem = { id: string; label: string; icon: React.ElementType; href: strin
 
 const SUPPLIER_FLOW_ENABLED = process.env.NEXT_PUBLIC_SUPPLIER_WORKFLOWS === 'on'
 
-const roleNav: Record<Role, { title: string; items: NavItem[] }> = {
+/**
+ * Mobile bottom bar: at most five slots, i.e. four primary destinations and «المزيد». `primary` names the four a role
+ * uses most; the rest open in a bottom sheet. A role with five or fewer destinations shows them all, with no «المزيد».
+ */
+const MOBILE_SLOTS = 5
+
+const roleNav: Record<Role, { title: string; roleLabel: string; primary?: string[]; items: NavItem[] }> = {
   admin: {
     title: 'الإدارة',
+    roleLabel: 'مدير العمليات',
+    primary: ['attention', 'orders', 'catalog', 'finance'],
     items: [
       { id: 'attention', label: 'نظرة عامة', icon: LayoutDashboard, href: '/admin' },
       { id: 'orders', label: 'الطلبات', icon: ShoppingBag, href: '/admin/orders' },
@@ -41,6 +54,7 @@ const roleNav: Record<Role, { title: string; items: NavItem[] }> = {
   },
   supplier: {
     title: 'بوابة المورد',
+    roleLabel: 'بوابة المورد المعتمد',
     items: [
       { id: 'rfq', label: 'طلبات التوريد المفتوحة', icon: Radio, href: '/supplier/rfq' },
       { id: 'orders', label: 'طلبات شيناكير', icon: ShoppingBag, href: '/supplier/orders' },
@@ -49,6 +63,8 @@ const roleNav: Record<Role, { title: string; items: NavItem[] }> = {
   },
   hub: {
     title: 'المخزن',
+    roleLabel: 'مسؤول المخزن',
+    primary: ['buy-list', 'orders', 'handoff', 'returns'],
     items: [
       // One-person Hub (GLO-315): five task screens. The receive / prepare / pack / order-cost pages remain for deep links, but
       // the Orders & Preparation desk does receipt, verification, printing and packaging in one place.
@@ -61,6 +77,7 @@ const roleNav: Record<Role, { title: string; items: NavItem[] }> = {
   },
   driver: {
     title: 'المندوب',
+    roleLabel: 'مندوب التوصيل',
     items: [
       { id: 'run', label: 'مشاويري', icon: Route, href: '/driver' },
       { id: 'history', label: 'السجل', icon: History, href: '/driver/history' },
@@ -278,7 +295,7 @@ export function WorkspaceFrame({
               </div>
               <div className="min-w-0">
                 <p className="truncate text-bw-small font-semibold text-bw-ink">{operator}</p>
-                <p className="truncate text-[11px] text-bw-ink-subtle">{role === 'supplier' ? 'بوابة المورد المعتمد' : 'مدير العمليات'}</p>
+                <p className="truncate text-[11px] text-bw-ink-subtle">{nav.roleLabel}</p>
               </div>
             </div>
             {logout}
@@ -287,37 +304,97 @@ export function WorkspaceFrame({
       </aside>
 
       {/* Main operational workspace */}
-      <main className="min-w-0 flex-1 pb-20 lg:pb-6">{children}</main>
+      <main className="min-w-0 flex-1 pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-6">{children}</main>
 
-      {/* Mobile navigation mirrors the desktop destinations */}
-      <nav aria-label={nav.title} className={cn('bw-glass fixed inset-x-0 bottom-0 z-30 border-x-0 border-b-0 lg:hidden', role === 'admin' ? 'flex overflow-x-auto' : 'grid grid-flow-col')}>
-        {nav.items.filter((item) => !item.comingSoon).map((item) => {
+      <MobileNav
+        title={nav.title}
+        accent={role === 'admin' ? 'cobalt' : 'action'}
+        items={nav.items.filter((item) => !item.comingSoon)}
+        primary={nav.primary}
+        isItemActive={isItemActive}
+        getItemCount={getItemCount}
+      />
+    </div>
+  )
+}
+
+/** Bottom bar: up to four primary destinations + «المزيد» (a bottom sheet with every remaining authorised page). */
+function MobileNav({ title, accent, items, primary, isItemActive, getItemCount }: {
+  title: string
+  accent: 'cobalt' | 'action'
+  items: NavItem[]
+  primary?: string[]
+  isItemActive: (id: string) => boolean
+  getItemCount: (id: string) => number | undefined
+}) {
+  const sheet = useDialog()
+  const pathname = usePathname()
+  const needsMore = items.length > MOBILE_SLOTS
+  // Primary ids come from the role config; the order stays the role's own order. A hidden (switched-off) item simply drops out.
+  const bar = needsMore ? items.filter((item) => primary?.includes(item.id)).slice(0, MOBILE_SLOTS - 1) : items
+  const more = needsMore ? items.filter((item) => !bar.includes(item)) : []
+  const moreActive = more.some((item) => isItemActive(item.id))
+  const moreCount = more.reduce((sum, item) => sum + (getItemCount(item.id) ?? 0), 0)
+
+  // Close the sheet whenever navigation lands somewhere new.
+  const sheetRef = sheet.ref
+  React.useEffect(() => { sheetRef.current?.close() }, [pathname, sheetRef])
+
+  const slot = 'flex h-14 min-w-0 flex-col items-center justify-center border-t-2 px-1 text-[11px] transition-colors duration-150'
+  const on = accent === 'cobalt' ? 'border-bw-cobalt bg-bw-sunken font-semibold text-bw-ink' : 'border-bw-action bg-bw-sunken font-semibold text-bw-ink'
+  const off = 'border-transparent text-bw-ink-soft hover:bg-bw-surface hover:text-bw-ink'
+  const iconOn = accent === 'cobalt' ? 'text-bw-cobalt' : 'text-bw-ink'
+
+  return (
+    <>
+      <nav aria-label={title} className="bw-glass fixed inset-x-0 bottom-0 z-30 grid grid-flow-col auto-cols-fr border-x-0 border-b-0 pb-[env(safe-area-inset-bottom)] lg:hidden">
+        {bar.map((item) => {
           const isActive = isItemActive(item.id)
-          const isAdminNav = role === 'admin'
+          const count = getItemCount(item.id)
           return (
-            <Link
-              key={item.id}
-              href={item.href}
-              aria-current={isActive ? 'page' : undefined}
-              className={cn(
-                'flex h-14 min-w-0 flex-col items-center justify-center border-t-2 px-1 text-[11px] transition-colors duration-150',
-                role === 'admin' ? 'min-w-20 flex-1' : '',
-                isActive
-                  ? isAdminNav
-                    ? 'border-bw-cobalt bg-bw-sunken font-semibold text-bw-ink'
-                    : 'border-bw-action bg-bw-sunken font-semibold text-bw-ink'
-                  : 'border-transparent text-bw-ink-soft hover:bg-bw-surface hover:text-bw-ink',
-              )}
-            >
-              <item.icon className={cn('mb-0.5 size-[18px]', isActive ? (isAdminNav ? 'text-bw-cobalt' : 'text-bw-ink') : 'text-bw-ink-subtle')} aria-hidden />
-              <span className="flex max-w-full items-center gap-1 truncate">
-                {item.label}
-                <Count value={getItemCount(item.id)} />
+            <Link key={item.id} href={item.href} aria-current={isActive ? 'page' : undefined} className={cn(slot, isActive ? on : off)}>
+              <span className="relative">
+                <item.icon className={cn('mb-0.5 size-[18px]', isActive ? iconOn : 'text-bw-ink-subtle')} aria-hidden />
+                {count ? <span className="absolute -top-1 start-full ms-0.5 grid min-w-4 place-items-center rounded-full bg-bw-action px-1 text-[10px] font-semibold leading-4 text-bw-on-action"><bdi className="bw-code">{count}</bdi></span> : null}
               </span>
+              <span className="max-w-full truncate">{item.label}</span>
             </Link>
           )
         })}
+        {needsMore ? (
+          <button type="button" aria-haspopup="dialog" onClick={sheet.open} className={cn(slot, moreActive ? on : off)}>
+            <span className="relative">
+              <Ellipsis className={cn('mb-0.5 size-[18px]', moreActive ? iconOn : 'text-bw-ink-subtle')} aria-hidden />
+              {moreCount ? <span aria-hidden className="absolute -top-0.5 start-full ms-0.5 size-2 rounded-full bg-bw-action" /> : null}
+            </span>
+            <span>المزيد</span>
+          </button>
+        ) : null}
       </nav>
-    </div>
+      {needsMore ? (
+        <Dialog dialogRef={sheet.ref} title="المزيد" variant="sheet">
+          <ul className="-mx-1 grid gap-0.5 pb-[env(safe-area-inset-bottom)]">
+            {more.map((item) => {
+              const isActive = isItemActive(item.id)
+              const count = getItemCount(item.id)
+              return (
+                <li key={item.id}>
+                  <Link
+                    href={item.href}
+                    aria-current={isActive ? 'page' : undefined}
+                    onClick={() => sheet.close()}
+                    className={cn('flex h-12 items-center gap-3 rounded-bw-field px-3 text-bw-body transition-colors', isActive ? 'bg-bw-veil-3 font-semibold text-bw-ink' : 'text-bw-ink-soft hover:bg-bw-sunken hover:text-bw-ink')}
+                  >
+                    <item.icon className={cn('size-5 shrink-0', isActive ? iconOn : 'text-bw-ink-subtle')} aria-hidden />
+                    <span className="flex-1">{item.label}</span>
+                    <Count value={count} />
+                  </Link>
+                </li>
+              )
+            })}
+          </ul>
+        </Dialog>
+      ) : null}
+    </>
   )
 }

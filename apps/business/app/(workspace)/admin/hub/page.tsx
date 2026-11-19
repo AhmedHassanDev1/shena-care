@@ -4,6 +4,7 @@ import * as React from 'react'
 import Link from 'next/link'
 import { ExternalLink } from 'lucide-react'
 import { Code, DataTable, PageHeader, Skeleton, StateBlock } from '@/components/bw/primitives'
+import { CopyId } from '@/components/bw/copy-id'
 import { PanelHead, Stat, StatStrip } from '@/components/bw/ops'
 import { Page, Status } from '@/components/workspace/kit'
 import { LoadError, RoleShell, useMe } from '@/components/workspace/role-shell'
@@ -88,7 +89,7 @@ function AdminHubContent() {
           <DataTable caption="شحنات المخزن" head={['الطلب', 'المنطقة', 'القطع', 'الحالة', 'آخر تحديث']}>
             {rows.map((s) => (
               <tr key={s.shipmentId}>
-                <td><Code className="font-semibold">{(s.orderNumber ?? shortId(s.shipmentId)).replace(/^ORD-/, '#')}</Code></td>
+                <td><CopyId value={s.orderNumber ?? s.shipmentId} display={(s.orderNumber ?? shortId(s.shipmentId)).replace(/^ORD-/, '#')} label="رقم الطلب" textClassName="font-semibold" /></td>
                 <td className="text-bw-ink-soft">{[s.governorate, s.area].filter(Boolean).join(' - ') || '—'}</td>
                 <td><Code>{s.itemCount}</Code></td>
                 <td><Status map={SHIPMENT_STATUS} value={s.status} /></td>
@@ -105,7 +106,7 @@ function AdminHubContent() {
           <DataTable caption="بضاعة متوقعة" head={['المصدر', 'الصنف', 'المؤكد', 'المستلم', 'المتبقي']}>
             {(receivables.data ?? []).map((r) => (
               <tr key={r.allocationId}>
-                <td>{r.supplierName ?? 'مشتريات داخلية'}{r.purchaseOrderId ? <Code className="ms-2 text-[11px] text-bw-ink-subtle">{shortId(r.purchaseOrderId)}</Code> : null}</td>
+                <td>{r.supplierName ?? 'مشتريات داخلية'}{r.purchaseOrderId ? <CopyId value={r.purchaseOrderId} display={shortId(r.purchaseOrderId)} label="رقم أمر الشراء" className="ms-2 text-[11px] text-bw-ink-subtle" /> : null}</td>
                 <td className="text-bw-ink-soft">{[r.skuCode, r.variantName].filter(Boolean).join(' · ') || '—'}</td>
                 <td><Code>{r.confirmedQuantity}</Code></td>
                 <td><Code>{r.receivedQuantity}</Code></td>

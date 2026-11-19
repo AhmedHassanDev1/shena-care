@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { CopyId } from '@/components/bw/copy-id'
 import { Button, Code, Field, Notice, PageHeader, Section, Skeleton, StateBlock, StatusLabel } from '@/components/bw/primitives'
 import { HubShell } from '@/components/workspace/hub'
 import { CommandError, Egp, Page, Select } from '@/components/workspace/kit'
@@ -69,7 +70,7 @@ function CostRow({ line, onDone }: { line: CostLine; onDone: () => void }) {
   return (
     <Section title={<span className="flex flex-wrap items-center gap-2"><bdi>{line.sku?.productName ?? shortId(line.skuId)}</bdi> <Code>{line.sku?.skuCode ?? shortId(line.skuId)}</Code>
       {line.status === 'COST_PENDING' ? <StatusLabel tone="warn">مستني فاتورة</StatusLabel> : <StatusLabel tone="ok">التكلفة متسجلة</StatusLabel>}</span>}
-      aside={<span className="text-bw-small text-bw-ink-soft">{line.supplierName} · أمر شراء <Code>{shortId(line.purchaseOrderId)}</Code></span>}>
+      aside={<span className="text-bw-small text-bw-ink-soft">{line.supplierName} · أمر شراء <CopyId value={line.purchaseOrderId} display={shortId(line.purchaseOrderId)} label="رقم أمر الشراء" /></span>}>
       <div className="space-y-3">
         <p className="text-bw-small">اتستلم <Code>{line.receivedQuantity}</Code> · له فاتورة <Code>{line.costedQuantity}</Code> · <strong>مستني <Code>{line.pendingQuantity}</Code></strong> · قيمة الفواتير <Egp value={line.capturedValue} />
           {line.payable ? <> · مستحق المورد <Egp value={line.payable.amount} /></> : null}</p>

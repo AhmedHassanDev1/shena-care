@@ -3,6 +3,7 @@
 import * as React from 'react'
 import { ChevronDown, History, Pencil, Plus, Power, Radio, Search } from 'lucide-react'
 import { Button, Code, Dialog, Field, Skeleton, StateBlock, useDialog } from '@/components/bw/primitives'
+import { useToast } from '@/components/bw/toast'
 import { CommandError } from '@/components/workspace/kit'
 import { LoadError } from '@/components/workspace/role-shell'
 import { api } from '@/lib/api'
@@ -33,7 +34,7 @@ export function SuppliersTab() {
   const { data, error, loading, reload } = useApi<SupplierRow[]>('/procurement/enrollment')
   const [query, setQuery] = React.useState('')
   const [openId, setOpenId] = React.useState<string | null>(null)
-  const [notice, setNotice] = React.useState<string | null>(null)
+  const toast = useToast()
   const [editing, setEditing] = React.useState<SupplierRow | null>(null)
   const [toggle, setToggle] = React.useState<{ supplier: SupplierRow; kind: 'enroll' | 'active' } | null>(null)
   const modal = useDialog()
@@ -47,7 +48,7 @@ export function SuppliersTab() {
     window.setTimeout(() => modal.open(), 0)
   }
   const done = (message: string) => {
-    setNotice(message)
+    toast.success(message)
     reload()
   }
 
@@ -70,13 +71,6 @@ export function SuppliersTab() {
           إضافة مورد
         </Button>
       </div>
-
-      {notice ? (
-        <p role="status" className="flex items-center justify-between gap-3 rounded-bw-field border border-bw-emerald/30 bg-bw-emerald-soft px-3.5 py-2 text-bw-small text-bw-ink">
-          {notice}
-          <button type="button" className="text-bw-ink-soft underline" onClick={() => setNotice(null)}>إخفاء</button>
-        </p>
-      ) : null}
 
       {error ? <LoadError message={error.message} onRetry={reload} /> : null}
       {!data && loading ? <Skeleton className="h-48 w-full" /> : null}

@@ -3,6 +3,7 @@
 import * as React from 'react'
 import { CheckCircle2, FlaskConical, History, Pencil, Plus, ShieldAlert, Trash2, XCircle } from 'lucide-react'
 import { Button, Code, Dialog, Field, Select, Skeleton, StateBlock, Switch, useDialog } from '@/components/bw/primitives'
+import { useToast } from '@/components/bw/toast'
 import { LoadError } from '@/components/workspace/role-shell'
 import { api, ApiError } from '@/lib/api'
 import { useApi } from '@/lib/use-api'
@@ -34,7 +35,7 @@ type Pending = { title: string; body: string; next: PolicyDocument; done: string
 export function AllowlistTab({ brands, categories }: { brands: BrandSummary[]; categories: CategoryNode[] }) {
   const policy = useApi<PolicyStateResponse>('/catalog/policy')
   const [query, setQuery] = React.useState('')
-  const [notice, setNotice] = React.useState<string | null>(null)
+  const toast = useToast()
   const [editing, setEditing] = React.useState<FlatRule | null>(null)
   const [pending, setPending] = React.useState<Pending | null>(null)
   const ruleDialog = useDialog()
@@ -95,7 +96,6 @@ export function AllowlistTab({ brands, categories }: { brands: BrandSummary[]; c
         الإصدار <Code>{`v${policy.data?.current.version ?? 0}`}</Code> · تنطبق القواعد على فحص ملفات الموردين الجديدة فقط، ولا تحذف أو توقف أي منتج موجود.
       </p>
 
-      {notice ? <Banner tone="ok" onClose={() => setNotice(null)}>{notice}</Banner> : null}
 
       {custom.length === 0 && !q ? (
         <StateBlock kind="empty" title="لا توجد قواعد مخصصة" body={doc.mode === 'OPEN' ? 'الوضع مفتوح: تمرّ الماركات المعروفة ويُستبعد الممنوع تلقائيًا. أضف قاعدة لمنع ماركة أو تصنيف.' : 'الوضع حصري ولا توجد قواعد سماح، فيُستبعد كل شيء عدا المعرّفات الموثقة.'} />
@@ -142,9 +142,9 @@ export function AllowlistTab({ brands, categories }: { brands: BrandSummary[]; c
         brands={brands}
         categories={categories}
         onClose={() => ruleDialog.close()}
-        onSaved={(message) => { ruleDialog.close(); setNotice(message); policy.reload() }}
+        onSaved={(message) => { ruleDialog.close(); toast.success(message); policy.reload() }}
       />
-      <ReasonDialog dialogRef={reasonDialog.ref} pending={pending} onClose={() => reasonDialog.close()} onSaved={(message) => { reasonDialog.close(); setNotice(message); policy.reload() }} />
+      <ReasonDialog dialogRef={reasonDialog.ref} pending={pending} onClose={() => reasonDialog.close()} onSaved={(message) => { reasonDialog.close(); toast.success(message); policy.reload() }} />
       <TestDialog dialogRef={testDialog.ref} brands={brands} categories={categories} onClose={() => testDialog.close()} />
       <HistoryDialog dialogRef={historyDialog.ref} history={policy.data?.history ?? []} onClose={() => historyDialog.close()} />
     </div>

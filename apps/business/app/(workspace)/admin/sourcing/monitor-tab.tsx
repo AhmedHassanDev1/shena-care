@@ -4,6 +4,7 @@ import * as React from 'react'
 import Link from 'next/link'
 import { AlertTriangle, ChevronDown, Send } from 'lucide-react'
 import { Button, Code, Dialog, Field, Skeleton, StateBlock, StatusLabel, useDialog } from '@/components/bw/primitives'
+import { useToast } from '@/components/bw/toast'
 import { CommandError, Egp, Status } from '@/components/workspace/kit'
 import { LoadError } from '@/components/workspace/role-shell'
 import { api } from '@/lib/api'
@@ -35,7 +36,7 @@ export function MonitorTab() {
   const [openRfq, setOpenRfq] = React.useState<string | null>(null)
   const [openPo, setOpenPo] = React.useState<string | null>(null)
   const [poFilter, setPoFilter] = React.useState<PoFilter>('all')
-  const [notice, setNotice] = React.useState<string | null>(null)
+  const toast = useToast()
   const flushDialog = useDialog()
   const poSection = React.useRef<HTMLElement>(null)
   const rfqSection = React.useRef<HTMLElement>(null)
@@ -67,12 +68,6 @@ export function MonitorTab() {
 
   return (
     <div className="space-y-8">
-      {notice ? (
-        <p role="status" className="flex items-center justify-between gap-3 rounded-bw-field border border-bw-emerald/30 bg-bw-emerald-soft px-3.5 py-2 text-bw-small text-bw-ink">
-          {notice}
-          <button type="button" className="text-bw-ink-soft underline" onClick={() => setNotice(null)}>إخفاء</button>
-        </p>
-      ) : null}
       {rfqs.error ? <LoadError message={rfqs.error.message} onRetry={rfqs.reload} /> : null}
       {loading ? <Skeleton className="h-40 w-full" /> : null}
 
@@ -166,7 +161,7 @@ export function MonitorTab() {
         </>
       ) : null}
 
-      <FlushDialog dialogRef={flushDialog.ref} onClose={() => flushDialog.close()} onDone={(m) => { flushDialog.close(); setNotice(m); reloadAll() }} />
+      <FlushDialog dialogRef={flushDialog.ref} onClose={() => flushDialog.close()} onDone={(m) => { flushDialog.close(); toast.success(m); reloadAll() }} />
     </div>
   )
 }

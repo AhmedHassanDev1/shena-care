@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { CopyId } from '@/components/bw/copy-id'
 import {
   AlertTriangle,
   Check,
@@ -841,7 +842,7 @@ function ReadyParcelsSection({
                                   {stop.customerName}
                                 </span>
                                 <span className="text-bw-ink-subtle font-mono text-[11px]">
-                                  <Code>{orderNum}</Code>
+                                  <CopyId value={stop.orderNumber ?? stop.shipmentId} display={orderNum} label="رقم الطلب" />
                                 </span>
                               </div>
                               <span className="text-[10px] text-bw-ink-soft shrink-0">
@@ -1148,7 +1149,7 @@ function AssignedTripCard({
             <div className="flex items-center gap-2">
               <span className="font-bold text-bw-ink text-sm">{driver}</span>
               <span className="text-xs text-bw-ink-soft font-mono">
-                مشوار <Code>#{shortId(run.id)}</Code>
+                مشوار <CopyId value={run.id} display={`#${shortId(run.id)}`} label="رقم المشوار" />
               </span>
             </div>
             <div className="text-[11px] text-bw-ink-subtle flex items-center gap-2">
@@ -1897,7 +1898,7 @@ function SettlementDrawer({
                   : `تم تسجيل العدّ مع فرق: ${Number(receipt.round.variance) > 0 ? 'زيادة' : 'عجز'} ${Math.abs(Number(receipt.round.variance)).toLocaleString('en-US')} ج.م — محال للمراجعة الإدارية`
               }
             >
-              مرجع <Code>{receipt.reference}</Code> · المعدود <Egp value={receipt.round.countedTotal} />
+              مرجع <CopyId value={receipt.reference} label="مرجع التسوية" /> · المعدود <Egp value={receipt.round.countedTotal} />
             </Notice>
           ) : null}
 
@@ -1987,7 +1988,7 @@ function SettlementDrawer({
               </h3>
               {counted.map((s) => (
                 <div key={s.id} className="flex flex-wrap items-center justify-between gap-2 rounded-bw-field border border-bw-line px-2.5 py-1.5">
-                  <span className="text-bw-ink-subtle"><Code>{s.reference}</Code> · {formatDateTime(s.settledAt)}</span>
+                  <span className="inline-flex items-center gap-1 text-bw-ink-subtle"><CopyId value={s.reference} label="مرجع التسوية" /> · {formatDateTime(s.settledAt)}</span>
                   <span className="flex items-center gap-2">
                     <Egp value={s.countedTotal} className="font-bold" />
                     {s.variance === 0 ? (
@@ -2099,7 +2100,7 @@ function ReturnReconcileItem({
   return (
     <div className="rounded-bw-field border border-bw-line bg-bw-sunken/40 p-3 space-y-2.5 text-xs">
       <div className="flex items-center justify-between">
-        <span className="font-bold text-bw-ink font-mono">{orderNum}</span>
+        <CopyId value={shipment.orderNumber ?? shipment.orderId} display={orderNum} label="رقم الطلب" textClassName="font-bold text-bw-ink" />
         <span className="text-[11px] text-bw-danger font-semibold">تعذر التوصيل</span>
       </div>
       {shipment.area ? <div className="text-[11px] text-bw-ink-subtle">{shipment.area}</div> : null}
@@ -2244,9 +2245,7 @@ function SettlementHistoryDrawer({
                       <span className="font-bold text-bw-ink">
                         {driverName.get(b.courierId) ?? shortId(b.courierId)}
                       </span>
-                      <span className="font-mono text-bw-ink-subtle">
-                        <Code>{b.reference}</Code>
-                      </span>
+                      <CopyId value={b.reference} label="مرجع التسوية" className="text-bw-ink-subtle" />
                     </div>
 
                     <div className="flex items-center justify-between text-bw-ink-soft text-[11px]">

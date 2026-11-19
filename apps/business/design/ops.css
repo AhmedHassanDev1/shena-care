@@ -69,11 +69,33 @@
   backdrop-filter: blur(4px);
 }
 
+/* Toast: one bottom-centre slot, lifted above the mobile bottom navigation and the safe area. */
+.bw .bw-toast {
+  position: fixed;
+  inset: auto 0 calc(env(safe-area-inset-bottom, 0px) + 4.75rem) 0;
+  margin: 0 auto;
+  display: flex;
+  justify-content: center;
+  width: min(28rem, calc(100vw - 2rem));
+  height: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  overflow: visible;
+  pointer-events: none;
+  animation: bw-toast-in 180ms var(--ease-bw-standard) both;
+}
+.bw .bw-toast > * { pointer-events: auto; }
+@media (min-width: 1024px) { .bw .bw-toast { inset-block-end: 1.5rem; } }
+@keyframes bw-toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
 /* Bars and meters grow into place. */
 .bw .bw-meter-fill { transition: width 420ms var(--ease-bw-standard), background-color 200ms; }
 
 @media (prefers-reduced-motion: reduce) {
   .bw .bw-skeleton { animation: none; }
   .bw .bw-arrive { animation: none; }
+  .bw .bw-toast { animation: none; }
   .bw .bw-meter-fill { transition: none; }
 }

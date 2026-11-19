@@ -1,7 +1,9 @@
 'use client'
 
 import * as React from 'react'
-import { Code, Money, Notice, StatusLabel } from '@/components/bw/primitives'
+import { XCircle } from 'lucide-react'
+import { Code, Money, StatusLabel } from '@/components/bw/primitives'
+import { useToast } from '@/components/bw/toast'
 import type { ApiError } from '@/lib/api'
 import { label } from '@/lib/labels'
 import { cn } from '@/lib/utils'
@@ -31,14 +33,26 @@ export function KeyValues({ rows, className }: { rows: Array<[string, React.Reac
   )
 }
 
-/** Command failure: the server's own words and code, never a fake success. */
+/**
+ * Command failure: the server's own words and code, never a fake success. A failed action is announced once as a toast
+ * (so it is heard and can be retried) and stays as one slim line beside the control that failed, so the reason is still
+ * there after the toast is gone. No banner, so nothing around it is pushed down.
+ */
 export function CommandError({ error }: { error: ApiError | null }) {
+  const toast = useToast()
+  React.useEffect(() => {
+    if (error) toast.error('العملية ماتمتش', { detail: error.message })
+    // Announces each distinct failure once; the toast API object is stable.
+  }, [error, toast])
   if (!error) return null
   return (
-    <Notice tone="danger" title="العملية ماتمتش">
-      {error.message}
-      {error.code ? <> · <Code>{error.code}</Code></> : null}
-    </Notice>
+    <p className="flex items-start gap-1.5 text-bw-small text-bw-danger">
+      <XCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
+      <span className="min-w-0">
+        {error.message}
+        {error.code ? <> · <Code className="text-bw-ink-subtle">{error.code}</Code></> : null}
+      </span>
+    </p>
   )
 }
 

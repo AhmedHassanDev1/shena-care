@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { AlertTriangle, ArrowRight, ExternalLink, MapPin, RefreshCw } from 'lucide-react'
 import { Button, Code, DataTable, Field, Notice, PageHeader, Section, Skeleton, StatusLabel } from '@/components/bw/primitives'
+import { CopyId } from '@/components/bw/copy-id'
 import { CommandError, Egp, KeyValues, Select, Status } from '@/components/workspace/kit'
 import { LoadError, RoleShell } from '@/components/workspace/role-shell'
 import { api } from '@/lib/api'
@@ -76,7 +77,7 @@ function OrderBody({ d, reload }: { d: Detail; reload: () => void }) {
     <>
       <PageHeader
         eyebrow="تفاصيل الطلب"
-        title={o.orderNumber}
+        title={<CopyId value={o.orderNumber} label="رقم الطلب" textClassName="text-bw-title" />}
         meta={<span className="flex flex-wrap items-center gap-2"><Status map={ORDER_STATUS} value={o.status} /><span>أنشئ {formatDateTime(o.createdAt)}</span></span>}
         actions={<Button variant="secondary" onClick={reload}><RefreshCw className="size-4" />تحديث</Button>}
       />
@@ -122,7 +123,7 @@ function OrderBody({ d, reload }: { d: Detail; reload: () => void }) {
             ['متوقع', <Egp key="e" value={d.money.collection?.expectedAmount} />],
             ['أعلن المندوب', <Egp key="d" value={d.money.collection?.declaredAmount} />],
             ['اتعدّ في المخزن', <Egp key="n" value={d.money.collection?.countedAmount} />],
-            ['التسوية', d.money.collection?.settlement ? <Code key="r">{d.money.collection.settlement.reference}</Code> : '—'],
+            ['التسوية', d.money.collection?.settlement ? <CopyId key="r" value={d.money.collection.settlement.reference} label="مرجع التسوية" /> : '—'],
           ]} /></div></details>
         </Section>
       </div>
@@ -149,7 +150,7 @@ function OrderBody({ d, reload }: { d: Detail; reload: () => void }) {
           <DataTable caption="أوامر الشراء المرتبطة" head={['أمر الشراء', 'المورد', 'المنتج', 'لهذا الطلب', 'مؤكد', 'وصل', 'ناقص', 'التكلفة', 'الحالة']}>
             {d.purchaseOrderLines.map((l) => (
               <tr key={l.purchaseOrderId + l.skuId}>
-                <td><Code>{shortId(l.purchaseOrderId)}</Code><div><Status map={PO_STATUS} value={l.purchaseOrderStatus} /></div></td>
+                <td><CopyId value={l.purchaseOrderId} display={shortId(l.purchaseOrderId)} label="رقم أمر الشراء" /><div><Status map={PO_STATUS} value={l.purchaseOrderStatus} /></div></td>
                 <td>{l.supplierName ?? '—'}</td>
                 <td><bdi>{skuText(l.sku)}</bdi></td>
                 <td><Code>{l.quantity}</Code></td>

@@ -3,6 +3,7 @@
 import * as React from 'react'
 import { RefreshCw } from 'lucide-react'
 import { Button, Code, Field, Notice, PageHeader, Select, Skeleton, StateBlock, StatusLabel } from '@/components/bw/primitives'
+import { useToast } from '@/components/bw/toast'
 import { Flash } from '@/components/bw/ops'
 import { HubShell, useHub } from '@/components/workspace/hub'
 import { CommandError, Page } from '@/components/workspace/kit'
@@ -152,7 +153,7 @@ function InspectionForm({ c, line, mode, inspection, onDone, onCancel }: {
   const [expiry, setExpiry] = React.useState(inspection?.expiryDate ?? '')
   const [note, setNote] = React.useState(inspection?.note ?? '')
   const [why, setWhy] = React.useState('')
-  const [message, setMessage] = React.useState<string | null>(null)
+  const toast = useToast()
   const key = React.useRef(newKey())
   const touch = () => { key.current = newKey() }
 
@@ -177,10 +178,9 @@ function InspectionForm({ c, line, mode, inspection, onDone, onCancel }: {
   return (
     <form className={cn('space-y-3', mode === 'correct' && 'rounded-bw-field border border-bw-line p-3')} onSubmit={async (event) => {
       event.preventDefault()
-      setMessage(null)
       const r = await submit.execute()
       if (!r) return
-      if (r.outcome === 'rejected') { setMessage(REJECT[r.code ?? ''] ?? 'الفحص اترفض.'); key.current = newKey(); setBarcode(''); onDone(r.case); return }
+      if (r.outcome === 'rejected') { toast.error(REJECT[r.code ?? ''] ?? 'الفحص اترفض.'); key.current = newKey(); setBarcode(''); onDone(r.case); return }
       key.current = newKey()
       onDone(r.case)
     }}>
@@ -209,7 +209,6 @@ function InspectionForm({ c, line, mode, inspection, onDone, onCancel }: {
         <Field className="sm:col-span-2" label="ملاحظة (اختياري)" value={note} onChange={(e) => { setNote(e.target.value); touch() }} />
       </div>
       {c.safetyReport ? <Notice tone="warn" title="بلاغ سلامة: البضاعة بتتحجز ومابترجعش للمورد ولا بتتشطب لحد قرار الإدارة." /> : result !== 'SEALED_INTACT' ? <p className="text-[12px] text-bw-ink-subtle">اللي مش مقفول وسليم مابيرجعش للمورد؛ بيتشطب أو بيتحجز.</p> : null}
-      {message ? <Flash tone="danger">{message}</Flash> : null}
       <div className="flex flex-wrap items-center gap-3">
         <Button type="submit" loading={submit.pending} disabled={!valid}>{mode === 'new' ? 'تسجيل الاستلام والفحص' : 'تأكيد التصحيح'}</Button>
         {mode === 'new' ? <button type="button" className="text-bw-small font-semibold text-bw-cobalt underline-offset-4 hover:underline" onClick={() => { setManual(!manual); touch() }}>{manual ? 'رجوع لمسح الباركود' : 'تحقق يدوي'}</button> : <Button type="button" variant="secondary" onClick={onCancel}>إلغاء</Button>}
