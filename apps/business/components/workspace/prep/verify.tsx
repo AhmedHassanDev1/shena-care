@@ -9,8 +9,8 @@ import { CameraScanner } from '@/components/workspace/camera-scanner'
 import { useMe } from '@/components/workspace/role-shell'
 import { api, newKey } from '@/lib/api'
 import { useCommand } from '@/lib/use-api'
-import { type Desk, type DeskLine, type DeskOrder, MANUAL_CHECKS, MANUAL_REASON, REJECT, type ScanResult, productTitle, receivedOf, unitsOf } from './model'
-import { registerUnits } from './register'
+import { type Desk, type DeskOrder, REJECT, type ScanResult, productTitle, receivedOf, unitsOf } from './model'
+import type { Quantities } from './use-quantities'
 import { ProductCard } from './card'
 import { ActionsSheet, BarcodeSheet, ManualSheet, PriceSheet, type SheetKind } from './sheets'
 import { StickyAction } from './steps'
@@ -60,8 +60,8 @@ function ScanNote({ feedback, onDismiss }: { feedback: Feedback | null; onDismis
  * every scan (wrong, unknown, excess and not-yet-bought units change nothing). Cards stay on screen after verification so the discount can
  * still be completed before handoff.
  */
-export function PrepProducts({ order, hubId, lastCosts, onOrder, onChanged }: {
-  order: DeskOrder; hubId: string; lastCosts: Desk['lastCosts']; onOrder: (order: DeskOrder) => void; onChanged: () => void
+export function PrepProducts({ order, hubId, lastCosts, quantities, onOrder, onChanged }: {
+  order: DeskOrder; hubId: string; lastCosts: Desk['lastCosts']; quantities: Quantities; onOrder: (order: DeskOrder) => void; onChanged: () => void
 }) {
   const me = useMe()
   const isAdmin = me.roles.includes('ADMIN')
@@ -71,7 +71,7 @@ export function PrepProducts({ order, hubId, lastCosts, onOrder, onChanged }: {
   const [feedback, setFeedback] = React.useState<Feedback | null>(null)
   const [sheet, setSheet] = React.useState<Open>(null)
   const [unknownCode, setUnknownCode] = React.useState('')
-  const [busy, setBusy] = React.useState(false)
+  const [, setBusy] = React.useState(false)
   const queue = React.useRef<Promise<unknown>>(Promise.resolve())
   const refocus = React.useCallback(() => window.setTimeout(() => scanBox.current?.querySelector<HTMLInputElement>('input')?.focus(), 0), [])
   React.useEffect(() => { if (window.matchMedia('(min-width: 1024px)').matches) refocus() }, [refocus, order.orderId])
@@ -114,56 +114,6 @@ export function PrepProducts({ order, hubId, lastCosts, onOrder, onChanged }: {
     if (barcode) enqueue(barcode)
   }
 
-  const minusReason = (line: DeskLine) => {
-    if (line.received <= 0) return 'مفيش قطع متسجّلة'
-    return order.units.some((u) => u.skuId === line.skuId && u.correctable) ? null : 'اتطبع أو اتغلّف — مايتصحّحش'
-  }
-  const plusReason = (line: DeskLine) => {
-    if (line.received >= line.required) return 'الكمية كملت'
-    if (!scanning) return 'الطلب اتأكد خلاص'
-    if (line.purchased <= line.received) return 'القطعة دي لسه ماتسجّلتش «اتشترت»'
-    return null
-  }
-  const minus = async (line: DeskLine) => {
-    const unit = [...order.units].reverse().find((u) => u.skuId === line.skuId && u.correctable)
-    if (!unit) return
-    setBusy(true)
-    try {
-      const result = await api<{ order: DeskOrder | null }>(`/fulfillment/locations/${hubId}/desk/receipts/${unit.receiptId}/reverse`, {
-        body: { idempotencyKey: newKey(), reason: 'WRONG_UNIT_SCANNED', note: 'تراجع عن القطعة من شاشة التجهيز' },
-      })
-      if (result.order) onOrder(result.order)
-      setFeedback({ tone: 'warn', text: `اتشالت قطعة من ${productTitle(line)}. الكمية رجعت تتمسح من جديد.` })
-      onChanged()
-    } catch (error) {
-      setFeedback({ tone: 'danger', text: (error as Error).message })
-    } finally { setBusy(false); if (window.matchMedia('(min-width: 1024px)').matches) refocus() }
-  }
-
-  // "+" fills the line in one tap, no window: the default quantity is what is still required (never more than was bought). Each unit is its own
-  // manual-verification request, decided by the server one by one; whatever it did not confirm is simply not counted.
-  const fill = async (line: DeskLine) => {
-    const room = Math.min(line.required, line.purchased) - line.received
-    if (room <= 0) return
-    setBusy(true)
-    let failure: string | null = null
-    try {
-      const outcome = await registerUnits<DeskOrder>(room, async () => {
-        try {
-          const result = await api<ScanResult>(`/fulfillment/locations/${hubId}/desk/orders/${order.orderId}/scan`, {
-            body: { clientScanId: newKey(), skuId: line.skuId, manualReason: MANUAL_REASON, manualChecks: MANUAL_CHECKS },
-          })
-          return { refusal: result.outcome === 'rejected' ? REJECT[result.code ?? ''] ?? 'التسجيل اترفض.' : null, order: result.order }
-        } catch (error) { failure = (error as Error).message; return undefined }
-      })
-      if (outcome.last) onOrder(outcome.last)
-      const problem = outcome.refusal ?? failure
-      // Silent when everything was recorded: the counter is the confirmation. A refusal or failure is always said, with what did get recorded.
-      setFeedback(problem ? { tone: outcome.done > 0 ? 'warn' : 'danger', text: `${outcome.done > 0 ? `اتسجّل ${outcome.done} بس من ${room}. ` : ''}${problem}` } : null)
-      onChanged()
-    } finally { setBusy(false); if (window.matchMedia('(min-width: 1024px)').matches) refocus() }
-  }
-
   const sheetLine = sheet ? order.lines.find((l) => l.skuId === sheet.skuId) ?? null : null
   const close = () => { setSheet(null); refocus() }
 
@@ -198,8 +148,8 @@ export function PrepProducts({ order, hubId, lastCosts, onOrder, onChanged }: {
 
       <ul className="space-y-2" aria-label="منتجات الطلب">
         {[...order.lines].sort((a, b) => Number(a.received >= a.required) - Number(b.received >= b.required)).map((line) => (
-          <ProductCard key={line.orderItemId} line={line} order={order} hubId={hubId} lastCosts={lastCosts} busy={busy} canPrice={isAdmin}
-            plus={plusReason(line)} minus={minusReason(line)} onPlus={() => { void fill(line) }} onMinus={() => { void minus(line) }}
+          <ProductCard key={line.orderItemId} line={line} order={order} hubId={hubId} lastCosts={lastCosts} canPrice={isAdmin}
+            quantity={quantities.get(line)} onQtyMinus={() => quantities.set(line, quantities.get(line) - 1)} onQtyPlus={() => quantities.set(line, quantities.get(line) + 1)}
             onOrder={onOrder} onPick={(kind) => setSheet({ kind, skuId: line.skuId })} onMore={() => setSheet({ kind: 'menu', skuId: line.skuId })} />
         ))}
       </ul>

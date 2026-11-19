@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils'
 import { type Desk, type DeskOrder, type Packaging, STAGE_LABEL, receivedOf, shortNumber, unitsOf } from './model'
 import { PrepBar } from './bar'
 import { PrepProducts } from './verify'
+import { useQuantities } from './use-quantities'
 
 /**
  * Orders & Preparation: pick an order, then one step at a time — verify the products, choose the packaging, print, hand off.
@@ -117,6 +118,7 @@ function OrderWorkspace({ order, hubId, lastCosts, packagingCosts, onOrder, onCh
   onOrder: (order: DeskOrder) => void; onChanged: () => void; onPacked: () => void
 }) {
   const packaging = useApi<Packaging>(`/order-costs/${order.orderId}`)
+  const quantities = useQuantities(order.orderId)
 
   return (
     <section aria-label={`طلب ${shortNumber(order.orderNumber)}`} className="space-y-4">
@@ -124,9 +126,9 @@ function OrderWorkspace({ order, hubId, lastCosts, packagingCosts, onOrder, onCh
         <h2 className="text-bw-heading font-semibold text-bw-ink">طلب <span className="tabular-nums" dir="ltr">{shortNumber(order.orderNumber)}</span></h2>
         <span className="text-bw-small text-bw-ink-soft">{unitsOf(order)} قطعة{order.area ? <> · <bdi>{order.area}</bdi></> : null}</span>
       </div>
-      <PrepBar order={order} packaging={packaging.data ?? null} costs={packagingCosts} onPackaging={packaging.reload} onChanged={onChanged} onPacked={onPacked} />
+      <PrepBar order={order} quantityOf={quantities.get} packaging={packaging.data ?? null} costs={packagingCosts} onPackaging={packaging.reload} onChanged={onChanged} onPacked={onPacked} />
       <div className="bw-panel space-y-4 p-4">
-        <PrepProducts order={order} hubId={hubId} lastCosts={lastCosts} onOrder={onOrder} onChanged={onChanged} />
+        <PrepProducts order={order} hubId={hubId} lastCosts={lastCosts} quantities={quantities} onOrder={onOrder} onChanged={onChanged} />
       </div>
     </section>
   )

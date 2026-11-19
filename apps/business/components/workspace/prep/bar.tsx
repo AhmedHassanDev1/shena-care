@@ -10,6 +10,7 @@ import { api } from '@/lib/api'
 import { useCommand } from '@/lib/use-api'
 import { cn } from '@/lib/utils'
 import { type DeskOrder, type Packaging, productTitle } from './model'
+import { quantityDifferences } from './quantity'
 
 const FAIL_REASONS = ['الورق انحشر', 'الحبر أو الورق خلص', 'الطابعة مش متصلة', 'الطباعة طلعت مقطوعة أو مش واضحة'] as const
 type Doc = 'receipt' | 'slip'
@@ -21,8 +22,8 @@ const PACKAGING = [['BAG', 'شنطة'], ['BOX', 'كرتونة']] as const
  * Mobile-first: large touch targets, legible in dark mode.
  * In dev: print can be bypassed with one click or auto-bypassed when clicking handoff.
  */
-export function PrepBar({ order, packaging, costs, onPackaging, onChanged, onPacked }: {
-  order: DeskOrder; packaging: Packaging | null; costs: PackagingCosts | null
+export function PrepBar({ order, quantityOf, packaging, costs, onPackaging, onChanged, onPacked }: {
+  order: DeskOrder; quantityOf: (line: DeskOrder['lines'][number]) => number; packaging: Packaging | null; costs: PackagingCosts | null
   onPackaging: () => void; onChanged: () => void; onPacked: () => void
 }) {
   const verified = order.stage === 'packing' && !!order.shipment
@@ -82,7 +83,7 @@ export function PrepBar({ order, packaging, costs, onPackaging, onChanged, onPac
 
   // Any difference between what the order asks for and what the server confirmed as prepared is shown before the parcel leaves.
   const guard = useDialog()
-  const differences = order.lines.filter((line) => line.received !== line.required)
+  const differences = quantityDifferences(order.lines, quantityOf)
 
   const proceedHandoff = async () => {
     if (!verified) return
@@ -286,11 +287,11 @@ export function PrepBar({ order, packaging, costs, onPackaging, onChanged, onPac
         <div className="space-y-3">
           <p className="text-bw-small text-bw-ink-soft">الكميات المجهّزة مش زي المطلوب في الطلب ده. راجعها قبل ما الطرد يتسلّم.</p>
           <ul className="divide-y divide-bw-line rounded-bw-field border border-bw-line">
-            {differences.map((line) => (
+            {differences.map(({ line, quantity, kind }) => (
               <li key={line.orderItemId} className="flex items-center justify-between gap-3 px-3 py-2 text-bw-small">
                 <span className="min-w-0 flex-1 font-semibold text-bw-ink"><bdi>{productTitle(line)}</bdi></span>
-                <span className={cn('shrink-0 tabular-nums', line.received < line.required ? 'text-bw-amber' : 'text-bw-danger')}>
-                  <bdi dir="ltr">{line.received}/{line.required}</bdi> {line.received < line.required ? 'نقص' : 'زيادة'}
+                <span className={cn('shrink-0 tabular-nums', kind === 'excess' ? "text-bw-danger" : "text-bw-amber")}>
+                  {kind === 'short' ? <>الكمية <bdi dir="ltr">{quantity}/{line.required}</bdi> نقص</> : <>اتمسح <bdi dir="ltr">{line.received}/{line.required}</bdi> {kind === 'excess' ? 'زيادة' : 'نقص'}</>}
                 </span>
               </li>
             ))}
