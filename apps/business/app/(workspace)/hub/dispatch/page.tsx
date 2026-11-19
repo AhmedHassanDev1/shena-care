@@ -3,8 +3,6 @@
 import * as React from 'react'
 import {
   AlertTriangle,
-  ArrowRight,
-  Barcode,
   Check,
   CheckCircle2,
   ChevronDown,
@@ -13,13 +11,10 @@ import {
   Compass,
   History,
   Layers,
-  MapPin,
-  Package,
   RefreshCw,
   RotateCcw,
   Scan,
   ShieldCheck,
-  Sparkles,
   Truck,
   User,
   Users,
@@ -635,9 +630,9 @@ function ReadyParcelsSection({
         if (!cancelled && res?.trips) {
           setClusters(res.trips)
         }
-      } catch (err: any) {
+      } catch (err) {
         if (!cancelled) {
-          setClusterError(err?.message || 'تعذر تحميل التوزيع الجغرافي المقترح')
+          setClusterError((err as Error)?.message || 'تعذر تحميل التوزيع الجغرافي المقترح')
           setViewMode('parcels')
         }
       } finally {
@@ -685,8 +680,8 @@ function ReadyParcelsSection({
         },
       })
       onCreated()
-    } catch (err: any) {
-      setClusterError(err?.message || 'تعذر اعتماد المشوار للمندوب')
+    } catch (err) {
+      setClusterError((err as Error)?.message || 'تعذر اعتماد المشوار للمندوب')
     } finally {
       setAssigningClusterId(null)
     }
@@ -1384,7 +1379,6 @@ function ActiveTripsSection({
 function ActiveTripCard({
   run,
   driver,
-  onChanged,
 }: {
   run: Run
   driver: string
@@ -2167,7 +2161,6 @@ function ReturnReconcileItem({
    ───────────────────────────────────────────────────────────── */
 
 function SettlementHistoryDrawer({
-  hubId,
   batches,
   driverName,
   loading,

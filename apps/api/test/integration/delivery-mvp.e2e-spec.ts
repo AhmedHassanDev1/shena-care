@@ -366,9 +366,27 @@ describe('Delivery MVP: dispatch, verified handoff, courier delivery, COD settle
     expect(await settlement(back)).toMatchObject({ state: 'reconciliation_required', stops: { pendingReturns: 1, delivered: 0 } });
     await shipmentEvent(returned.shipmentId, { type: 'RECEIVED_BACK', barcode: returned.barcode }, hub.auth).expect(201);
     expect(await settlement(back)).toMatchObject({ state: 'settled', canComplete: true, cash: { codOrders: 0, zeroCodDeliveries: 0 } });
-    await complete(back).expect(201);
+    // Who may close a settled run: nobody unauthenticated, no customer, not another courier or another hub; its own courier, its hub and admin can.
+    const customer = await createActor(prisma, Role.CUSTOMER);
+    await http().post(`/fulfillment/delivery-batches/${back}/complete`).expect(401);
+    await http().post(`/fulfillment/delivery-batches/${back}/complete`).set(customer.auth).expect(403);
+    await http().post(`/fulfillment/delivery-batches/${back}/complete`).set(d1.auth).expect(404);
+    await http().post(`/fulfillment/delivery-batches/${back}/complete`).set(otherHub.auth).expect(404);
+    expect((await prisma.deliveryBatch.findUniqueOrThrow({ where: { id: back } })).status).toBe('dispatched');
+    await http().post(`/fulfillment/delivery-batches/${back}/complete`).set(d2.auth).expect(201); // its own courier, once it is settled
+    expect((await prisma.deliveryBatch.findUniqueOrThrow({ where: { id: back } })).completedAt).toBeInstanceOf(Date);
 
-    // Scope: another hub sees neither the run's settlement nor can close it.
+    // The settlement read is staff-only and hub-scoped: customers, couriers and other hubs get nothing.
+    await http().get(`/fulfillment/delivery-batches/${mixed}/settlement`).expect(401);
+    await http().get(`/fulfillment/delivery-batches/${mixed}/settlement`).set(customer.auth).expect(403);
+    await http().get(`/fulfillment/delivery-batches/${mixed}/settlement`).set(d1.auth).expect(403);
     await http().get(`/fulfillment/delivery-batches/${mixed}/settlement`).set(otherHub.auth).expect(404);
+    await http().get(`/fulfillment/delivery-batches/${mixed}/settlement`).set(admin.auth).expect(200);
+    await http().get('/fulfillment/delivery-batches/not-a-uuid/settlement').set(hub.auth).expect(404);
+    // Another hub cannot count or close this hub's run cash either.
+    await http().post('/ordering/settlements/rounds').set(otherHub.auth).send({ courierId: d1.id, locationId, runId: zero, reference: 'R-' + randomUUID(), countedTotal: 0 }).expect(403);
+
+    // A closed run cannot be re-opened by a late count or closed twice.
+    await complete(back).expect(400);
   });
 });

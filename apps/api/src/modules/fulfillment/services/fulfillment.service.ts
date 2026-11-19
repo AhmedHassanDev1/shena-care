@@ -1643,13 +1643,13 @@ export class FulfillmentService {
         });
       }
 
-      return tx.deliveryBatch.update({
-        where: { id: batchId },
-        data: {
-          status: 'completed',
-          completedAt: new Date()
-        }
+      // Claimed atomically so two concurrent closers cannot both complete (or re-complete) the run.
+      const claimed = await tx.deliveryBatch.updateMany({
+        where: { id: batchId, status: 'dispatched' },
+        data: { status: 'completed', completedAt: new Date() },
       });
+      if (claimed.count !== 1) throw new ConflictException('The run was completed concurrently');
+      return tx.deliveryBatch.findUniqueOrThrow({ where: { id: batchId } });
     });
   }
 
