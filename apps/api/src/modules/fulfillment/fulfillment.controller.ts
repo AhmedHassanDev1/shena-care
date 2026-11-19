@@ -174,6 +174,13 @@ export class FulfillmentController {
     return this.fulfillmentService.getDeliveryRun(id, actor);
   }
 
+  /** Settlement position of a run: delivered orders, cash to count, parcels still to take back, and what blocks closing it. */
+  @Get('delivery-batches/:id/settlement')
+  @Roles('ADMIN', 'HUB_OPERATOR')
+  async getRunSettlement(@Param('id') id: string, @CurrentUser() actor: FulfillmentActor) {
+    return this.fulfillmentService.getRunSettlement(id, actor);
+  }
+
   @Post('delivery-batches/:id/stops')
   @Roles('ADMIN', 'HUB_OPERATOR')
   async addStopsToBatch(@Param('id') id: string, @Body() dto: AddStopsToBatchDto, @CurrentUser() actor: FulfillmentActor) {

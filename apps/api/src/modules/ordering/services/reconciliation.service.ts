@@ -435,6 +435,25 @@ export class ReconciliationService {
   }
 
   /**
+   * Cash facts of the given orders, for the hub's view of a run: what was expected, what the courier declared and, once
+   * counted, the round (batch) that settled it. Orders without a collection (prepaid, cancelled) simply have no row.
+   */
+  async getCollectionFacts(orderIds: string[]) {
+    if (orderIds.length === 0) return [];
+    const rows = await this.prisma.paymentCollection.findMany({ where: { orderId: { in: orderIds } }, include: { settlementBatch: true } });
+    return rows.map(c => ({
+      orderId: c.orderId, status: c.status as string, expectedAmount: Number(c.expectedAmount),
+      declaredAmount: c.declaredAmount === null ? null : Number(c.declaredAmount),
+      countedAmount: c.collectedAmount === null ? null : Number(c.collectedAmount),
+      settlementBatchId: c.settlementBatchId,
+      batch: c.settlementBatch ? {
+        id: c.settlementBatch.id, reference: c.settlementBatch.reference, settledAt: c.settlementBatch.settledAt,
+        totalExpected: Number(c.settlementBatch.totalExpected), totalCollected: Number(c.settlementBatch.totalCollected),
+      } : null,
+    }));
+  }
+
+  /**
    * The cashier's physical count of one driver's declared cash at one hub (GLO-238). Every line must
    * be a delivered order whose cash that same driver declared on a run of that hub; counted amounts
    * are exact Decimal and the variance against expected is explicit (short/over). A reference is
@@ -591,9 +610,16 @@ export class ReconciliationService {
         where: { id: dto.runId },
         include: { stops: { include: { shipment: true } } },
       });
-      if (batch) {
-        const batchOrderIds = batch.stops.map(s => s.shipment.orderId);
-        targetOrderIds = targetOrderIds ? targetOrderIds.filter(id => batchOrderIds.includes(id)) : batchOrderIds;
+      if (!batch) throw new NotFoundException('Delivery run not found');
+      if (batch.locationId !== dto.locationId) throw new ConflictException({ code: 'RUN_OTHER_HUB', message: 'This run belongs to another hub' });
+      // Only parcels this run actually delivered carry cash for it: a failed attempt that a later run delivered is that run's cash.
+      const batchOrderIds = batch.stops
+        .filter(s => s.status === 'delivered' || (s.status === 'active' && s.shipment.status === 'delivered'))
+        .map(s => s.shipment.orderId);
+      targetOrderIds = targetOrderIds ? targetOrderIds.filter(id => batchOrderIds.includes(id)) : batchOrderIds;
+      // An empty scope is refused here: falling back to "no filter" would sweep the courier's other cash into this run.
+      if (targetOrderIds.length === 0) {
+        throw new ConflictException({ code: 'NO_OPEN_ROUND', message: 'This run has no delivered cash waiting to be counted at this hub' });
       }
     }
 

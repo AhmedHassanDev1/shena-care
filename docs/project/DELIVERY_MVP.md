@@ -24,6 +24,15 @@ Hub `/hub/dispatch`, Courier `/driver`, Admin, customer tracking (reads the same
    cash once (reference = idempotency key; a different count under the same reference or nothing left to count is a 409). A shortage/overage is
    recorded as a variance (`short`/`over`) for admin review, never silently settled. `runId`/`orderIds` scope a count to one run.
 
+6. **Run settlement states (server-owned).** `GET /fulfillment/delivery-batches/:id/settlement` (and `settlement` on every row of the hub run list)
+   returns one answer derived from the run's stops and the cash of the orders it *delivered*: `state` = `pending` (parcels on the road, declared
+   cash not yet counted, or nothing happened yet) · `reconciliation_required` (a failed parcel still in the courier's hands, delivered COD whose
+   cash was never declared, or a disputed collection) · `settled` (every delivery accounted for and every returned parcel back at the hub) ·
+   `completed`; plus `blockers`, `canSettleCash`, `canComplete`. A valid zero-COD run (prepaid parcels delivered) and a run whose only outcome
+   is a parcel taken back are `settled` with no cash to count. **`POST …/complete` is gated by the same rule** (409 `RUN_NOT_SETTLED` with the
+   blockers): an empty run, a run with uncounted cash, or one with an open return can never be closed. A count scoped by `runId` only sweeps
+   cash this run delivered (an unknown run is a 404, an empty scope a 409 `NO_OPEN_ROUND`, never "everything of the courier").
+
 ## Safety rules enforced here
 
 - A confirmed order's **quantity, unit price, total and COD amount cannot be edited from the Hub or Delivery** (the desk line editor was removed);
@@ -34,6 +43,7 @@ Hub `/hub/dispatch`, Courier `/driver`, Admin, customer tracking (reads the same
 ## Verification
 
 `test/integration/delivery-mvp.e2e-spec.ts` (smart dispatch + capacity + approval + reassignment, handoff gate and scan outcomes, courier
-scope, delivery/failed/retry/COD, one counted settlement), plus the existing fulfillment, COD, finance, driver and golden-journey suites.
+scope, delivery/failed/retry/COD, one counted settlement, and every settlement state: empty trip, outstanding cash, pending returns, counted COD,
+valid zero-COD, returned-only) and `test/unit/run-settlement.spec.ts`, plus the existing fulfillment, COD, finance, driver and golden-journey suites.
 Browser E2E on an isolated database covered: plan → approve → reassign → scan (wrong parcel refused) → dispatch → courier delivery with COD →
 failed delivery → receive back → cash count with a recorded shortage → close run, and another courier opening a foreign stop.

@@ -68,6 +68,25 @@ export const RUN_STATUS: Labelled = {
   completed: ['مكتمل', 'ok'],
 }
 
+/** The server's settlement state of a run (the same answer the Complete Trip gate uses). */
+export const RUN_SETTLEMENT_STATE: Labelled = {
+  pending: ['بانتظار التسوية', 'pending'],
+  reconciliation_required: ['يتطلب مطابقة', 'warn'],
+  settled: ['تمت التسوية', 'ok'],
+  completed: ['مغلق', 'ok'],
+}
+
+/** What still stands between a run and its closure; `n` is the count the server reports. */
+export const RUN_BLOCKER: Record<string, (n: number) => string> = {
+  NO_STOPS: () => 'المشوار بدون طرود — لا يمكن تسويته أو إغلاقه',
+  NO_OUTCOMES: () => 'لا توجد نتيجة تسليم أو إرجاع مسجّلة بعد',
+  STOPS_IN_TRANSIT: (n) => `${n} طرد لسه في الطريق`,
+  PENDING_RETURNS: (n) => `${n} طرد مرتجع لسه مع المندوب — امسح باركوده`,
+  CASH_UNDECLARED: (n) => `${n} طلب اتسلّم من غير ما المندوب يعلن النقدية`,
+  CASH_AWAITING_COUNT: (n) => `نقدية ${n} طلب مستنية العدّ`,
+  CASH_DISPUTED: (n) => `${n} تحصيل متنازع عليه — محتاج مراجعة إدارية`,
+}
+
 export const PAYABLE_STATUS: Labelled = {
   open: ['مفتوح', 'warn'],
   ready_to_pay: ['جاهز للدفع', 'warn'],
