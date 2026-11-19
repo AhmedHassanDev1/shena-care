@@ -14,7 +14,7 @@ import { OutboxService } from '../../operations/services/outbox.service';
 import { SupportService } from '../../operations/services/support.service';
 import { expiryProblem } from './receiving-policy';
 import { derivePrintState, PRINT_EVENT_TYPES_FOR_STATE } from './print-state';
-import { assessRunSettlement } from './run-settlement';
+import { assessRunSettlement, runCodExposure } from './run-settlement';
 
 /** What the service receives: the supplier-goods endpoint still requires the printed expiry (the DTO); the Hub desk's preparation flow does not capture it. */
 export type ReceiveAllocatedGoodsInput = Omit<ReceiveAllocatedGoodsDto, 'expiryDate'> & { expiryDate?: string };
@@ -1765,6 +1765,11 @@ export class FulfillmentService {
     const collections = await this.reconciliation.getCollectionFacts([...new Set(rows.flatMap(run => run.stops.map(stop => stop.shipment.orderId)))]);
     const collectionOf = new Map(collections.map(c => [c.orderId, c]));
     return { total, items: rows.map(run => ({
+      // Cash the whole trip should bring back (parcels still on the road included); the settlement block below only counts delivered orders.
+      cod: runCodExposure(
+        run.stops.map(stop => ({ stopStatus: stop.status, shipmentStatus: stop.shipment.status, shipmentId: stop.shipmentId, orderId: stop.shipment.orderId })),
+        run.stops.map(stop => collectionOf.get(stop.shipment.orderId)).filter((c): c is NonNullable<typeof c> => !!c),
+      ),
       settlement: (() => {
         const a = assessRunSettlement({
           runStatus: run.status,
