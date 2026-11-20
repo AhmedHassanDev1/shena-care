@@ -106,6 +106,23 @@ export function trackingSteps(order: OrderTracking, m: Messages, locale: Locale)
 }
 
 /** «عمارة ١٤، شارع مكرم عبيد، مدينة نصر، القاهرة»: the stored governorate (Cairo/Giza) in the interface language. */
+/**
+ * The reference a customer reads aloud or types: `ORD-1A2B3C4D5E6F7A8B` is shown as `ORD-1A2B-3C4D-5E6F-7A8B`. Display only — the full
+ * stored number is what is copied and what tracking looks up, so nothing internal changes.
+ */
+export function groupOrderReference(orderNumber: string): string {
+  const match = /^ORD-([0-9A-Za-z]{16})$/.exec(orderNumber);
+  return match ? `ORD-${match[1].match(/.{4}/g)!.join('-')}` : orderNumber;
+}
+
+/** What the customer saved on the active lines: list price × quantity minus what the server's subtotal charges. Never negative. */
+export function orderDiscount(order: Pick<OrderTracking, 'items' | 'amounts'>): number {
+  const list = order.items
+    .filter((item) => item.lineState !== 'removed' && item.lineState !== 'replaced')
+    .reduce((sum, item) => sum + Math.round(item.unitPrice * 100) * item.quantity, 0);
+  return Math.max(0, list - Math.round(order.amounts.subtotal * 100)) / 100;
+}
+
 export function addressLine(address: OrderTracking['deliveryAddress'], m: Messages): string {
   const governorate = toGovernorate(address.governorate);
   const governorateName = governorate === 'Cairo' ? m.checkoutCairo : governorate === 'Giza' ? m.checkoutGiza : address.governorate;

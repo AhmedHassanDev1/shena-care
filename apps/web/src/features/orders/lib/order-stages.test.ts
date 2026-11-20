@@ -1,6 +1,6 @@
 import { getMessages } from '@/lib/i18n/messages';
 import type { CustomerStage, OrderTracking } from '@/lib/orders';
-import { addressLine, isFinished, stageTone, trackingSteps } from './order-stages';
+import { addressLine, groupOrderReference, isFinished, orderDiscount, stageTone, trackingSteps } from './order-stages';
 
 const m = getMessages('ar');
 
@@ -57,6 +57,19 @@ describe('order stage helpers', () => {
     expect(stageTone('CANCELLED')).toBe('gray');
     expect(isFinished('CANCELLED')).toBe(true);
     expect(isFinished('OUT_FOR_DELIVERY')).toBe(false);
+  });
+
+  it('groups the order reference for reading without changing what is copied', () => {
+    expect(groupOrderReference('ORD-1A2B3C4D5E6F7A8B')).toBe('ORD-1A2B-3C4D-5E6F-7A8B');
+    expect(groupOrderReference('ORD-1')).toBe('ORD-1');
+  });
+
+  it('derives the saving from list prices against the server subtotal, never negative', () => {
+    const line = (unitPrice: number, quantity: number, lineState?: 'removed') => ({ unitPrice, quantity, lineState }) as OrderTracking['items'][number];
+    const base = order('RECEIVED');
+    expect(orderDiscount({ ...base, items: [line(100, 2), line(60, 1)], amounts: { ...base.amounts, subtotal: 230 } })).toBe(30);
+    expect(orderDiscount({ ...base, items: [line(100, 2), line(60, 1, 'removed')], amounts: { ...base.amounts, subtotal: 200 } })).toBe(0);
+    expect(orderDiscount({ ...base, items: [line(100, 1)], amounts: { ...base.amounts, subtotal: 120 } })).toBe(0);
   });
 
   it('writes the stored governorate in the interface language', () => {
