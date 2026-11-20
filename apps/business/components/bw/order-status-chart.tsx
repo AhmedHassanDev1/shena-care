@@ -229,7 +229,7 @@ export function OrderStatusHorizontalBarChart({
               {isHovered && (
                 <div
                   role="tooltip"
-                  className="bw-glass-raised pointer-events-none absolute -top-8 start-1/2 -translate-x-1/2 z-20 whitespace-nowrap rounded-bw-field px-2.5 py-1 text-[11px] text-bw-ink shadow-bw-card animate-in fade-in zoom-in-95 duration-150"
+                  className="bw-glass-raised pointer-events-none absolute -top-8 start-1/2 -translate-x-1/2 z-20 whitespace-nowrap rounded-bw-field px-2.5 py-1 text-[11px] text-bw-ink shadow-bw-card animate-in fade-in zoom-in-95 duration-150 max-w-[calc(100vw-2rem)] truncate"
                 >
                   <span className="font-semibold">{meta.label}: </span>
                   <span><bdi className="bw-code">{item.count}</bdi> طلب ({sharePercent}%) · اضغط للتصفية</span>

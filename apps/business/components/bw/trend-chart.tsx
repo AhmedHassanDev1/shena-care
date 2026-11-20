@@ -54,14 +54,23 @@ export function TrendChart({ points, formatValue, formatAxis, ariaLabel, emptyLa
 }) {
   const HEIGHT = height
   const wrap = React.useRef<HTMLDivElement>(null)
-  const [width, setWidth] = React.useState(640)
+  const [width, setWidth] = React.useState(320)
   const [active, setActive] = React.useState<number | null>(null)
   const uid = React.useId().replace(/:/g, '')
 
   React.useEffect(() => {
     const node = wrap.current
     if (!node) return
-    const observer = new ResizeObserver(([entry]) => setWidth(Math.max(240, Math.round(entry.contentRect.width))))
+    const update = () => {
+      const w = node.getBoundingClientRect().width
+      if (w > 0) setWidth(Math.max(240, Math.round(w)))
+    }
+    update()
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry && entry.contentRect.width > 0) {
+        setWidth(Math.max(240, Math.round(entry.contentRect.width)))
+      }
+    })
     observer.observe(node)
     return () => observer.disconnect()
   }, [])
@@ -111,10 +120,10 @@ export function TrendChart({ points, formatValue, formatAxis, ariaLabel, emptyLa
   const tipLeft = active === null ? 0 : Math.min(width - 165, Math.max(10, coords[active][0] - 80))
 
   return (
-    <div>
+    <div className="w-full max-w-full min-w-0 overflow-hidden">
       <div
         ref={wrap}
-        className="relative touch-pan-y outline-none focus-visible:rounded-bw-field focus-visible:ring-2 focus-visible:ring-bw-focus/60"
+        className="relative w-full max-w-full overflow-hidden touch-pan-y outline-none focus-visible:rounded-bw-field focus-visible:ring-2 focus-visible:ring-bw-focus/60"
         tabIndex={0}
         role="img"
         aria-label={ariaLabel}
@@ -124,7 +133,14 @@ export function TrendChart({ points, formatValue, formatAxis, ariaLabel, emptyLa
         onBlur={() => setActive(null)}
         dir="ltr"
       >
-        <svg width={width} height={HEIGHT} viewBox={`0 0 ${width} ${HEIGHT}`} className="block overflow-visible" aria-hidden>
+        <svg
+          width={width}
+          height={HEIGHT}
+          viewBox={`0 0 ${width} ${HEIGHT}`}
+          className="block w-full max-w-full overflow-hidden"
+          style={{ width: '100%', maxWidth: '100%', height: HEIGHT }}
+          aria-hidden
+        >
           <defs>
             <linearGradient id={`a${uid}`} x1="0" x2="0" y1="0" y2="1">
               <stop offset="0%" stopColor={color} stopOpacity="0.28" />

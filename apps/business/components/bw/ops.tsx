@@ -262,8 +262,8 @@ export function BarList({ items, formatValue, emptyLabel }: {
 
 export function PanelHead({ title, aside, className }: { title: React.ReactNode; aside?: React.ReactNode; className?: string }) {
   return (
-    <div className={cn('flex min-h-12 items-center justify-between gap-3 border-b border-bw-line px-4 py-2.5', className)}>
-      <h2 className="text-bw-body font-semibold text-bw-ink">{title}</h2>
+    <div className={cn('flex flex-wrap min-h-12 items-center justify-between gap-2.5 border-b border-bw-line px-4 py-2.5 min-w-0', className)}>
+      <h2 className="text-bw-body font-semibold text-bw-ink min-w-0">{title}</h2>
       {aside}
     </div>
   )

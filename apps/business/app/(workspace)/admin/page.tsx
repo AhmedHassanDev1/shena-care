@@ -111,7 +111,7 @@ function AdminOverview() {
   const distribution = data?.orderDistribution
 
   return (
-    <main className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
+    <main className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 py-5 sm:px-6 lg:px-8 lg:py-6 min-w-0 max-w-full overflow-x-hidden">
       <PageHeader
         title="نظرة عامة"
         meta={<>آخر تحديث {relativeTime}</>}
@@ -190,9 +190,9 @@ function AdminOverview() {
       </StatStrip>
 
       {/* Main operational grid: Daily Orders Chart (7 cols) side-by-side with Action Required (5 cols) on desktop */}
-      <div className="grid gap-4 lg:grid-cols-12 lg:items-start">
+      <div className="grid gap-4 lg:grid-cols-12 lg:items-start min-w-0 max-w-full">
         {/* Daily Orders Line Chart */}
-        <section aria-label="اتجاه الطلبات" className="bw-panel lg:col-span-7">
+        <section aria-label="اتجاه الطلبات" className="bw-panel min-w-0 max-w-full overflow-hidden lg:col-span-7">
           <PanelHead
             title={
               <span className="flex flex-wrap items-baseline gap-x-3">
@@ -214,7 +214,7 @@ function AdminOverview() {
               />
             ) : undefined}
           />
-          <div className="p-4 pb-3">
+          <div className="p-4 pb-3 min-w-0 max-w-full overflow-hidden">
             {initial ? (
               <Skeleton className="h-[160px] w-full" />
             ) : (
@@ -232,7 +232,7 @@ function AdminOverview() {
         </section>
 
         {/* Needs action now: sorted by priority and age, refined ticket rows */}
-        <section aria-label="تحتاج إجراء الآن" className="bw-panel flex flex-col lg:col-span-5">
+        <section aria-label="تحتاج إجراء الآن" className="bw-panel min-w-0 max-w-full flex flex-col lg:col-span-5">
           <PanelHead
             title={
               <span className="flex items-center gap-2">
@@ -260,23 +260,23 @@ function AdminOverview() {
               <p className="max-w-xs text-bw-small text-bw-ink-soft">أي نقص توريد أو قرار عميل أو فرق نقدي هيظهر هنا فورًا.</p>
             </div>
           ) : (
-            <ul className="divide-y divide-bw-line">
+            <ul className="divide-y divide-bw-line min-w-0 max-w-full">
               {shown.map((item) => {
                 const Icon = ACTION_ICON[item.type] ?? TriangleAlert
                 return (
-                  <li key={item.id} className="bw-row flex flex-col gap-2 p-3.5 sm:p-4">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex flex-wrap items-center gap-2 min-w-0">
+                  <li key={item.id} className="bw-row flex flex-col gap-2 p-3.5 sm:p-4 min-w-0">
+                    <div className="flex flex-wrap items-center justify-between gap-2 min-w-0">
+                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
                         <span className={cn('grid size-7 shrink-0 place-items-center rounded-bw-field border', SEVERITY_BOX[item.severity])}>
                           <Icon className="size-3.5" aria-hidden />
                         </span>
                         <span className="font-semibold text-bw-small text-bw-ink truncate">{item.categoryLabel}</span>
                         {item.orderNumber ? (
-                          <span className="inline-flex items-center rounded bg-bw-veil-3 px-1.5 py-0.5 text-[11px] font-mono text-bw-ink">
+                          <span className="inline-flex items-center rounded bg-bw-veil-3 px-1.5 py-0.5 text-[11px] font-mono text-bw-ink shrink-0">
                             <bdi className="bw-code">{item.orderNumber.replace(/^ORD-/, '#')}</bdi>
                           </span>
                         ) : null}
-                        <span className={cn('rounded-full border px-2 py-0.5 text-[10px] font-semibold', SEVERITY_BADGE[item.severity].className)}>
+                        <span className={cn('rounded-full border px-2 py-0.5 text-[10px] font-semibold shrink-0', SEVERITY_BADGE[item.severity].className)}>
                           {SEVERITY_BADGE[item.severity].label}
                         </span>
                       </div>
@@ -288,8 +288,8 @@ function AdminOverview() {
                         <ArrowLeft className="size-3 text-bw-ink-subtle" aria-hidden />
                       </Link>
                     </div>
-                    <div className="flex items-baseline justify-between gap-3 ps-9">
-                      <p className="text-[12px] text-bw-ink-soft line-clamp-2">{item.description}</p>
+                    <div className="flex items-baseline justify-between gap-3 ps-8 sm:ps-9 min-w-0">
+                      <p className="text-[12px] text-bw-ink-soft line-clamp-2 min-w-0 break-words">{item.description}</p>
                       <span className="shrink-0 inline-flex items-center gap-1 text-[11px] text-bw-ink-subtle">
                         <Clock className="size-3" aria-hidden />
                         <span>{formatRelativeTime(item.createdAt)}</span>
@@ -304,7 +304,7 @@ function AdminOverview() {
       </div>
 
       {/* Horizontal Bar Chart for Order Status Distribution */}
-      <section aria-label="توزيع الطلبات حسب الحالة" className="bw-panel p-4 sm:p-5">
+      <section aria-label="توزيع الطلبات حسب الحالة" className="bw-panel p-4 sm:p-5 min-w-0 max-w-full overflow-hidden">
         <OrderStatusHorizontalBarChart
           items={distribution?.items ?? []}
           total={distribution?.total ?? 0}
