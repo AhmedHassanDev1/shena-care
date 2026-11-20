@@ -426,24 +426,39 @@ export class OrderingService {
 
   /** Order numbers and status only — no customer PII — for operational lists (GLO-239). */
   /** Admin order list (C0 W2): newest first, filter by status or order number / customer name / phone. */
-  async listOrdersForStaff(filter: { status?: OrderStatus; q?: string; take: number; skip: number }) {
+  async listOrdersForStaff(filter: { status?: string; q?: string; take: number; skip: number }) {
     const q = filter.q?.trim();
+    let statusFilter: Prisma.OrderWhereInput['status'];
+    if (filter.status === 'active') {
+      statusFilter = { in: ['placed', 'confirmed', 'packing'] };
+    } else if (filter.status === 'terminal') {
+      statusFilter = { in: ['cancelled', 'returned'] };
+    } else if (filter.status && Object.values(OrderStatus).includes(filter.status as OrderStatus)) {
+      statusFilter = filter.status as OrderStatus;
+    }
     const where: Prisma.OrderWhereInput = {
-      ...(filter.status ? { status: filter.status } : {}),
+      ...(statusFilter ? { status: statusFilter } : {}),
       ...(q ? { OR: [
         { orderNumber: { contains: q, mode: 'insensitive' } },
         { customerName: { contains: q, mode: 'insensitive' } },
         { customerPhone: { contains: q } },
       ] } : {}),
     };
-    const [total, rows] = await Promise.all([
+    const [total, missingPinCount, rows] = await Promise.all([
       this.prisma.order.count({ where }),
+      this.prisma.order.count({
+        where: {
+          ...where,
+          OR: [{ latitude: null }, { longitude: null }],
+          status: { notIn: ['delivered', 'cancelled', 'returned'] },
+        },
+      }),
       this.prisma.order.findMany({
         where, orderBy: { createdAt: 'desc' }, take: filter.take, skip: filter.skip,
         include: { items: { where: { lineState: 'active' }, select: { quantity: true } } },
       }),
     ]);
-    return { total, items: rows.map(order => ({
+    return { total, missingPinCount, items: rows.map(order => ({
       id: order.id, orderNumber: order.orderNumber, status: order.status, customerName: order.customerName,
       governorate: order.governorate, area: order.area, paymentMethod: order.paymentMethod,
       totalAmount: Number(order.totalAmount), codAmount: order.codAmount === null ? null : Number(order.codAmount),
