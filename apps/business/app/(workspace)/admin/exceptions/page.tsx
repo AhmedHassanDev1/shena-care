@@ -505,7 +505,7 @@ function QueueCard({
           <strong className="text-bw-body font-semibold text-bw-ink">{title}</strong>
           <span
             className={cn(
-              'inline-flex size-5 items-center justify-center rounded-full text-[11px] font-bold text-white',
+              'inline-flex size-5 items-center justify-center rounded-full text-[11px] font-bold text-bw-page',
               tone === 'danger' ? 'bg-bw-rose' : 'bg-bw-amber',
             )}
           >
