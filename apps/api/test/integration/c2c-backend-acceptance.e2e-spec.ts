@@ -226,7 +226,9 @@ describe('C1 backend Cart-to-Cash acceptance (GLO-235)', () => {
     const custody = await http().post(`/fulfillment/shipments/${shipmentId}/events`).set(driver.auth).send({ type: 'HANDOFF_SCANNED', barcode }).expect(201);
     expect((await http().post(`/fulfillment/shipments/${shipmentId}/events`).set(driver.auth).send({ type: 'HANDOFF_SCANNED', barcode }).expect(201)).body.id).toBe(custody.body.id);
     await http().post(`/fulfillment/delivery-batches/${firstRun}/dispatch`).set(driver.auth).expect(403);
-    await http().post(`/fulfillment/delivery-batches/${firstRun}/dispatch`).set(hub.auth).expect(201);
+    // The courier's custody scan was the last one, so the run is released by itself (no manual dispatch needed).
+    expect((await prisma.deliveryBatch.findUniqueOrThrow({ where: { id: firstRun } })).status).toBe('dispatched');
+    await http().post(`/fulfillment/delivery-batches/${firstRun}/dispatch`).set(hub.auth).expect(400);
     expect((await prisma.order.findUniqueOrThrow({ where: { id: order.id } })).status).toBe('shipped');
     const expected = await prisma.paymentCollection.findUniqueOrThrow({ where: { orderId: order.id } });
     expect(expected).toMatchObject({ status: 'expected', locationId: hubId });
@@ -239,7 +241,7 @@ describe('C1 backend Cart-to-Cash acceptance (GLO-235)', () => {
     secondRun = (await http().post('/fulfillment/delivery-batches').set(hub.auth).send({ hubId, name: 'Evening run', driverId: driver.id }).expect(201)).body.id;
     await http().post(`/fulfillment/delivery-batches/${secondRun}/stops`).set(hub.auth).send({ stops: [{ shipmentId }] }).expect(201);
     await http().post(`/fulfillment/shipments/${shipmentId}/events`).set(driver.auth).send({ type: 'HANDOFF_SCANNED', barcode }).expect(201);
-    await http().post(`/fulfillment/delivery-batches/${secondRun}/dispatch`).set(hub.auth).expect(201);
+    expect((await prisma.deliveryBatch.findUniqueOrThrow({ where: { id: secondRun } })).status).toBe('dispatched');
     expect(await prisma.orderStatusEvent.count({ where: { orderId: order.id, status: 'shipped' } })).toBe(1);
   });
 
@@ -255,6 +257,18 @@ describe('C1 backend Cart-to-Cash acceptance (GLO-235)', () => {
     expect((await prisma.deliveryStop.findMany({ where: { shipmentId }, orderBy: { createdAt: 'asc' } })).map(s => s.status)).toEqual(['failed', 'delivered']);
     const tracking = await http().get(`/ordering/orders/${order.orderNumber}/tracking`).set(customer.auth).expect(200);
     expect(tracking.body.status).toBe('DELIVERED');
+
+    // The delivery cost is frozen from the price the system quoted at checkout; nobody types it, and a hand-recorded value is never overwritten.
+    const quote = await prisma.checkoutQuote.findUniqueOrThrow({ where: { orderId: order.id } });
+    const quotedBase = Number((quote.snapshot as { deliveryFeeBase?: number }).deliveryFeeBase);
+    expect(quotedBase).toBeGreaterThan(0);
+    let cost = await prisma.orderCostRecord.findUnique({ where: { orderId: order.id } });
+    for (let i = 0; i < 30 && !cost?.courierCost; i += 1) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      cost = await prisma.orderCostRecord.findUnique({ where: { orderId: order.id } });
+    }
+    expect(Number(cost?.courierCost)).toBe(quotedBase);
+    expect(cost?.courierRecordedBy).toBe('system:QUOTE_BASE_FEE');
   });
 
   it('8. physical cash count settles exactly once at the right hub for the right courier', async () => {

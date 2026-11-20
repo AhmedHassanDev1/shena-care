@@ -119,6 +119,8 @@ export class AllocateShipmentDto {
 export const DELIVERY_FAILURE_REASONS = [
   'CUSTOMER_UNREACHABLE', 'CUSTOMER_REFUSED', 'ADDRESS_NOT_FOUND', 'PIN_MISMATCH',
   'NOT_SERVICEABLE', 'RESCHEDULE_REQUESTED', 'PACKAGE_DAMAGED', 'OTHER',
+  // The courier app's own wording: customer not at the address, parcel refused as not matching, wrong or damaged item.
+  'CUSTOMER_NOT_FOUND', 'ITEM_MISMATCH', 'WRONG_ITEM',
 ] as const;
 
 export class UpdateShipmentStatusDto {

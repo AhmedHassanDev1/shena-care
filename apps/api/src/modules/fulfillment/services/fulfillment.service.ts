@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { OrderingService, PaymentsService, ReconciliationService, navigationUrl } from '../../ordering/public';
 import { CatalogService, ProductIdentityService } from '../../catalog/public';
@@ -128,6 +128,8 @@ export interface ShipmentDetail {
 
 @Injectable()
 export class FulfillmentService {
+  private readonly logger = new Logger(FulfillmentService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly orderingService: OrderingService,
@@ -1259,7 +1261,10 @@ export class FulfillmentService {
         where: { shipmentId, type: 'HANDOFF_SCANNED', ...(attempt ? { createdAt: { gte: attempt.createdAt } } : {}) },
         orderBy: { createdAt: 'asc' },
       });
-      if (existing) return existing;
+      if (existing) {
+        if (scope.as === 'driver') await this.releaseRunWhenCustodyComplete(scope.batch.id, actor.id);
+        return existing;
+      }
     }
     if (dto.type === 'OUT_FOR_DELIVERY' || dto.type === 'HANDOFF_SCANNED') {
       if (shipment.status !== 'packed' && shipment.status !== 'dispatched') {
@@ -1314,7 +1319,7 @@ export class FulfillmentService {
       return this.prisma.shipmentEvent.findFirstOrThrow({ where: { shipmentId, type: dto.type }, orderBy: { createdAt: 'desc' } });
     }
 
-    return this.prisma.shipmentEvent.create({
+    const recorded = await this.prisma.shipmentEvent.create({
       data: {
         shipmentId,
         type: dto.type,
@@ -1323,6 +1328,8 @@ export class FulfillmentService {
         ...(dto.type === 'PRINT_FAILED' && dto.document ? { reasonCode: dto.document } : {}),
       }
     });
+    if (dto.type === 'HANDOFF_SCANNED' && scope.as === 'driver') await this.releaseRunWhenCustodyComplete(scope.batch.id, actor.id);
+    return recorded;
   }
 
   /**
@@ -1394,10 +1401,10 @@ export class FulfillmentService {
    * not left the hub is cancelled (with its planning stop removed); one in a driver's custody or on a
    * dispatched run refuses. Returns whether goods were already received for the order.
    */
-  async cancelShipmentForOrder(tx: Prisma.TransactionClient, orderId: string, actorId: string): Promise<{ goodsReceived: boolean }> {
+  async cancelShipmentForOrder(tx: Prisma.TransactionClient, orderId: string, actorId: string): Promise<{ goodsReceived: boolean; releasedFromBatchIds: string[] }> {
     const shipment = await tx.shipment.findUnique({ where: { orderId }, include: { deliveryStops: { where: { status: 'active' }, include: { batch: true } } } });
     const receipts = (await tx.fulfillmentReceipt.aggregate({ where: { orderId }, _sum: { quantity: true } }))._sum.quantity ?? 0;
-    if (!shipment) return { goodsReceived: receipts > 0 };
+    if (!shipment) return { goodsReceived: receipts > 0, releasedFromBatchIds: [] };
     if (!CANCELLABLE.includes(shipment.status) || shipment.deliveryStops.some(stop => stop.batch.status !== 'planning')) {
       throw new ConflictException({ code: 'CANCELLATION_TOO_LATE', message: `The parcel is already ${shipment.status}; use the delivery return flow` });
     }
@@ -1406,7 +1413,25 @@ export class FulfillmentService {
     if (claimed.count !== 1) throw new ConflictException('Shipment changed concurrently; retry');
     await tx.shipmentPreparationSession.updateMany({ where: { shipmentId: shipment.id, status: PreparationSessionStatus.in_progress }, data: { status: PreparationSessionStatus.failed, completedAt: new Date() } });
     await tx.shipmentEvent.create({ data: { shipmentId: shipment.id, type: 'ORDER_CANCELLED', actorId } });
-    return { goodsReceived: receipts > 0 };
+    const releasedFromBatchIds = [...new Set(shipment.deliveryStops.filter(stop => stop.batch.status === 'planning').map(stop => stop.batchId))];
+    return { goodsReceived: receipts > 0, releasedFromBatchIds };
+  }
+
+  /**
+   * Takes the row lock on an order's parcel first, the same order the dispatch path uses (parcel, then order), so a cancellation
+   * racing a dispatch waits instead of deadlocking.
+   */
+  async lockShipmentForOrder(tx: Prisma.TransactionClient, orderId: string): Promise<void> {
+    await tx.$queryRaw`SELECT id FROM "fulfillment"."shipments" WHERE order_id = ${orderId}::uuid FOR UPDATE`;
+  }
+
+  /**
+   * After a stop left a planning run (its order was cancelled) the remaining parcels may already all be in the courier's hands:
+   * the run then leaves exactly as if the courier had just scanned the last one. Best effort; the Hub can still dispatch by hand.
+   */
+  async releaseRunIfCustodyComplete(batchId: string): Promise<void> {
+    const batch = await this.prisma.deliveryBatch.findUnique({ where: { id: batchId }, select: { driverId: true } });
+    if (batch?.driverId) await this.releaseRunWhenCustodyComplete(batchId, batch.driverId);
   }
 
   /**
@@ -1584,6 +1609,34 @@ export class FulfillmentService {
   }
 
   async dispatchBatch(batchId: string, actor: FulfillmentActor) {
+    return this.releaseBatch(batchId, async batch => {
+      if (await this.resolveBatchScope(batch, actor) === 'driver') throw new ForbiddenException('Hub access is required');
+    });
+  }
+
+  /**
+   * The courier's last label scan releases the run by itself: once every parcel is in the assigned courier's hands the
+   * run leaves the hub, the customer's order becomes "with the courier" and the Active tab / delivery buttons light up.
+   * It runs the same checks as a manual dispatch; if any of them refuses (cancelled order, delivery PIN, ...) the run simply
+   * stays in planning for the hub to resolve, and the scan itself is never undone.
+   */
+  private async releaseRunWhenCustodyComplete(batchId: string, courierId: string) {
+    try {
+      const batch = await this.prisma.deliveryBatch.findUnique({
+        where: { id: batchId },
+        include: { stops: { include: { shipment: { include: { events: { where: { type: 'HANDOFF_SCANNED' }, select: { createdAt: true } } } } } } },
+      });
+      if (!batch || batch.status !== 'planning' || batch.driverId !== courierId) return;
+      const active = batch.stops.filter(stop => stop.status === 'active');
+      if (active.length === 0) return;
+      if (!active.every(stop => stop.shipment.events.some(event => event.createdAt >= stop.createdAt))) return;
+      await this.releaseBatch(batchId, async () => undefined);
+    } catch (error) {
+      this.logger.warn(`Run ${batchId} stays in planning after the courier's last scan: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  private async releaseBatch(batchId: string, authorize: (batch: { locationId: string | null; driverId: string | null }) => Promise<void>) {
     if (!this.isUuid(batchId)) throw new BadRequestException('Invalid batch ID');
 
     const dispatched = await this.prisma.$transaction(async (tx) => {
@@ -1592,7 +1645,7 @@ export class FulfillmentService {
         include: { stops: { include: { shipment: true } } }
       });
       if (!batch) throw new NotFoundException('Batch not found');
-      if (await this.resolveBatchScope(batch, actor) === 'driver') throw new ForbiddenException('Hub access is required');
+      await authorize(batch);
       if (batch.status !== 'planning') throw new BadRequestException('Batch is already dispatched/completed');
       if (batch.stops.length === 0) throw new BadRequestException('Cannot dispatch an empty batch');
       for (const stop of batch.stops) {
@@ -2004,7 +2057,9 @@ export class FulfillmentService {
       shipmentId: stop.shipmentId, type: 'HANDOFF_SCANNED', actorId: actor.id,
       notes: role === 'courier' ? 'Received by the courier' : `Handed over by ${role} ${actor.id} to courier ${batch.driverId ?? 'unassigned'}`,
     } });
-    return progress({ outcome: 'SCANNED', shipmentId: stop.shipmentId, orderId: stop.shipment.orderId, handedNow: stop.shipmentId });
+    const result = progress({ outcome: 'SCANNED', shipmentId: stop.shipmentId, orderId: stop.shipment.orderId, handedNow: stop.shipmentId });
+    if (role === 'courier' && result.isComplete) await this.releaseRunWhenCustodyComplete(batch.id, actor.id);
+    return result;
   }
 
   /**

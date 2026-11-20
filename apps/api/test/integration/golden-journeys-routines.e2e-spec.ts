@@ -112,7 +112,8 @@ describe('Golden journeys 2-4: routines to delivery (e2e)', () => {
     const batch = (await http().post('/fulfillment/delivery-batches').set(hub.auth).send({ hubId: locationId, name: 'Routine run', driverId: driver.id }).expect(201)).body as { id: string };
     await http().post(`/fulfillment/delivery-batches/${batch.id}/stops`).set(hub.auth).send({ stops: [{ shipmentId, sequence: 1 }] }).expect(201);
     await event(shipmentId, driver, { type: 'HANDOFF_SCANNED', barcode }).expect(201);
-    await http().post(`/fulfillment/delivery-batches/${batch.id}/dispatch`).set(hub.auth).expect(201);
+    // The courier's last label scan releases the run by itself.
+    expect((await prisma.deliveryBatch.findUniqueOrThrow({ where: { id: batch.id } })).status).toBe('dispatched');
     await event(shipmentId, driver, { type: 'DELIVERED', collectedAmount: order.codAmount }).expect(201);
     expect((await prisma.order.findUniqueOrThrow({ where: { id: order.id } })).status).toBe('delivered');
     const settled = await http().post('/ordering/settlements/batch').set(hub.auth).send({

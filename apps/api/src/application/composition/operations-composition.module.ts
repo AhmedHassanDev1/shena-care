@@ -18,6 +18,7 @@ import { BuyListController } from './controllers/buy-list.controller';
 import { PurchaseBatchController } from './controllers/purchase-batch.controller';
 import { OrderCostController } from './controllers/order-cost.controller';
 import { OrderCostService } from './services/order-cost.service';
+import { OrderCostDeliveryListener } from './services/order-cost-delivery.listener';
 import { ProfitService } from './services/profit.service';
 import { OrderProfitabilityService, PackingReadinessService } from './services/order-profitability.service';
 
@@ -28,6 +29,6 @@ import { OrderProfitabilityService, PackingReadinessService } from './services/o
 @Module({
   imports: [OrderingModule, FulfillmentModule, SourcingModule, OperationsModule, AccountsModule, CatalogModule],
   controllers: [CashSettlementController, OrderCancellationController, OperationsQueueController, WorkspaceController, AdminOrdersController, CustomerOrderActionsController, FinanceController, BuyListController, PurchaseBatchController, OrderCostController],
-  providers: [OrderCancellationService, FinanceReportService, OrderCostService, ProfitService, OrderProfitabilityService, PackingReadinessService],
+  providers: [OrderCancellationService, FinanceReportService, OrderCostService, OrderCostDeliveryListener,ProfitService, OrderProfitabilityService, PackingReadinessService],
 })
 export class OperationsCompositionModule {}

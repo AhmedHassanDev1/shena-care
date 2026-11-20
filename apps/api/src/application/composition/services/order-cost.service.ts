@@ -107,6 +107,45 @@ export class OrderCostService {
     return result;
   }
 
+  /**
+   * The delivery cost of an order, taken from what the system itself priced at checkout: the distance-based base fee frozen in the
+   * order's quote (`deliveryFeeBase`). The customer pays part of it (`shippingFee`, smaller for bigger invoices) and the company
+   * carries the rest, so the profit report derives the company's share as base − customer fee. Orders placed before the base fee
+   * was stored fall back to the Settings per-delivery cost. Never overwrites a cost someone already recorded; nothing is invented
+   * when neither source exists.
+   */
+  async snapshotCourierCost(orderId: string): Promise<{ recorded: boolean; courierCost: string | null; source: 'QUOTE_BASE_FEE' | 'SETTINGS_DEFAULT' | null }> {
+    const order = await this.prisma.order.findUnique({ where: { id: orderId }, select: { id: true, checkoutQuote: { select: { snapshot: true } } } });
+    if (!order) return { recorded: false, courierCost: null, source: null };
+    const base = (order.checkoutQuote?.snapshot as { deliveryFeeBase?: unknown } | null | undefined)?.deliveryFeeBase;
+    const fromQuote = typeof base === 'number' && Number.isFinite(base) && base >= 0 ? base : null;
+    const fromSettings = this.settings.effective<number | null>(SETTING_KEYS.deliveryInternalCost);
+    const cost = fromQuote ?? (typeof fromSettings === 'number' ? fromSettings : null);
+    if (cost === null) return { recorded: false, courierCost: null, source: null };
+    const source = fromQuote !== null ? 'QUOTE_BASE_FEE' : 'SETTINGS_DEFAULT';
+    const value = new Prisma.Decimal(cost);
+
+    return this.prisma.$transaction(async tx => {
+      await tx.$queryRaw`SELECT pg_advisory_xact_lock(44100, hashtext(${orderId}))::text AS locked`;
+      const existing = await tx.orderCostRecord.findUnique({ where: { orderId } });
+      if (existing?.courierCost) return { recorded: false, courierCost: existing.courierCost.toFixed(2), source: null };
+      const data = { courierCost: value, courierRecordedBy: `system:${source}`, courierRecordedAt: new Date() };
+      if (existing) await tx.orderCostRecord.update({ where: { orderId }, data });
+      else await tx.orderCostRecord.create({ data: { ...data, orderId } });
+      return { recorded: true, courierCost: value.toFixed(2), source } as const;
+    });
+  }
+
+  /** Delivered orders from before this existed: records their courier cost the same way. Idempotent. */
+  async backfillDeliveredCourierCosts(limit = 500) {
+    const delivered = await this.prisma.order.findMany({ where: { status: 'delivered' }, select: { id: true }, orderBy: { createdAt: 'desc' }, take: limit });
+    const done = new Set((await this.prisma.orderCostRecord.findMany({ where: { orderId: { in: delivered.map(order => order.id) }, courierCost: { not: null } }, select: { orderId: true } })).map(row => row.orderId));
+    const todo = delivered.filter(order => !done.has(order.id));
+    let recorded = 0;
+    for (const order of todo) if ((await this.snapshotCourierCost(order.id)).recorded) recorded += 1;
+    return { examined: todo.length, recorded };
+  }
+
   private assertCanOverwrite(label: string, isAdmin: boolean, reason?: string) {
     if (!isAdmin) throw new ConflictException({ code: 'COST_ALREADY_RECORDED', message: `The ${label} of this order is already recorded; only an Admin can correct it` });
     if (!reason || reason.trim().length < 5) throw new BadRequestException({ code: 'CORRECTION_REASON_REQUIRED', message: `A reason is required to correct the recorded ${label}` });

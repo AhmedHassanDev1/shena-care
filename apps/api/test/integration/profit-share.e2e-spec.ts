@@ -6,6 +6,7 @@ import request from 'supertest';
 import { AppModule } from '../../src/app.module';
 import { PrismaService } from '../../src/platform/database/prisma.service';
 import { SupplyPlanService } from '../../src/modules/sourcing/services/supply-plan.service';
+import { OrderCostService } from '../../src/application/composition/services/order-cost.service';
 
 /**
  * Finance profit model, end to end on real records: Buy List purchase cost (list price, discount, final unit cost), per-order courier and
@@ -207,6 +208,39 @@ describe('Finance profit share (e2e)', () => {
     const refusal = await http().post(`/operations/finance/profit/${MAY}/close`).set('Authorization', adminAuth).expect(409);
     expect(refusal.body).toMatchObject({ code: 'PERIOD_INCOMPLETE' });
     expect(await prisma.financePeriodClose.count({ where: { period: MAY } })).toBe(0);
+  });
+
+  it('freezes the delivery cost from the checkout quote, shows the company share, and counts only a succeeded refund, once', async () => {
+    const JULY = '2019-07';
+    await prisma.orderStatusEvent.deleteMany({ where: { createdAt: { gte: new Date('2019-07-01'), lt: new Date('2019-08-01') } } });
+    await prisma.financeExpense.deleteMany({ where: { incurredOn: { gte: new Date('2019-07-01'), lt: new Date('2019-08-01') } } });
+    await prisma.refundTransaction.deleteMany({ where: { updatedAt: { gte: new Date('2019-07-01'), lt: new Date('2019-08-01') } } }); // leftovers of an earlier run
+    const goods = await makeSku('Refunded');
+    const sold = await placeOrder(goods, 2, 200, 30); // 400 of goods; the customer pays 30 of the delivery
+    await acquire(goods.id, 2, { listUnitPrice: 100, discountPerUnit: 10 }).expect(200); // 90 x 2 = 180
+    const cart = await prisma.cart.create({ data: { guestTokenHash: randomUUID() } });
+    await prisma.checkoutQuote.create({ data: { cartId: cart.id, revision: 1, snapshot: { deliveryFeeBase: 50, shippingFee: 30 }, expiresAt: new Date(Date.now() + 3_600_000), orderId: sold.id } });
+    await finish(sold.id, 'delivered', '2019-07-10');
+
+    expect((await profit(JULY).expect(200)).body.missing).toEqual([{ code: 'COURIER_COST', orders: 1 }, { code: 'PACKAGING_COST', orders: 1 }]);
+    const costs = app.get(OrderCostService);
+    expect(await costs.snapshotCourierCost(sold.id)).toMatchObject({ recorded: true, courierCost: '50.00', source: 'QUOTE_BASE_FEE' });
+    expect(await costs.snapshotCourierCost(sold.id)).toMatchObject({ recorded: false, courierCost: '50.00' }); // idempotent, never overwritten
+    await recordCosts(sold.id, { packagingType: 'BAG' }).expect(200); // the only thing left for a person to pick: bag or box
+    expect((await profit(JULY).expect(200)).body).toMatchObject({ status: 'COMPLETE', revenue: { productSales: 400, refunds: 0 } });
+
+    const refund = async (amount: number, status: 'succeeded' | 'failed' | 'pending') => {
+      const resolution = await prisma.orderResolution.create({ data: { orderId: sold.id, type: 'refund', status: 'resolved', actorId: randomUUID(), reasonCode: 'DEFECTIVE' } });
+      await prisma.refundTransaction.create({ data: { resolutionId: resolution.id, orderId: sold.id, amount, currency: 'EGP', status, updatedAt: new Date('2019-07-15T10:00:00Z') } });
+    };
+    await refund(100, 'succeeded'); await refund(40, 'failed'); await refund(30, 'pending');
+    const month = (await profit(JULY).expect(200)).body;
+    // revenue 400 - 100 refunded = 300; costs: goods 180 + company-funded delivery (50 - 30) 20 + bag 9 = 209 → 91
+    expect(month).toMatchObject({
+      status: 'COMPLETE', revenue: { productSales: 400, refunds: 100, net: 300 },
+      costs: { purchase: 180, companyFundedDelivery: 20, packaging: 9, losses: 0, operatingExpenses: 0, total: 209 },
+      delivery: { customerFees: 30, courierCost: 50, companyFunded: 20, customerSurplus: 0 }, netProfit: 91,
+    });
   });
 
   it('is Admin-only to read profit, and serves a compact monthly trend', async () => {

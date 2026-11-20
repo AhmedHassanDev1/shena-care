@@ -61,6 +61,18 @@ function shipmentStage(status: ShipmentStatus): CustomerStage | null {
   }
 }
 
+/**
+ * A packed parcel whose label the courier has scanned since it was last packed is in the courier's hands
+ * (custody) even before the hub releases the run. A parcel that came back after a failed attempt keeps its
+ * order in `shipped`, so it is never mistaken for a fresh handoff.
+ */
+export function inCourierCustody(order: Pick<TrackingOrder, "status">, shipment: Pick<TrackingShipment, "status" | "events">): boolean {
+  if (shipment.status !== 'packed' || order.status === 'shipped') return false;
+  const lastPacked = [...shipment.events].reverse().find(event => event.type === 'PACKED');
+  const lastScan = [...shipment.events].reverse().find(event => event.type === 'HANDOFF_SCANNED');
+  return !!lastScan && (!lastPacked || lastScan.createdAt >= lastPacked.createdAt);
+}
+
 @Injectable()
 export class OrderTrackingService {
   constructor(private readonly prisma: PrismaService, private readonly supplyPlan: SupplyPlanService,
@@ -227,6 +239,9 @@ export class OrderTrackingService {
     if (cancellationRequested) return 'CANCELLATION_REQUESTED';
     // Back at the hub after a failed attempt, waiting for the next run: still a delivery issue.
     if (order.status === 'shipped' && shipment?.status === 'packed') return 'DELIVERY_ISSUE';
+    // The courier scanned the parcel's label at the hub: it is already with the courier even though the run
+    // has not been released yet, so the customer should not keep seeing "preparing".
+    if (shipment && inCourierCustody(order, shipment)) return 'OUT_FOR_DELIVERY';
     const shipmentStatus = shipment ? shipmentStage(shipment.status) : null;
     if (shipment) {
       if (shipmentStatus) return shipmentStatus;
@@ -252,7 +267,7 @@ export class OrderTrackingService {
     if (shipment) {
       for (const event of shipment.events) {
         const status = event.type === 'PREPARATION_STARTED' || event.type === 'PACKED' ? 'PREPARING'
-          : event.type === 'OUT_FOR_DELIVERY' ? 'OUT_FOR_DELIVERY'
+          : event.type === 'OUT_FOR_DELIVERY' || (event.type === 'HANDOFF_SCANNED' && inCourierCustody(order, shipment)) ? 'OUT_FOR_DELIVERY'
           : event.type === 'DELIVERED' ? 'DELIVERED' : null;
         if (status) events.push({ status, occurredAt: event.createdAt });
       }

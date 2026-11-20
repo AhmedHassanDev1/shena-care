@@ -613,6 +613,8 @@ export class OrderingService {
     await tx.$queryRaw`SELECT id FROM "ordering"."orders" WHERE id = ${id}::uuid FOR UPDATE`;
     const order = await tx.order.findUnique({ where: { id }, include: { items: { where: { lineState: 'active' } } } });
     if (!order) throw new NotFoundException('Order not found');
+    // A command that waited on the row lock behind an identical cancellation finds it done: idempotent, never a second cancellation.
+    if (order.status === 'cancelled') return { order, resolutionId: null as string | null, alreadyCancelled: true };
     if (!['placed', 'confirmed', 'packing'].includes(order.status)) {
       throw new ConflictException({ code: 'CANCELLATION_TOO_LATE',
         message: `An order in status ${order.status} can no longer be cancelled; use the delivery return or customer return flow` });
@@ -628,7 +630,7 @@ export class OrderingService {
       payload: { orderId: id, orderNumber: order.orderNumber, reasonCode: input.reasonCode },
       channelIntent: 'whatsapp', templateId: 'order_cancelled_v1', deduplicationKey: `order.cancelled:${id}`,
     });
-    return { order, resolutionId: resolution.id };
+    return { order, resolutionId: resolution.id as string | null, alreadyCancelled: false };
   }
 
   async updateOrderStatus(id: string, status: OrderStatus): Promise<OrderDetail> {
