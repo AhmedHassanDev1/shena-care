@@ -278,31 +278,28 @@ export class CommerceService {
       return null;
     }
 
-    const listing = await this.prisma.listing.findUnique({
-      where: { skuId },
-    });
+    const now = new Date();
+    const [listing, price, status] = await Promise.all([
+      this.prisma.listing.findUnique({
+        where: { skuId },
+      }),
+      this.prisma.sellingPrice.findFirst({
+        where: {
+          skuId,
+          isActive: true,
+          validFrom: { lte: now },
+          OR: [{ validUntil: { gte: now } }, { validUntil: null }],
+        },
+        orderBy: { validFrom: 'desc' },
+      }),
+      this.catalogService ? this.catalogService.getSkuValidationStatus(skuId) : Promise.resolve(null),
+    ]);
 
     if (!listing) {
       return null;
     }
 
-    const now = new Date();
-    const price = await this.prisma.sellingPrice.findFirst({
-      where: {
-        skuId,
-        isActive: true,
-        validFrom: { lte: now },
-        OR: [{ validUntil: { gte: now } }, { validUntil: null }],
-      },
-      orderBy: { validFrom: 'desc' },
-    });
-
-    let isCatalogValid = true;
-    if (this.catalogService) {
-      const status = await this.catalogService.getSkuValidationStatus(skuId);
-      isCatalogValid = !!status && status.isActive && status.isProductPublished;
-    }
-
+    const isCatalogValid = !this.catalogService || (!!status && status.isActive && status.isProductPublished);
     const canOrder = listing.isListed && price !== null && isCatalogValid;
 
     return {

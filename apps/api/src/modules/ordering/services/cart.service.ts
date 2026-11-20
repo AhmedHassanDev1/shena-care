@@ -10,7 +10,7 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { createHash, randomUUID } from 'crypto';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../platform/database/prisma.service';
-import { CommerceService } from '../../commerce/public';
+import { CommerceService, SellingTerms } from '../../commerce/public';
 import { SourcingService } from '../../sourcing/public';
 import { CUSTOMER_VERIFIED_EVENT, CustomerVerifiedEvent } from '../../accounts/public';
 import { AddToCartDto, RemoveFromCartDto, UpdateCartItemQuantityDto } from '../dto/cart.dto';
@@ -104,47 +104,69 @@ export class CartService {
    * its opaque token returned once as `guestCartToken`.
    */
   async addToCart(owner: CartOwner | null, dto: AddToCartDto): Promise<CartDetail> {
-    const { price } = await this.assertSellable(dto.skuId);
+    const { price, terms } = await this.assertSellable(dto.skuId);
 
     let issuedToken: string | undefined;
-    let resolved: CartOwner;
-    if (owner) {
-      resolved = owner;
-    } else {
-      issuedToken = randomUUID();
-      resolved = { guestToken: issuedToken };
-      await this.prisma.cart.create({ data: { guestTokenHash: hashToken(issuedToken) } });
-    }
+    let cart: NonNullable<Awaited<ReturnType<CartService['findCart']>>>;
+    let ownerType: 'customer' | 'guest';
 
-    await this.mutate(resolved, dto.expectedRevision, async (tx, cart) => {
-      const existing = cart.items.find((i) => i.skuId === dto.skuId);
-      if (existing) {
-        const quantity = existing.quantity + dto.quantity;
-        if (quantity > MAX_LINE_QUANTITY) {
-          throw new BadRequestException(`Maximum quantity per item is ${MAX_LINE_QUANTITY}.`);
-        }
-        await tx.cartItem.update({ where: { id: existing.id }, data: { quantity } });
-        return;
-      }
-      if (cart.items.length >= MAX_CART_LINES) {
-        throw new BadRequestException(`A cart can hold at most ${MAX_CART_LINES} different items.`);
-      }
+    if (!owner) {
       if (dto.quantity > MAX_LINE_QUANTITY) {
         throw new BadRequestException(`Maximum quantity per item is ${MAX_LINE_QUANTITY}.`);
       }
-      await tx.cartItem.create({
+      issuedToken = randomUUID();
+      ownerType = 'guest';
+      cart = await this.prisma.cart.create({
         data: {
-          cartId: cart.id,
-          skuId: dto.skuId,
-          quantity: dto.quantity,
-          priceAtAdd: price,
-          priceObservedAt: new Date(),
-          sourceType: dto.sourceType ?? null,
+          guestTokenHash: hashToken(issuedToken),
+          revision: 1,
+          items: {
+            create: {
+              skuId: dto.skuId,
+              quantity: dto.quantity,
+              priceAtAdd: price,
+              priceObservedAt: new Date(),
+              sourceType: dto.sourceType ?? null,
+            },
+          },
         },
+        include: { items: { orderBy: { createdAt: 'asc' } } },
       });
-    });
+    } else {
+      ownerType = 'guestToken' in owner ? 'guest' : 'customer';
+      const result = await this.mutate(owner, dto.expectedRevision, async (tx, c) => {
+        const existing = c.items.find((i) => i.skuId === dto.skuId);
+        if (existing) {
+          const quantity = existing.quantity + dto.quantity;
+          if (quantity > MAX_LINE_QUANTITY) {
+            throw new BadRequestException(`Maximum quantity per item is ${MAX_LINE_QUANTITY}.`);
+          }
+          await tx.cartItem.update({ where: { id: existing.id }, data: { quantity } });
+          existing.quantity = quantity;
+          return;
+        }
+        if (c.items.length >= MAX_CART_LINES) {
+          throw new BadRequestException(`A cart can hold at most ${MAX_CART_LINES} different items.`);
+        }
+        if (dto.quantity > MAX_LINE_QUANTITY) {
+          throw new BadRequestException(`Maximum quantity per item is ${MAX_LINE_QUANTITY}.`);
+        }
+        const created = await tx.cartItem.create({
+          data: {
+            cartId: c.id,
+            skuId: dto.skuId,
+            quantity: dto.quantity,
+            priceAtAdd: price,
+            priceObservedAt: new Date(),
+            sourceType: dto.sourceType ?? null,
+          },
+        });
+        c.items.push(created);
+      });
+      cart = result.cart;
+    }
 
-    const detail = await this.getCart(resolved);
+    const detail = await this.project(cart, ownerType, new Map([[dto.skuId, terms]]));
     if (issuedToken) detail.guestCartToken = issuedToken;
     return detail;
   }
@@ -209,12 +231,16 @@ export class CartService {
     const added: ReorderItemResult[] = [];
     const skipped: ReorderItemResult[] = [];
 
-    await this.mutate(resolvedOwner, undefined, async (tx, cart) => {
+    const skuIdsToConsider = itemsToConsider.map((item) => item.skuId);
+    const [termsBatch, availabilityBatch] = await Promise.all([
+      this.commerceService.getSellingTermsBatch(skuIdsToConsider),
+      this.sourcingService.checkAvailabilityBatch(skuIdsToConsider),
+    ]);
+
+    const { cart: updatedCart, ownerType } = await this.mutate(resolvedOwner, undefined, async (tx, cart) => {
       for (const item of itemsToConsider) {
-        const [terms, isAvailable] = await Promise.all([
-          this.commerceService.getSellingTerms(item.skuId),
-          this.sourcingService.checkAvailability(item.skuId),
-        ]);
+        const terms = termsBatch.get(item.skuId);
+        const isAvailable = availabilityBatch.get(item.skuId) ?? false;
         const currentPrice = terms?.price?.amount ?? null;
         const canOrder = (terms?.canOrder ?? false) && isAvailable && currentPrice !== null;
 
@@ -297,7 +323,7 @@ export class CartService {
       }
     });
 
-    const cartDetail = await this.getCart(resolvedOwner);
+    const cartDetail = await this.project(updatedCart, ownerType, termsBatch);
     if (issuedToken) cartDetail.guestCartToken = issuedToken;
 
     return {
@@ -316,28 +342,33 @@ export class CartService {
     if (dto.quantity > MAX_LINE_QUANTITY) {
       throw new BadRequestException(`Maximum quantity per item is ${MAX_LINE_QUANTITY}.`);
     }
-    await this.mutate(owner, dto.expectedRevision, async (tx, cart) => {
-      const existing = cart.items.find((i) => i.skuId === dto.skuId);
+    const { cart, ownerType } = await this.mutate(owner, dto.expectedRevision, async (tx, c) => {
+      const existing = c.items.find((i) => i.skuId === dto.skuId);
       if (!existing) throw new BadRequestException('Item not found in cart');
       await tx.cartItem.update({ where: { id: existing.id }, data: { quantity: dto.quantity } });
+      existing.quantity = dto.quantity;
     });
-    return this.getCart(owner);
+    return this.project(cart, ownerType);
   }
 
   async removeFromCart(owner: CartOwner, dto: RemoveFromCartDto): Promise<CartDetail> {
-    await this.mutate(owner, dto.expectedRevision, async (tx, cart) => {
-      const existing = cart.items.find((i) => i.skuId === dto.skuId);
+    const { cart, ownerType } = await this.mutate(owner, dto.expectedRevision, async (tx, c) => {
+      const idx = c.items.findIndex((i) => i.skuId === dto.skuId);
       // Idempotent: removing an absent item is a no-op (revision still advances once).
-      if (existing) await tx.cartItem.delete({ where: { id: existing.id } });
+      if (idx !== -1) {
+        await tx.cartItem.delete({ where: { id: c.items[idx].id } });
+        c.items.splice(idx, 1);
+      }
     });
-    return this.getCart(owner);
+    return this.project(cart, ownerType);
   }
 
   async clearCart(owner: CartOwner, expectedRevision?: number): Promise<CartDetail> {
-    await this.mutate(owner, expectedRevision, async (tx, cart) => {
-      await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
+    const { cart, ownerType } = await this.mutate(owner, expectedRevision, async (tx, c) => {
+      await tx.cartItem.deleteMany({ where: { cartId: c.id } });
+      c.items = [];
     });
-    return this.getCart(owner);
+    return this.project(cart, ownerType);
   }
 
   /** Called by checkout inside its own transaction to empty the customer's cart. */
@@ -418,7 +449,7 @@ export class CartService {
     });
   }
 
-  private async assertSellable(skuId: string): Promise<{ price: number }> {
+  private async assertSellable(skuId: string): Promise<{ price: number; terms: SellingTerms }> {
     const [terms, isAvailable] = await Promise.all([
       this.commerceService.getSellingTerms(skuId),
       this.sourcingService.checkAvailability(skuId),
@@ -427,10 +458,10 @@ export class CartService {
     if (!(terms?.canOrder && isAvailable) || price === null) {
       throw new BadRequestException('This item is currently unavailable for ordering.');
     }
-    return { price };
+    return { price, terms };
   }
 
-  /** Run a mutation atomically with optimistic revision control. */
+  /** Run a mutation atomically with optimistic revision control. Returns updated cart and ownerType. */
   private async mutate(
     owner: CartOwner,
     expectedRevision: number | undefined,
@@ -438,8 +469,9 @@ export class CartService {
       tx: Prisma.TransactionClient,
       cart: NonNullable<Awaited<ReturnType<CartService['findCart']>>>,
     ) => Promise<void>,
-  ): Promise<void> {
-    await this.prisma.$transaction(async (tx) => {
+  ): Promise<{ cart: NonNullable<Awaited<ReturnType<CartService['findCart']>>>; ownerType: 'customer' | 'guest' }> {
+    const ownerType: 'customer' | 'guest' = 'guestToken' in owner ? 'guest' : 'customer';
+    const updatedCart = await this.prisma.$transaction(async (tx) => {
       let cart = await tx.cart.findUnique({
         where: 'customerId' in owner
           ? { customerId: owner.customerId }
@@ -464,44 +496,58 @@ export class CartService {
         data: { revision: { increment: 1 } },
       });
       if (bumped.count !== 1) throw new ConflictException('Cart has changed; reload and retry.');
+      cart.revision += 1;
+      return cart;
     });
+    return { cart: updatedCart, ownerType };
   }
 
   private async project(
     cart: NonNullable<Awaited<ReturnType<CartService['findCart']>>>,
     ownerType: 'customer' | 'guest',
+    knownTerms?: Map<string, SellingTerms | null>,
   ): Promise<CartDetail> {
+    if (cart.items.length === 0) {
+      return { id: cart.id, ownerType, revision: cart.revision, items: [], totalAmount: 0 };
+    }
+
+    const skuIds = cart.items.map((i) => i.skuId);
+    const missingSkuIds = knownTerms ? skuIds.filter((id) => !knownTerms.has(id)) : skuIds;
+
+    const [batchTermsMap, availabilityMap] = await Promise.all([
+      missingSkuIds.length > 0
+        ? this.commerceService.getSellingTermsBatch(missingSkuIds)
+        : Promise.resolve(new Map<string, SellingTerms | null>()),
+      this.sourcingService.checkAvailabilityBatch(skuIds),
+    ]);
+
     let totalAmount = 0;
-    const items = await Promise.all(
-      cart.items.map(async (item): Promise<CartItemDetail> => {
-        const [terms, isAvailable] = await Promise.all([
-          this.commerceService.getSellingTerms(item.skuId),
-          this.sourcingService.checkAvailability(item.skuId),
-        ]);
-        const canOrder = (terms?.canOrder ?? false) && isAvailable;
-        const price = terms?.price?.amount ?? null;
-        const priceAtAdd = item.priceAtAdd
-          ? typeof (item.priceAtAdd as any).toNumber === 'function'
-            ? (item.priceAtAdd as any).toNumber()
-            : Number(item.priceAtAdd)
-          : null;
-        const lineTotal = canOrder && price !== null ? price * item.quantity : 0;
-        totalAmount += lineTotal;
-        return {
-          id: item.id,
-          skuId: item.skuId,
-          quantity: item.quantity,
-          price,
-          priceAtAdd,
-          priceObservedAt: item.priceObservedAt,
-          priceChangedSinceAdd: price !== null && priceAtAdd !== null && price !== priceAtAdd,
-          canOrder,
-          availability: canOrder ? 'available' : 'unavailable',
-          lineTotal,
-          sourceType: item.sourceType,
-        };
-      }),
-    );
+    const items: CartItemDetail[] = cart.items.map((item): CartItemDetail => {
+      const terms = (knownTerms && knownTerms.get(item.skuId)) ?? batchTermsMap.get(item.skuId);
+      const isAvailable = availabilityMap.get(item.skuId) ?? false;
+      const canOrder = (terms?.canOrder ?? false) && isAvailable;
+      const price = terms?.price?.amount ?? null;
+      const priceAtAdd = item.priceAtAdd
+        ? typeof (item.priceAtAdd as any).toNumber === 'function'
+          ? (item.priceAtAdd as any).toNumber()
+          : Number(item.priceAtAdd)
+        : null;
+      const lineTotal = canOrder && price !== null ? price * item.quantity : 0;
+      totalAmount += lineTotal;
+      return {
+        id: item.id,
+        skuId: item.skuId,
+        quantity: item.quantity,
+        price,
+        priceAtAdd,
+        priceObservedAt: item.priceObservedAt,
+        priceChangedSinceAdd: price !== null && priceAtAdd !== null && price !== priceAtAdd,
+        canOrder,
+        availability: canOrder ? 'available' : 'unavailable',
+        lineTotal,
+        sourceType: item.sourceType,
+      };
+    });
     return { id: cart.id, ownerType, revision: cart.revision, items, totalAmount };
   }
 }
