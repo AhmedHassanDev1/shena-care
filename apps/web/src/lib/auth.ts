@@ -49,6 +49,8 @@ export interface VerifyOtpResponse {
   token: string;
   expiresAt: string;
   returnTo?: string;
+  /** False when the verified number already belonged to an account, so the code signed into it. */
+  isNewAccount?: boolean;
 }
 
 const TOKEN_KEY = SESSION_TOKEN_KEY;

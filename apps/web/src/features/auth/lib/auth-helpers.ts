@@ -1,5 +1,8 @@
 import { ApiError } from '@/lib/api-client';
 
+/** How long the "this number already had an account" notice stays up before the redirect, so it can be read. */
+export const EXISTING_ACCOUNT_NOTICE_MS = 4500;
+
 /** Only same-origin paths are valid return targets; anything else falls back to the home page. */
 export function safeReturnTo(value: string | null | undefined): string {
   if (!value || !value.startsWith('/') || value.startsWith('//') || value.startsWith('/\\')) return '/';
