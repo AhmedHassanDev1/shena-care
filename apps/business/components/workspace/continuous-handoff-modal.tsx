@@ -15,7 +15,6 @@ import {
 } from 'lucide-react'
 import { Button, Code, Notice, Skeleton, StatusLabel } from '@/components/bw/primitives'
 import { api } from '@/lib/api'
-import { getDevShipmentBarcode } from '@/lib/dev-barcode'
 import { shortId } from '@/lib/labels'
 import { cn } from '@/lib/utils'
 
@@ -153,14 +152,6 @@ export function ContinuousHandoffModal({
     } finally {
       setSubmitting(false)
       setTimeout(() => inputRef.current?.focus(), 50)
-    }
-  }
-
-  // Quick dev barcode simulator
-  const handleDevScan = async (shipmentId: string) => {
-    const barcode = await getDevShipmentBarcode(shipmentId)
-    if (barcode) {
-      await handleScanBarcode(barcode)
     }
   }
 
@@ -341,20 +332,6 @@ export function ContinuousHandoffModal({
                       </p>
                     </div>
                   </div>
-
-                  {/* Dev mode simulation button */}
-                  {!stop.handedOver && process.env.NODE_ENV !== 'production' ? (
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => handleDevScan(stop.shipmentId)}
-                      disabled={submitting}
-                      className="text-[11px] px-2 py-1 shrink-0"
-                    >
-                      مسح تجريبي
-                    </Button>
-                  ) : null}
                 </div>
               )
             })

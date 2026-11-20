@@ -11,16 +11,12 @@ import {
   ChevronRight,
   Clock,
   Coins,
-  Copy,
   MapPin,
   MessageCircle,
   Navigation,
   Package,
   Phone,
-  Scan,
-  ShieldCheck,
   UserRound,
-  Wallet,
   XCircle,
 } from 'lucide-react'
 import {
@@ -32,13 +28,12 @@ import {
   Section,
   Skeleton,
   StateBlock,
-  StatusLabel,
   useDialog,
 } from '@/components/bw/primitives'
 import { useToast, useToastLift } from '@/components/bw/toast'
 import { CameraScanner } from '@/components/workspace/camera-scanner'
 import { CopyId } from '@/components/workspace/copy-id'
-import { CommandError, Egp, Status, TextArea } from '@/components/workspace/kit'
+import { CommandError, Egp, TextArea } from '@/components/workspace/kit'
 import { LoadError, RoleShell } from '@/components/workspace/role-shell'
 import { api } from '@/lib/api'
 import {
@@ -48,11 +43,9 @@ import {
   setActiveDeliveryStopId,
   useActiveDeliveryStop,
 } from '@/lib/courier-actions'
-import { getDevShipmentBarcode } from '@/lib/dev-barcode'
 import {
   FAILURE_REASONS,
   INSTRUCTION_REASONS,
-  SHIPMENT_STATUS,
   shortId,
 } from '@/lib/labels'
 import { useApi, useCommand } from '@/lib/use-api'
@@ -82,7 +75,9 @@ const QUICK_REASONS = [
  */
 export default function DriverStopPage() {
   const { shipmentId } = useParams<{ shipmentId: string }>()
-  const { data, error, loading, reload } = useApi<DriverRun[]>('/fulfillment/driver/runs')
+  // Polled like the trips list: the delivered / failed buttons appear the moment the hub releases the run,
+  // without the courier having to reload the page.
+  const { data, error, loading, reload } = useApi<DriverRun[]>('/fulfillment/driver/runs', { pollMs: 8000 })
 
   const run = data?.find((r) => r.stops.some((s) => s.shipmentId === shipmentId))
   const stop = run?.stops.find((s) => s.shipmentId === shipmentId)
@@ -149,14 +144,33 @@ function StopOperationalBody({
   const navResult = formatNavigationUrl(stop.location, fullAddress)
 
   // Start navigation & activate "Currently delivering" status with animation
+  // The map always opens (it is a plain link). The stop only becomes "currently delivering" once the server
+  // accepted it, and a refusal is said out loud instead of being swallowed.
   const handleStartNavigation = () => {
-    setActiveId(stop.shipmentId)
-    toast.success('تم تفعيل المشوار: أنت في الطريق للعميل الآن 🚗')
-    if (stop.status !== 'out_for_delivery') {
-      api(`/fulfillment/shipments/${stop.shipmentId}/events`, {
-        body: { type: 'OUT_FOR_DELIVERY' },
-      }).catch(() => {})
+    if (isDelivered || isFailed) return
+    if (!stop.handedOver) {
+      toast.warning('امسح باركود الطرد الأول عشان يتسجل في عهدتك، وبعدها ابدأ التوصيل')
+      return
     }
+    if (runStatus !== 'dispatched') {
+      toast.warning('المشوار لسه ماخرجش. امسح باقي طرود المشوار وهيخرج تلقائياً، ولو كلها اتمسحت كلّم المخزن')
+      return
+    }
+    if (stop.status === 'out_for_delivery') {
+      setActiveId(stop.shipmentId)
+      return
+    }
+    api(`/fulfillment/shipments/${stop.shipmentId}/events`, {
+      body: { type: 'OUT_FOR_DELIVERY' },
+    })
+      .then(() => {
+        setActiveId(stop.shipmentId)
+        toast.success('تم تفعيل المشوار: أنت في الطريق للعميل الآن 🚗')
+        onChanged()
+      })
+      .catch((err: unknown) => {
+        toast.error(err instanceof Error && err.message ? err.message : 'تعذر تسجيل بدء التوصيل، حاول مرة تانية')
+      })
   }
 
   return (
@@ -377,7 +391,10 @@ function StopOperationalBody({
             <span>الطرد في عهدتك بنجاح</span>
           </div>
           <p className="text-xs text-bw-ink-soft leading-relaxed">
-            تم تسجيل استلام الطرد في عهدتك. في انتظار خروج المشوار من المخزن لبدء التوصيل إلى العميل.
+            تم تسجيل استلام الطرد في عهدتك. المشوار بيخرج تلقائياً أول ما تمسح كل طروده؛ ولو كلها اتمسحت وما خرجش، كلّم المخزن.
+          </p>
+          <p className="text-xs font-semibold text-bw-ink">
+            أزرار «تم التسليم» و«تعذر التسليم» بتظهر هنا تلقائياً أول ما المشوار يخرج.
           </p>
         </section>
       )}
@@ -473,33 +490,22 @@ function StopOperationalBody({
 function HandoffAction({ stop, onChanged }: { stop: DriverStop; onChanged: () => void }) {
   const [code, setCode] = React.useState('')
   const [showCamera, setShowCamera] = React.useState(false)
-  const [devBarcode, setDevBarcode] = React.useState<string | null>(null)
   const toast = useToast()
 
-  React.useEffect(() => {
-    let cancelled = false
-    getDevShipmentBarcode(stop.shipmentId).then((res) => {
-      if (!cancelled) setDevBarcode(res)
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [stop.shipmentId])
-
-  const scan = useCommand(() =>
+  const scan = useCommand((barcode: string) =>
     api(`/fulfillment/shipments/${stop.shipmentId}/events`, {
-      body: { type: 'HANDOFF_SCANNED', barcode: code.trim() },
+      body: { type: 'HANDOFF_SCANNED', barcode: barcode.trim() },
     })
   )
 
   const isSubmitting = React.useRef(false)
 
-  const handleBarcodeSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!code.trim() || isSubmitting.current || scan.pending) return
+  // One path for typing, a hardware scanner and the camera: the label's own barcode, sent exactly as read.
+  const takeCustody = async (barcode: string) => {
+    if (!barcode.trim() || isSubmitting.current || scan.pending) return
     isSubmitting.current = true
     try {
-      const res = await scan.execute()
+      const res = await scan.execute(barcode)
       if (res) {
         toast.success('تم استلام الطرد في عهدتك بنجاح')
         setCode('')
@@ -511,6 +517,11 @@ function HandoffAction({ stop, onChanged }: { stop: DriverStop; onChanged: () =>
     } finally {
       isSubmitting.current = false
     }
+  }
+
+  const handleBarcodeSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    void takeCustody(code)
   }
 
   return (
@@ -525,11 +536,14 @@ function HandoffAction({ stop, onChanged }: { stop: DriverStop; onChanged: () =>
           <div className="space-y-2">
             <CameraScanner
               onCode={(scannedCode) => {
+                // The waybill's barcode is taken straight from the camera and submitted; no extra tap.
                 setCode(scannedCode)
                 setShowCamera(false)
+                void takeCustody(scannedCode)
               }}
               onClose={() => setShowCamera(false)}
             />
+            <CommandError error={scan.error} />
           </div>
         ) : (
           <form className="space-y-3" onSubmit={handleBarcodeSubmit}>
@@ -553,19 +567,6 @@ function HandoffAction({ stop, onChanged }: { stop: DriverStop; onChanged: () =>
                 <Camera className="size-4" aria-hidden />
                 <span>تشغيل الكاميرا</span>
               </Button>
-
-              {devBarcode ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="touch"
-                  onClick={() => setCode(devBarcode)}
-                  className="flex-1 text-xs text-bw-ink-soft hover:text-bw-ink cursor-pointer"
-                >
-                  <Scan className="size-4" aria-hidden />
-                  <span>تعبئة باركود الاختبار</span>
-                </Button>
-              ) : null}
             </div>
 
             <Button

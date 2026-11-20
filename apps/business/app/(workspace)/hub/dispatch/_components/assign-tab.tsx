@@ -248,7 +248,7 @@ function PlanningTripCard({
         </div>
 
         {!ready && stops.length > 0 ? (
-          <p className="text-[11px] text-bw-ink-subtle">لا يخرج المشوار قبل أن يمسح المندوب كل الطرود من مساحة التوصيل.</p>
+          <p className="text-[11px] text-bw-ink-subtle">يخرج المشوار تلقائياً عندما يمسح المندوب آخر طرد من مساحة التوصيل. هذا الزر احتياطي إن لم يخرج.</p>
         ) : null}
         <CommandError error={reassign.error} />
         <CommandError error={dispatch.error} />
