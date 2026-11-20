@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils'
 
 export type TrendPoint = { key: string; label: string; short: string; value: number }
 
-const DEFAULT_HEIGHT = 196
+const DEFAULT_HEIGHT = 160
 /* Axis labels live on the inline-start (right) edge; the plot is mirrored so the oldest point is nearest them. */
 const PAD = { top: 14, bottom: 26, left: 14, right: 40 }
 
@@ -67,12 +67,13 @@ export function TrendChart({ points, formatValue, formatAxis, ariaLabel, emptyLa
   }, [])
 
   const total = points.reduce((sum, point) => sum + point.value, 0)
-  if (points.length === 0 || total === 0) {
+  if (points.length === 0) {
     return <p style={{ height: Math.min(height, 160) }} className="grid place-items-center text-center text-bw-small text-bw-ink-subtle">{emptyLabel}</p>
   }
 
+  const isAllZero = total === 0
   const color = tone === 'emerald' ? 'var(--color-bw-emerald)' : 'var(--color-bw-cobalt)'
-  const max = niceMax(Math.max(...points.map((p) => p.value)))
+  const max = niceMax(Math.max(...points.map((p) => p.value), 0))
   const plotW = width - PAD.left - PAD.right
   const plotH = HEIGHT - PAD.top - PAD.bottom
   // Mirrored: index 0 (oldest) sits on the inline-start (right) side.
@@ -106,7 +107,8 @@ export function TrendChart({ points, formatValue, formatAxis, ariaLabel, emptyLa
   }
 
   const current = active === null ? null : points[active]
-  const tipLeft = active === null ? 0 : Math.min(width - 150, Math.max(0, coords[active][0] - 75))
+  const isLatestPoint = active === points.length - 1
+  const tipLeft = active === null ? 0 : Math.min(width - 165, Math.max(10, coords[active][0] - 80))
 
   return (
     <div>
@@ -131,31 +133,85 @@ export function TrendChart({ points, formatValue, formatAxis, ariaLabel, emptyLa
           </defs>
           {ticks.map((t) => (
             <g key={t}>
-              <line x1={PAD.left} x2={width - PAD.right + 8} y1={y(t)} y2={y(t)} stroke="var(--color-bw-veil-3)" strokeDasharray={t === 0 ? undefined : '3 5'} />
-              <text x={width - 2} y={y(t) + 4} textAnchor="end" fontSize="10.5" fill="var(--color-bw-ink-subtle)" className="tabular-nums">{axis(t)}</text>
+              <line
+                x1={PAD.left}
+                x2={width - PAD.right + 8}
+                y1={y(t)}
+                y2={y(t)}
+                stroke={t === 0 ? 'var(--color-bw-veil-4)' : 'var(--color-bw-veil-2)'}
+                strokeDasharray={t === 0 ? undefined : '3 5'}
+              />
+              <text x={width - 2} y={y(t) + 4} textAnchor="end" fontSize="10.5" fill="var(--color-bw-ink-subtle)" className="tabular-nums font-mono">{axis(t)}</text>
             </g>
           ))}
           <path d={area} fill={`url(#a${uid})`} />
           <path d={line} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          {showDots ? coords.map(([cx, cy], i) => (points[i].value > 0 ? <circle key={points[i].key} cx={cx} cy={cy} r="2.5" fill="var(--color-bw-surface)" stroke={color} strokeWidth="1.5" /> : null)) : null}
-          {points.map((p, i) => (i % labelEvery === 0 ? (
-            <text key={p.key} x={coords[i][0]} y={HEIGHT - 7} textAnchor="middle" fontSize="10.5" fill="var(--color-bw-ink-subtle)">{p.short}</text>
-          ) : null))}
+          {showDots ? coords.map(([cx, cy], i) => (
+            <circle
+              key={points[i].key}
+              cx={cx}
+              cy={cy}
+              r={points[i].value > 0 ? 2.5 : 2}
+              fill={points[i].value > 0 ? 'var(--color-bw-surface)' : 'var(--color-bw-page)'}
+              stroke={points[i].value > 0 ? color : 'var(--color-bw-line-field)'}
+              strokeWidth="1.5"
+            />
+          )) : null}
+          {points.map((p, i) => {
+            const isFirst = i === 0
+            const isLast = i === points.length - 1
+            const isInterval = i % labelEvery === 0
+            if (!isFirst && !isLast && isInterval && (points.length - 1 - i < labelEvery * 0.6)) return null
+            if (!isFirst && !isLast && !isInterval) return null
+            return (
+              <text
+                key={p.key}
+                x={coords[i][0]}
+                y={HEIGHT - 7}
+                textAnchor="middle"
+                fontSize="10.5"
+                fill={isLast ? 'var(--color-bw-ink)' : 'var(--color-bw-ink-subtle)'}
+                fontWeight={isLast ? '600' : 'normal'}
+              >
+                {p.short}
+              </text>
+            )
+          })}
           {active !== null ? (
             <g>
-              <line x1={coords[active][0]} x2={coords[active][0]} y1={PAD.top} y2={PAD.top + plotH} stroke="var(--color-bw-veil-4)" />
+              <line x1={coords[active][0]} x2={coords[active][0]} y1={PAD.top} y2={PAD.top + plotH} stroke="var(--color-bw-veil-4)" strokeDasharray="2 3" />
               <circle cx={coords[active][0]} cy={coords[active][1]} r="4.5" fill={color} stroke="var(--color-bw-page)" strokeWidth="2" />
             </g>
           ) : null}
         </svg>
+        {isAllZero ? (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            <span className="rounded-full border border-bw-line bg-bw-surface/90 px-3.5 py-1 text-bw-small text-bw-ink-subtle shadow-bw-card">
+              {emptyLabel}
+            </span>
+          </div>
+        ) : null}
         {current ? (
           <div
             dir="rtl"
-            className={cn('bw-glass-raised pointer-events-none absolute top-0 z-10 w-[150px] rounded-bw-field px-3 py-2 text-bw-small')}
+            className={cn('bw-glass-raised pointer-events-none absolute top-2 z-10 min-w-[150px] rounded-bw-field px-3 py-2 text-bw-small shadow-bw-card')}
             style={{ left: tipLeft }}
           >
-            <p className="text-[11px] text-bw-ink-soft">{current.label} · {current.short}</p>
-            <p className="mt-0.5 font-semibold tabular-nums text-bw-ink">{formatValue(current.value)}</p>
+            <div className="flex items-center gap-1.5 text-[11px] text-bw-ink-soft">
+              <span className={cn('size-1.5 rounded-full shrink-0', tone === 'emerald' ? 'bg-bw-emerald' : 'bg-bw-cobalt')} />
+              <span className="font-medium truncate">{current.label}</span>
+              <span className="text-bw-ink-subtle">({current.short})</span>
+            </div>
+            <div className="mt-1 flex items-baseline justify-between gap-2">
+              <span className="font-bold tabular-nums text-bw-ink text-sm sm:text-base">
+                {formatValue(current.value)}
+              </span>
+              {isLatestPoint && points.length > 1 ? (
+                <span className="rounded bg-bw-veil-3 px-1.5 py-0.5 text-[9px] font-semibold text-bw-ink-subtle">
+                  اليوم (حتى الآن)
+                </span>
+              ) : null}
+            </div>
           </div>
         ) : null}
       </div>

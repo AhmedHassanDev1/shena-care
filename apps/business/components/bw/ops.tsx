@@ -145,10 +145,9 @@ export function StatStrip({ children, className, columns = 5 }: { children: Reac
     <div
       className={cn(
         'bw-panel grid grid-cols-2 gap-px overflow-hidden bg-bw-line',
-        '[&>*:last-child:nth-child(odd)]:col-span-2',
-        columns === 5 && 'lg:grid-cols-5 lg:[&>*:last-child:nth-child(odd)]:col-span-1',
-        columns === 4 && 'lg:grid-cols-4 lg:[&>*:last-child:nth-child(odd)]:col-span-1',
-        columns === 3 && 'sm:grid-cols-3 sm:[&>*:last-child:nth-child(odd)]:col-span-1',
+        columns === 5 && 'lg:grid-cols-5',
+        columns === 4 && 'lg:grid-cols-4',
+        columns === 3 && 'sm:grid-cols-3',
         className,
       )}
     >
@@ -157,7 +156,7 @@ export function StatStrip({ children, className, columns = 5 }: { children: Reac
   )
 }
 
-export function Stat({ label, value, unit, hint, tone = 'neutral', href, loading }: {
+export function Stat({ label, value, unit, hint, tone = 'neutral', href, loading, periodTag, className }: {
   label: React.ReactNode
   value: number | string
   unit?: string
@@ -165,29 +164,40 @@ export function Stat({ label, value, unit, hint, tone = 'neutral', href, loading
   tone?: OpsTone
   href?: string
   loading?: boolean
+  periodTag?: React.ReactNode
+  className?: string
 }) {
   const quiet = value === 0 || value === '0'
   const body = (
     <>
-      <span className="flex items-center gap-2 text-bw-small text-bw-ink-soft">
-        <span aria-hidden className={cn('size-1.5 rounded-full', quiet ? 'bg-bw-line-field' : toneDot[tone])} />
-        <span className="truncate">{label}</span>
-        {href ? <ArrowLeft aria-hidden className="ms-auto size-3.5 shrink-0 -translate-x-0.5 text-bw-ink-subtle opacity-0 transition-[opacity,transform] duration-150 group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:opacity-100" /> : null}
-      </span>
+      <div className="flex items-center justify-between gap-1.5">
+        <span className="flex items-center gap-1.5 text-bw-small text-bw-ink-soft min-w-0">
+          <span aria-hidden className={cn('size-1.5 shrink-0 rounded-full', quiet ? 'bg-bw-line-field' : toneDot[tone])} />
+          <span className="truncate font-medium">{label}</span>
+        </span>
+        {periodTag ? (
+          <span className="shrink-0">{periodTag}</span>
+        ) : href ? (
+          <ArrowLeft aria-hidden className="ms-auto size-3.5 shrink-0 -translate-x-0.5 text-bw-ink-subtle opacity-0 transition-[opacity,transform] duration-150 group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:opacity-100" />
+        ) : null}
+      </div>
       {loading ? (
-        <span className="bw-skeleton mt-3 block h-7 w-16" aria-hidden />
+        <span className="bw-skeleton mt-3 block h-8 w-20 rounded" aria-hidden />
       ) : (
         <span className="mt-2.5 flex items-baseline gap-1.5">
-          <span className={cn('text-[1.75rem] font-semibold leading-none tabular-nums', quiet ? 'text-bw-ink-soft' : tone === 'neutral' ? 'text-bw-ink' : toneText[tone])}>
+          <span className={cn('text-2xl sm:text-3xl font-bold leading-none tabular-nums tracking-tight', quiet ? 'text-bw-ink-soft' : tone === 'neutral' ? 'text-bw-ink' : toneText[tone])}>
             <bdi className="bw-code">{value}</bdi>
           </span>
-          {unit ? <span className="text-bw-small text-bw-ink-subtle">{unit}</span> : null}
+          {unit ? <span className="text-bw-small font-medium text-bw-ink-subtle">{unit}</span> : null}
+          {periodTag && href ? (
+            <ArrowLeft aria-hidden className="ms-auto size-3.5 shrink-0 -translate-x-0.5 text-bw-ink-subtle opacity-0 transition-[opacity,transform] duration-150 group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:opacity-100" />
+          ) : null}
         </span>
       )}
-      {hint ? <span className="mt-2 hidden truncate text-[11px] text-bw-ink-subtle sm:block">{hint}</span> : null}
+      {hint ? <span className="mt-2 block truncate text-[11px] text-bw-ink-subtle">{hint}</span> : null}
     </>
   )
-  const cls = 'group block min-w-0 bg-bw-surface p-3.5 sm:p-4'
+  const cls = cn('group block min-w-0 bg-bw-surface p-3 sm:p-4', className)
   return href ? (
     <Link href={href} className={cn(cls, 'bw-row transition-colors hover:bg-bw-sunken focus-visible:outline-offset-[-2px]')}>{body}</Link>
   ) : (
