@@ -294,8 +294,7 @@ describe('Hub orders & preparation: barcode registration, handoff gate, loss rev
     const line = (id: string) => deskOrder(order.id).then(o => o.lines.find((l: any) => l.orderItemId === id));
     expect(await line(itemId)).toMatchObject({ cost: { recorded: false, listUnitPrice: null, discountPercent: null }, productSlug: expect.any(String) });
 
-    // The base price is needed once; the discount is a percentage of it.
-    await putDiscount(order.id, itemId, { discountPercent: 10 }).expect(400).expect(res => expect(res.body.code).toBe('LIST_PRICE_REQUIRED'));
+    // The base price may be sent once explicitly; without it the product's price on the order is the list price.
     await putDiscount(order.id, itemId, { discountPercent: 100, listUnitPrice: 200 }).expect(400);
     await putDiscount(order.id, itemId, { discountPercent: 10, listUnitPrice: 200 }, otherHub.auth).expect(403);
     await putDiscount(order.id, itemId, { discountPercent: 10, listUnitPrice: 200 }, driver.auth).expect(403);
