@@ -18,39 +18,44 @@ type OrderRow = {
   itemCount: number; hasPin: boolean; createdAt: string
 }
 const PAGE_SIZE = 25
-// Values are the API's OrderStatus enum (lowercase); the query DTO rejects anything else.
-const filters = [
-  { value: '', label: 'الكل' }, { value: 'placed', label: 'بانتظار التوفير' },
-  { value: 'confirmed', label: 'تأكد التوفر' }, { value: 'packing', label: 'في المخزن' },
-  { value: 'shipped', label: 'مع المندوب' }, { value: 'delivered', label: 'مكتملة' },
-  { value: 'cancelled', label: 'ملغاة' }, { value: 'returned', label: 'مرتجعة' },
+
+// Primary semantic buckets for quick operational scanning
+const GROUP_FILTERS = [
+  { value: '', label: 'الكل' },
+  { value: 'active', label: 'طلبات جارية' },
+  { value: 'shipped', label: 'مع المندوب' },
+  { value: 'delivered', label: 'مكتملة' },
+  { value: 'terminal', label: 'ملغاة ومرتجعة' },
+]
+
+// Granular statuses supported by backend API
+const GRANULAR_STATUSES = [
+  { value: 'placed', label: 'بانتظار التوفير (placed)' },
+  { value: 'confirmed', label: 'تأكد التوفر (confirmed)' },
+  { value: 'packing', label: 'في المخزن (packing)' },
+  { value: 'shipped', label: 'مع المندوب (shipped)' },
+  { value: 'delivered', label: 'مكتملة (delivered)' },
+  { value: 'cancelled', label: 'ملغاة (cancelled)' },
+  { value: 'returned', label: 'مرتجعة (returned)' },
 ]
 const CLOSED = ['delivered', 'cancelled', 'returned']
-const ALLOWED_STATUSES = new Set(filters.map((f) => f.value).filter(Boolean))
-
-/** What happens to this order next, in the operator's words. Presentation only: the lifecycle itself lives in the API. */
-const NEXT_STEP: Record<string, string> = {
-  placed: 'يتشترى من السوق',
-  confirmed: 'ينتظر دخول المخزن',
-  packing: 'يتجهّز ويتغلّف',
-  shipped: 'بانتظار تسليم العميل',
-}
+const ALL_VALID_STATUSES = new Set([...GROUP_FILTERS.map((f) => f.value), ...GRANULAR_STATUSES.map((f) => f.value)].filter(Boolean))
 
 const when = (value: string) => new Date(value).toLocaleString('ar-EG-u-nu-latn', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })
 
-const COLS = 'md:grid-cols-[minmax(0,1.7fr)_minmax(0,1.2fr)_3rem_6.5rem_minmax(0,1.1fr)_1rem]'
+const COLS = 'md:grid-cols-[minmax(0,1.7fr)_minmax(0,1.3fr)_3rem_6.5rem_minmax(0,1.2fr)_1rem]'
 
 function AdminOrdersContent() {
   const searchParams = useSearchParams()
   const initialStatus = searchParams.get('status') ?? ''
-  const [status, setStatus] = React.useState(ALLOWED_STATUSES.has(initialStatus) ? initialStatus : '')
+  const [status, setStatus] = React.useState(ALL_VALID_STATUSES.has(initialStatus) ? initialStatus : '')
   const [query, setQuery] = React.useState('')
   const [search, setSearch] = React.useState('')
   const [skip, setSkip] = React.useState(0)
 
   React.useEffect(() => {
     const paramStatus = searchParams.get('status') ?? ''
-    if (paramStatus && ALLOWED_STATUSES.has(paramStatus)) {
+    if (paramStatus && ALL_VALID_STATUSES.has(paramStatus)) {
       setStatus(paramStatus)
       setSkip(0)
     }
@@ -62,24 +67,42 @@ function AdminOrdersContent() {
   }, [query, search])
 
   const params = new URLSearchParams({ take: String(PAGE_SIZE), skip: String(skip), ...(status ? { status } : {}), ...(search ? { q: search } : {}) })
-  const orders = useApi<{ total: number; items: OrderRow[] }>(`/admin/orders?${params}`, { pollMs: 30000 })
+  const orders = useApi<{ total: number; missingPinCount?: number; items: OrderRow[] }>(`/admin/orders?${params}`, { pollMs: 30000 })
   const rows = orders.data?.items ?? []
   const total = orders.data?.total ?? 0
-  const attention = rows.filter((order) => !order.hasPin && !CLOSED.includes(order.status)).length
+  const attention = orders.data?.missingPinCount ?? rows.filter((order) => !order.hasPin && !CLOSED.includes(order.status)).length
   const reset = () => { setStatus(''); setQuery(''); setSearch(''); setSkip(0) }
   const filtered = Boolean(status || search)
+
+  // Map granular status to active group tab if applicable
+  const activeGroup = ['placed', 'confirmed', 'packing'].includes(status)
+    ? 'active'
+    : ['cancelled', 'returned'].includes(status)
+      ? 'terminal'
+      : status
 
   return <RoleShell role="admin" active="orders">
     <main className="mx-auto w-full max-w-7xl space-y-4 px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
       <PageHeader
         title="الطلبات"
-        meta={orders.data ? <><Code>{total}</Code> {filtered ? 'طلب مطابق' : 'طلب'}{attention ? <span className="ms-3 inline-flex items-center gap-1.5 text-bw-amber"><MapPinOff className="size-3.5" aria-hidden /><Code>{attention}</Code> بلا موقع مؤكد</span> : null}</> : undefined}
+        meta={orders.data ? <><Code>{total}</Code> {filtered ? 'طلب مطابق' : 'طلب'}{attention > 0 ? <span className="ms-3 inline-flex items-center gap-1.5 text-bw-amber"><MapPinOff className="size-3.5" aria-hidden /><Code>{attention}</Code> بلا موقع مؤكد</span> : null}</> : undefined}
         actions={<Button variant="secondary" size="sm" onClick={orders.reload} loading={orders.loading && !!orders.data}>{!(orders.loading && !!orders.data) ? <RefreshCw className="size-4" aria-hidden /> : null}تحديث</Button>}
       />
 
       <Toolbar>
         <SearchField value={query} onChange={setQuery} onSubmit={() => { setSearch(query.trim()); setSkip(0) }} label="بحث في الطلبات" placeholder="رقم الطلب أو العميل أو الهاتف" />
-        <Segmented label="حالة الطلب" items={filters} value={status} onChange={(value) => { setStatus(value); setSkip(0) }} className="min-w-0 basis-full sm:basis-0 sm:flex-1" />
+        <Segmented label="حالة الطلب" items={GROUP_FILTERS} value={activeGroup} onChange={(value) => { setStatus(value); setSkip(0) }} className="min-w-0 shrink-0" />
+        <select
+          aria-label="تصفية دقيقة بالحالة"
+          value={GRANULAR_STATUSES.some(g => g.value === status) ? status : ''}
+          onChange={(e) => { setStatus(e.target.value); setSkip(0) }}
+          className="h-9 shrink-0 rounded-bw-field border border-bw-line bg-bw-surface px-2.5 text-bw-small text-bw-ink-soft transition-colors hover:border-bw-line-focus hover:text-bw-ink"
+        >
+          <option value="">تصفية دقيقة...</option>
+          {GRANULAR_STATUSES.map((g) => (
+            <option key={g.value} value={g.value}>{g.label}</option>
+          ))}
+        </select>
         {filtered ? <Button variant="ghost" size="sm" onClick={reset}>مسح</Button> : null}
       </Toolbar>
 
@@ -92,7 +115,7 @@ function AdminOrdersContent() {
         {rows.length ? (
           <div className="bw-panel bw-arrive overflow-hidden">
             <div aria-hidden className={cn('hidden gap-4 border-b border-bw-line bg-bw-veil-1 px-4 py-2 text-[11px] font-semibold text-bw-ink-subtle md:grid', COLS)}>
-              <span>الطلب</span><span>العميل</span><span>أصناف</span><span>المبلغ</span><span>الخطوة الجاية</span><span />
+              <span>الطلب</span><span>العميل والعنوان</span><span>أصناف</span><span>المبلغ</span><span>التنبيه والميعاد</span><span />
             </div>
             <ul className="divide-y divide-bw-line">
               {rows.map((order) => {
@@ -115,7 +138,7 @@ function AdminOrdersContent() {
                         <span className="block text-[11px] text-bw-ink-subtle md:hidden"><Code>{order.itemCount}</Code> أصناف</span>
                       </span>
                       <span className="col-span-2 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-bw-ink-soft md:col-span-1">
-                        {needsLocation ? <StatusLabel tone="warn">الموقع غير مؤكد</StatusLabel> : NEXT_STEP[order.status] ? <span className="truncate font-medium text-bw-ink">{NEXT_STEP[order.status]}</span> : null}
+                        {needsLocation ? <StatusLabel tone="danger">بلا موقع مؤكد</StatusLabel> : null}
                         <span className="text-bw-ink-subtle">{when(order.createdAt)}</span>
                       </span>
                       <ChevronLeft className="hidden size-4 text-bw-ink-subtle transition-transform group-hover:-translate-x-0.5 group-hover:text-bw-ink md:block" aria-hidden />
