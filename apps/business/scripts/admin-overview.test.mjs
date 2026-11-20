@@ -17,7 +17,12 @@ function formatRelativeTime(dateString) {
   if (diffHours === 1) return 'منذ ساعة'
   if (diffHours === 2) return 'منذ ساعتين'
   if (diffHours >= 3 && diffHours <= 10) return `منذ ${diffHours} ساعات`
-  return `منذ ${diffHours} ساعة`
+  if (diffHours < 24) return `منذ ${diffHours} ساعة`
+  const diffDays = Math.floor(diffHours / 24)
+  if (diffDays === 1) return 'منذ يوم'
+  if (diffDays === 2) return 'منذ يومين'
+  if (diffDays >= 3 && diffDays <= 10) return `منذ ${diffDays} أيام`
+  return `منذ ${diffDays} يوم`
 }
 
 test('formatRelativeTime produces natural Arabic phrasing', () => {
@@ -32,6 +37,10 @@ test('formatRelativeTime produces natural Arabic phrasing', () => {
   assert.equal(formatRelativeTime(new Date(now - 125 * 60 * 1000).toISOString()), 'منذ ساعتين')
   assert.equal(formatRelativeTime(new Date(now - 4 * 3600 * 1000).toISOString()), 'منذ 4 ساعات')
   assert.equal(formatRelativeTime(new Date(now - 14 * 3600 * 1000).toISOString()), 'منذ 14 ساعة')
+  assert.equal(formatRelativeTime(new Date(now - 26 * 3600 * 1000).toISOString()), 'منذ يوم')
+  assert.equal(formatRelativeTime(new Date(now - 50 * 3600 * 1000).toISOString()), 'منذ يومين')
+  assert.equal(formatRelativeTime(new Date(now - 5 * 24 * 3600 * 1000).toISOString()), 'منذ 5 أيام')
+  assert.equal(formatRelativeTime(new Date(now - 15 * 24 * 3600 * 1000).toISOString()), 'منذ 15 يوم')
 })
 
 /* ── Test Sparkline Math & Bounds ── */
@@ -139,4 +148,71 @@ test('overview payload enforces zero-mock guarantees and explicit incomplete pro
   assert.equal(emptyAdminOverview.actionRequired.totalIssues, 0)
   assert.equal(emptyAdminOverview.actionRequired.affectedOrdersCount, 0)
   assert.equal(emptyAdminOverview.financialSummary.unresolvedVariance.amount, 0)
+})
+
+/* ── Test Horizontal Bar Chart Sorting & Total Consistency ── */
+test('order status horizontal bar chart sorts highest first and matches total sum', () => {
+  const naturalOrder = ['placed', 'confirmed', 'packing', 'shipped', 'delivered', 'cancelled', 'returned']
+  const items = [
+    { status: 'placed', count: 12, percentage: 12, href: '/admin/orders?status=placed' },
+    { status: 'confirmed', count: 5, percentage: 5, href: '/admin/orders?status=confirmed' },
+    { status: 'packing', count: 28, percentage: 28, href: '/admin/orders?status=packing' },
+    { status: 'shipped', count: 19, percentage: 19, href: '/admin/orders?status=shipped' },
+    { status: 'delivered', count: 32, percentage: 32, href: '/admin/orders?status=delivered' },
+    { status: 'cancelled', count: 3, percentage: 3, href: '/admin/orders?status=cancelled' },
+    { status: 'returned', count: 1, percentage: 1, href: '/admin/orders?status=returned' },
+  ]
+
+  const sumCount = items.reduce((acc, curr) => acc + curr.count, 0)
+  assert.equal(sumCount, 100)
+
+  const sorted = [...items].sort((a, b) => {
+    if (b.count !== a.count) return b.count - a.count
+    return naturalOrder.indexOf(a.status) - naturalOrder.indexOf(b.status)
+  })
+
+  // Highest count first
+  assert.equal(sorted[0].status, 'delivered')
+  assert.equal(sorted[0].count, 32)
+  assert.equal(sorted[1].status, 'packing')
+  assert.equal(sorted[1].count, 28)
+  assert.equal(sorted[2].status, 'shipped')
+  assert.equal(sorted[2].count, 19)
+  assert.equal(sorted[3].status, 'placed')
+  assert.equal(sorted[3].count, 12)
+  assert.equal(sorted[4].status, 'confirmed')
+  assert.equal(sorted[4].count, 5)
+  assert.equal(sorted[5].status, 'cancelled')
+  assert.equal(sorted[5].count, 3)
+  assert.equal(sorted[6].status, 'returned')
+  assert.equal(sorted[6].count, 1)
+
+  // Verify total matches sum of displayed statuses
+  const sortedSum = sorted.reduce((acc, curr) => acc + curr.count, 0)
+  assert.equal(sortedSum, sumCount)
+})
+
+/* ── Test Action Required Sorting by Priority and Age ── */
+test('action required items sort strictly by priority (critical > warning > info) and then by age (oldest first)', () => {
+  const severityOrder = { critical: 0, warning: 1, info: 2 }
+  const now = Date.now()
+  const rawItems = [
+    { id: '1', title: 'Info Case', severity: 'info', createdAt: new Date(now - 1000).toISOString() },
+    { id: '2', title: 'Warning Newer', severity: 'warning', createdAt: new Date(now - 5000).toISOString() },
+    { id: '3', title: 'Critical Newer', severity: 'critical', createdAt: new Date(now - 3000).toISOString() },
+    { id: '4', title: 'Critical Oldest', severity: 'critical', createdAt: new Date(now - 20000).toISOString() },
+    { id: '5', title: 'Warning Oldest', severity: 'warning', createdAt: new Date(now - 15000).toISOString() },
+  ]
+
+  const sorted = [...rawItems].sort((a, b) => {
+    const sevDiff = severityOrder[a.severity] - severityOrder[b.severity]
+    if (sevDiff !== 0) return sevDiff
+    return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+  })
+
+  assert.equal(sorted[0].id, '4') // Critical Oldest
+  assert.equal(sorted[1].id, '3') // Critical Newer
+  assert.equal(sorted[2].id, '5') // Warning Oldest
+  assert.equal(sorted[3].id, '2') // Warning Newer
+  assert.equal(sorted[4].id, '1') // Info Case
 })
