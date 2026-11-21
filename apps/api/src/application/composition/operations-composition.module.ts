@@ -19,6 +19,9 @@ import { PurchaseBatchController } from './controllers/purchase-batch.controller
 import { OrderCostController } from './controllers/order-cost.controller';
 import { OrderCostService } from './services/order-cost.service';
 import { ProfitService } from './services/profit.service';
+import { CapitalPartnerController, CapitalPartnerAdminController } from './controllers/capital-partner.controller';
+import { CapitalPartnerService } from './services/capital-partner.service';
+import { CapitalPartnerMovementsService } from './services/capital-partner-movements.service';
 import { OrderProfitabilityService, PackingReadinessService } from './services/order-profitability.service';
 
 /**
@@ -27,7 +30,7 @@ import { OrderProfitabilityService, PackingReadinessService } from './services/o
  */
 @Module({
   imports: [OrderingModule, FulfillmentModule, SourcingModule, OperationsModule, AccountsModule, CatalogModule],
-  controllers: [CashSettlementController, OrderCancellationController, OperationsQueueController, WorkspaceController, AdminOrdersController, CustomerOrderActionsController, FinanceController, BuyListController, PurchaseBatchController, OrderCostController],
-  providers: [OrderCancellationService, FinanceReportService, OrderCostService, ProfitService, OrderProfitabilityService, PackingReadinessService],
+  controllers: [CashSettlementController, OrderCancellationController, OperationsQueueController, WorkspaceController, AdminOrdersController, CustomerOrderActionsController, FinanceController, BuyListController, PurchaseBatchController, OrderCostController, CapitalPartnerController, CapitalPartnerAdminController],
+  providers: [OrderCancellationService, FinanceReportService, OrderCostService, ProfitService, OrderProfitabilityService, PackingReadinessService, CapitalPartnerService, CapitalPartnerMovementsService],
 })
 export class OperationsCompositionModule {}

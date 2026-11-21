@@ -7,6 +7,7 @@
  *   STAFF_PASSWORD='…' npm run staff:provision -- --email hub@… --name "Hub 1" --role HUB_OPERATOR --hub "Maadi Pharmacy Hub"
  *   STAFF_PASSWORD='…' npm run staff:provision -- --email sup@… --name "Supplier" --role SUPPLIER --supplier official-distributor
  *   STAFF_PASSWORD='…' npm run staff:provision -- --email drv@… --name "Driver" --role DRIVER
+ *   STAFF_PASSWORD='…' npm run staff:provision -- --email partner@… --name "Capital Partner" --role CAPITAL_PARTNER   (also designates the single capital partner profile)
  *
  * Lifecycle management:
  *   npm run staff:provision -- --email drv@… --disable
@@ -15,7 +16,7 @@
 import { PrismaClient, Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
-const ROLES: Role[] = ['ADMIN', 'HUB_OPERATOR', 'SUPPLIER', 'DRIVER'];
+const ROLES: Role[] = ['ADMIN', 'HUB_OPERATOR', 'SUPPLIER', 'DRIVER', 'CAPITAL_PARTNER'];
 
 function arg(name: string): string | undefined {
   const index = process.argv.indexOf(`--${name}`);
@@ -160,6 +161,18 @@ async function main() {
         create: { locationId: hub.id, operatorId: account.id },
       });
       console.log(`assigned to hub ${hub.name} (${hub.id})`);
+    }
+
+    if (role === 'CAPITAL_PARTNER') {
+      // MVP: exactly one active capital partner. The profile is what the portal checks, on top of the role.
+      const active = await prisma.capitalPartner.findFirst({ where: { isActive: true } });
+      if (active && active.accountId !== account.id) fail(`another capital partner (${active.displayName}) is already active; deactivate it first`);
+      await prisma.capitalPartner.upsert({
+        where: { accountId: account.id },
+        update: { displayName: name, isActive: true },
+        create: { accountId: account.id, displayName: name, createdBy: 'provision-staff' },
+      });
+      console.log('designated as the capital partner');
     }
 
     console.log(`${role} ${email} → ${account.id} (isActive: true)`);
