@@ -206,9 +206,10 @@ describe('Delivery MVP: dispatch, verified handoff, courier delivery, COD settle
     expect(view.stops.find((s: any) => s.shipmentId === a.shipmentId)).toMatchObject({ handedOver: true, duplicateScans: 1, handoff: { scannedById: hub.id, receivedById: d1.id } });
     expect(view.stops.find((s: any) => s.shipmentId === b.shipmentId)).toMatchObject({ handedOver: true, handoff: { scannedById: d1.id, receivedById: d1.id } });
 
-    // Only now does the run leave: parcels and orders move together, once.
+    // The courier's last scan releases the run by itself: parcels and orders move together, once.
+    // (Dispatch stays hub-only, and pressing it again afterwards is refused.)
+    expect((await prisma.deliveryBatch.findUniqueOrThrow({ where: { id: batch.id } })).status).toBe('dispatched');
     await http().post(`/fulfillment/delivery-batches/${batch.id}/dispatch`).set(d1.auth).expect(403);
-    await http().post(`/fulfillment/delivery-batches/${batch.id}/dispatch`).set(hub.auth).expect(201);
     await http().post(`/fulfillment/delivery-batches/${batch.id}/dispatch`).set(hub.auth).expect(400);
     for (const p of [a, b]) {
       expect((await prisma.shipment.findUniqueOrThrow({ where: { id: p.shipmentId } })).status).toBe('out_for_delivery');
@@ -224,7 +225,8 @@ describe('Delivery MVP: dispatch, verified handoff, courier delivery, COD settle
       const batch = (await http().post('/fulfillment/delivery-batches').set(hub.auth).send({ hubId: locationId, name, driverId: driver.id }).expect(201)).body as { id: string };
       await http().post(`/fulfillment/delivery-batches/${batch.id}/stops`).set(hub.auth).send({ stops: parcels.map((p, i) => ({ shipmentId: p.shipmentId, sequence: i + 1 })) }).expect(201);
       for (const p of parcels) await handoff(batch.id, p.barcode, driver.auth).expect(201);
-      await http().post(`/fulfillment/delivery-batches/${batch.id}/dispatch`).set(hub.auth).expect(201);
+      // No manual dispatch: the courier's last scan already released the run.
+      expect((await prisma.deliveryBatch.findUniqueOrThrow({ where: { id: batch.id } })).status).toBe('dispatched');
       return batch.id;
     };
     const first = await dispatchRun([a, b], d1, 'Morning');
@@ -305,10 +307,10 @@ describe('Delivery MVP: dispatch, verified handoff, courier delivery, COD settle
       const batch = (await http().post('/fulfillment/delivery-batches').set(hub.auth).send({ hubId: locationId, name, driverId: driver.id }).expect(201)).body as { id: string };
       await http().post(`/fulfillment/delivery-batches/${batch.id}/stops`).set(hub.auth).send({ stops: parcels.map((p, i) => ({ shipmentId: p.shipmentId, sequence: i + 1 })) }).expect(201);
       for (const p of parcels) await handoff(batch.id, p.barcode, driver.auth).expect(201);
-      await http().post(`/fulfillment/delivery-batches/${batch.id}/dispatch`).set(hub.auth).expect(201);
+      expect((await prisma.deliveryBatch.findUniqueOrThrow({ where: { id: batch.id } })).status).toBe('dispatched'); // released by the courier's last scan
       return batch.id;
     };
-    const settlement = async (id: string) => (await http().get(`/fulfillment/delivery-batches/${id}/settlement`).set(hub.auth).expect(200)).body;
+    const settlement =async (id: string) => (await http().get(`/fulfillment/delivery-batches/${id}/settlement`).set(hub.auth).expect(200)).body;
     const complete = (id: string) => http().post(`/fulfillment/delivery-batches/${id}/complete`).set(hub.auth);
 
     // 1. An empty trip (no parcels at all) is never settled or completable, and no round can be "settled" for it.
@@ -351,10 +353,11 @@ describe('Delivery MVP: dispatch, verified handoff, courier delivery, COD settle
     // Planned as a normal order, then settled online before the run leaves: no driver cash is ever due for it (GLO-241).
     const zeroBatch = (await http().post('/fulfillment/delivery-batches').set(hub.auth).send({ hubId: locationId, name: 'Prepaid', driverId: d2.id }).expect(201)).body as { id: string };
     await http().post(`/fulfillment/delivery-batches/${zeroBatch.id}/stops`).set(hub.auth).send({ stops: [{ shipmentId: prepaid.shipmentId, sequence: 1 }] }).expect(201);
-    await handoff(zeroBatch.id, prepaid.barcode, d2.auth).expect(201);
     const paidOrder = await prisma.order.update({ where: { id: prepaid.orderId }, data: { paymentMethod: 'CARD', codAmount: 0 } });
     await prisma.paymentAttempt.create({ data: { orderId: paidOrder.id, method: 'CARD', provider: 'test-card-psp', reference: 'PAID-' + randomUUID().slice(0, 12), amount: paidOrder.totalAmount, currency: paidOrder.currency, status: 'confirmed', confirmedAt: new Date() } });
-    await http().post(`/fulfillment/delivery-batches/${zeroBatch.id}/dispatch`).set(hub.auth).expect(201);
+    // The courier's scan is the last one, so the run leaves by itself; the payment must already be settled by then.
+    await handoff(zeroBatch.id, prepaid.barcode, d2.auth).expect(201);
+    expect((await prisma.deliveryBatch.findUniqueOrThrow({ where: { id: zeroBatch.id } })).status).toBe('dispatched');
     const zero = zeroBatch.id;
     expect(await settlement(zero)).toMatchObject({ state: 'pending', canComplete: false });
     await shipmentEvent(prepaid.shipmentId, { type: 'DELIVERED' }, d2.auth).expect(201);

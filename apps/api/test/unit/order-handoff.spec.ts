@@ -43,18 +43,20 @@ describe('retail barcode check', () => {
 });
 
 describe('order profitability', () => {
+  // goodsNet is what the customer was billed for goods after every discount and coupon; the delivery fee is separate revenue.
   const base = { goodsNet: 10000, customerDeliveryFee: 5000 };
 
   it('is a profit only when every cost is recorded and revenue exceeds them', () => {
+    // 10000 + 5000 − 4000 − 500 − 5000
     expect(evaluateOrderProfit({ ...base, cogs: 4000, packaging: 500, courier: 5000 })).toMatchObject({ state: 'PROFIT', complete: true, marginSoFar: 5500, missing: [] });
-    // The courier cost beyond what the customer paid is the company's cost; below it, nothing.
+    // The delivery fee is revenue and the courier cost a cost: they are never netted, so a cheaper courier raises the margin.
     expect(evaluateOrderProfit({ ...base, cogs: 4000, packaging: 500, courier: 8000 }).marginSoFar).toBe(2500);
-    expect(evaluateOrderProfit({ ...base, cogs: 4000, packaging: 500, courier: 1000 }).marginSoFar).toBe(5500);
+    expect(evaluateOrderProfit({ ...base, cogs: 4000, packaging: 500, courier: 1000 }).marginSoFar).toBe(9500);
   });
 
-  it('is a loss as soon as the recorded costs exceed the goods sold, even with costs still missing', () => {
-    expect(evaluateOrderProfit({ ...base, cogs: 15000, packaging: 500, courier: null })).toMatchObject({ state: 'LOSS', marginSoFar: -5500, complete: false, missing: ['COURIER_COST'] });
-    expect(evaluateOrderProfit({ ...base, cogs: 10000, packaging: 500, courier: 5000 }).state).toBe('LOSS');
+  it('is a loss as soon as the recorded costs exceed what was billed, even with costs still missing', () => {
+    expect(evaluateOrderProfit({ ...base, cogs: 16000, packaging: 500, courier: null })).toMatchObject({ state: 'LOSS', marginSoFar: -1500, complete: false, missing: ['COURIER_COST'] });
+    expect(evaluateOrderProfit({ ...base, cogs: 10000, packaging: 500, courier: 5100 }).state).toBe('LOSS');
   });
 
   it('never calls an order fine while a cost is missing, and a break-even order is not a loss', () => {

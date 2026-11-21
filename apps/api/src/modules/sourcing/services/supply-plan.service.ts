@@ -436,16 +436,19 @@ export class SupplyPlanService {
    * (kept as history) so nothing new is batched or received for it. Supplier commitments already
    * made on purchase orders are reported back for a human decision, never silently undone.
    */
-  async releaseForCancelledOrder(tx: Tx, orderId: string): Promise<{ supplierCommitments: Array<{ purchaseOrderId: string; quantity: number; confirmed: number | null }> }> {
+  async releaseForCancelledOrder(tx: Tx, orderId: string): Promise<{ supplierCommitments: Array<{ purchaseOrderId: string; quantity: number; confirmed: number | null }>; boughtUnits: number }> {
     await this.lock(tx, orderId);
     const request = await tx.supplyRequest.findUnique({ where: { orderId } });
-    if (!request) return { supplierCommitments: [] };
+    if (!request) return { supplierCommitments: [], boughtUnits: 0 };
+    // Units already bought on the internal Buy List for this order are real money spent on goods nobody will receive for it: a human decides what to do with them.
+    const bought = await tx.sourceAllocation.aggregate({ where: { requirement: { supplyRequestId: request.id }, evidenceRef: { startsWith: 'buylist:' } }, _sum: { confirmedQuantity: true } });
+    const boughtUnits = bought._sum.confirmedQuantity ?? 0;
     const releasing = await tx.supplyRequirement.findMany({ where: { supplyRequestId: request.id, releasedAt: null }, select: { id: true } });
     await tx.supplyRequirement.updateMany({ where: { supplyRequestId: request.id, releasedAt: null }, data: { releasedAt: new Date() } });
     await this.rfq.touchForRequirements(tx, releasing.map(r => r.id), 'system:order-cancelled');
     await tx.availabilityActionRequirement.deleteMany({ where: { requirement: { supplyRequestId: request.id } } });
     const links = await tx.purchaseOrderLineAllocation.findMany({ where: { orderId }, include: { line: true } });
-    return { supplierCommitments: links
+    return { boughtUnits, supplierCommitments: links
       .filter(link => link.confirmedQuantity === null || link.confirmedQuantity > link.receivedQuantity)
       .map(link => ({ purchaseOrderId: link.line.purchaseOrderId, quantity: link.quantity, confirmed: link.confirmedQuantity })) };
   }

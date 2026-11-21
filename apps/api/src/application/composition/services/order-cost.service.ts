@@ -4,6 +4,7 @@ import { IsIn, IsNumber, IsOptional, IsString, Max, MaxLength, Min, MinLength } 
 import { PrismaService } from '../../../platform/database/prisma.service';
 import { SETTING_KEYS } from '../../../platform/settings/runtime-settings';
 import { SettingsService } from '../../../modules/operations/settings/settings.service';
+import { PurchaseCostService } from '../../../modules/sourcing/public';
 import { OrderProfitabilityService } from './order-profitability.service';
 
 export const PACKAGING_TYPES = ['BAG', 'BOX'] as const;
@@ -30,6 +31,19 @@ export class RecordOrderCostDto {
   reason?: string;
 }
 
+export class ConfirmDamageDto {
+  /** Purchase cost of the damaged / written-off goods, in EGP. */
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0.01)
+  @Max(1000000)
+  amount!: number;
+
+  @IsString()
+  @MinLength(5)
+  @MaxLength(300)
+  reason!: string;
+}
+
 /** Statuses from which an order has left the Hub with its goods: its courier cost is expected. */
 const COURIER_EXPECTED = ['shipped', 'delivered'] as const;
 const OPEN_FOR_COST = ['packing', 'shipped', 'delivered'] as const;
@@ -41,7 +55,7 @@ const LOOKBACK_DAYS = 90;
  */
 @Injectable()
 export class OrderCostService {
-  constructor(private readonly prisma: PrismaService, private readonly settings: SettingsService, private readonly profitability: OrderProfitabilityService) {}
+  constructor(private readonly prisma: PrismaService, private readonly settings: SettingsService, private readonly profitability: OrderProfitabilityService, private readonly purchaseCosts: PurchaseCostService) {}
 
   private packagingCostOf(type: PackagingType): number {
     const value = this.settings.effective<number | null>(type === 'BAG' ? SETTING_KEYS.bagCost : SETTING_KEYS.boxCost);
@@ -105,6 +119,40 @@ export class OrderCostService {
     // A newly recorded packaging cost can make the order a loss: flag it for an authorized review (best effort, never blocks the recording).
     if (dto.packagingType && !result.replayed) await this.profitability.flagIfLoss(orderId).catch(() => undefined);
     return result;
+  }
+
+  /**
+   * An Admin confirms that goods bought for a cancelled or returned order are damaged / written off. Until then those goods are recoverable
+   * and no loss is booked. The amount can never exceed what was paid for the units bought for the order; confirming twice with the same
+   * amount is a replay, a different amount is refused (the record is never silently rewritten).
+   */
+  async confirmDamage(orderId: string, dto: ConfirmDamageDto, actor: { id: string }) {
+    const order = await this.prisma.order.findUnique({ where: { id: orderId }, select: { id: true, status: true, items: { select: { id: true } } } });
+    if (!order) throw new NotFoundException('Order not found');
+    if (order.status !== 'cancelled' && order.status !== 'returned') {
+      throw new ConflictException({ code: 'ORDER_NOT_ENDED', message: 'Damage is confirmed only for goods of a cancelled or returned order; a delivered order keeps its cost' });
+    }
+    const costs = await this.purchaseCosts.costForOrderItems(order.items.map(item => item.id));
+    let paid = new Prisma.Decimal(0); let units = 0; let costedUnits = 0;
+    for (const entry of costs.values()) { paid = paid.plus(entry.cost); units += entry.units; costedUnits += entry.costedUnits; }
+    if (units === 0) throw new ConflictException({ code: 'NOTHING_BOUGHT', message: 'No goods were bought for this order, so there is nothing to write off' });
+    if (costedUnits < units) throw new ConflictException({ code: 'PURCHASE_COST_UNKNOWN', message: 'Record the purchase cost of every unit bought for this order first' });
+    const amount = new Prisma.Decimal(dto.amount.toFixed(2));
+    if (amount.greaterThan(paid)) throw new BadRequestException({ code: 'EXCEEDS_BOUGHT_COST', message: `Damage cannot exceed what was paid for these goods (${paid.toFixed(2)})` });
+
+    return this.prisma.$transaction(async tx => {
+      await tx.$queryRaw`SELECT pg_advisory_xact_lock(44100, hashtext(${orderId}))::text AS locked`;
+      const existing = await tx.orderCostRecord.findUnique({ where: { orderId } });
+      if (existing?.damagedAmount) {
+        if (existing.damagedAmount.equals(amount)) return { replayed: true, damagedAmount: amount.toFixed(2), confirmedAt: existing.damageConfirmedAt };
+        throw new ConflictException({ code: 'DAMAGE_ALREADY_CONFIRMED', message: 'The damage of this order was already confirmed with another amount' });
+      }
+      const data = { damagedAmount: amount, damageReason: dto.reason.trim(), damageConfirmedBy: actor.id, damageConfirmedAt: new Date() };
+      const saved = existing
+        ? await tx.orderCostRecord.update({ where: { orderId }, data })
+        : await tx.orderCostRecord.create({ data: { ...data, orderId } });
+      return { replayed: false, damagedAmount: amount.toFixed(2), confirmedAt: saved.damageConfirmedAt };
+    });
   }
 
   private assertCanOverwrite(label: string, isAdmin: boolean, reason?: string) {

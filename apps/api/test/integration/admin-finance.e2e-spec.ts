@@ -11,8 +11,10 @@ import { attachPurchaseOrderLineage } from '../fixtures/purchase-order-lineage';
 
 /**
  * Admin Finance (الماليات): every figure is derived from stored records. The period is a day far from any other suite's data, so the
- * assertions are exact. A delivered order carries 2 x 1,000 EGP of goods and a 30 EGP delivery fee; supplier cost comes only from
- * captured invoice lots.
+ * assertions are exact. A delivered order carries 2 x 1,000 EGP of goods and a 30 EGP delivery fee; product cost comes from captured
+ * invoice lots (purchase-order mode), delivery and packaging from the order's own cost record. The result is the distributable profit:
+ * net sales + shipping revenue - product cost - delivery - packaging - confirmed damages - APPROVED direct costs. Platform expenses are listed
+ * but never deducted from the shared profit.
  */
 describe('Admin finance (e2e)', () => {
   const DAY = '2031-03-15';
@@ -61,8 +63,12 @@ describe('Admin finance (e2e)', () => {
       });
       lotIds.push(lot.id);
     };
+    const recordCosts = async (courierCost: number, packagingCost: number) => {
+      await prisma.orderCostRecord.create({ data: { orderId: order.id, courierCost, courierRecordedBy: 'test', courierRecordedAt: new Date(), packagingType: 'BAG', packagingCost, packagingRecordedBy: 'test', packagingRecordedAt: new Date() } });
+      cleanups.push(async () => { await prisma.orderCostRecord.deleteMany({ where: { orderId: order.id } }); });
+    };
     if (unitCost !== undefined) await addCost(unitCost);
-    return { order, addCost };
+    return { order, addCost, recordCosts };
   }
 
   beforeAll(async () => {
@@ -101,88 +107,122 @@ describe('Admin finance (e2e)', () => {
     await api().get('/operations/finance/summary?from=2029-01-01&to=2031-03-15').set(admin.auth).expect(400);
   });
 
-  it('an empty period reports zeros and withholds the result instead of inventing one', async () => {
+  it('an empty period reports zeros and no profit, instead of inventing one', async () => {
     const { body } = await api().get('/operations/finance/summary?from=2031-03-01&to=2031-03-01').set(admin.auth).expect(200);
-    expect(body.sales).toMatchObject({ deliveredOrders: 0, goodsRevenue: 0, billedTotal: 0, averageOrderValue: null });
-    expect(body.operatingResult).toMatchObject({ value: null, status: 'INCOMPLETE', missing: ['NO_DELIVERED_ORDERS'] });
-    expect(body.profitability).toMatchObject({ costCoveragePercent: null, grossProfitRecorded: null });
+    expect(body.sales).toMatchObject({ deliveredOrders: 0, netSales: 0, billedTotal: 0, averageOrderValue: null });
+    expect(body.revenue).toMatchObject({ netSales: 0, shippingRevenue: 0, total: 0 });
+    expect(body.costs).toMatchObject({ products: 0, delivery: 0, packaging: 0, damages: 0, directCosts: 0 });
+    expect(body.operatingResult).toMatchObject({ value: 0, status: 'RECORDED', missing: [] });
   });
 
-  it('reports sales, cash and supplier cost from records, and does not call incomplete costs a profit', async () => {
+  it('reports sales, cash and cost from records, and does not call incomplete costs a profit', async () => {
     const costed = await deliveredOrder(600);
     const pending = await deliveredOrder();
     const { body } = await api().get(`/operations/finance/summary?${query}`).set(admin.auth).expect(200);
 
-    expect(body.sales).toMatchObject({ deliveredOrders: 2, goodsRevenue: 4000, deliveryFeeRevenue: 60, billedTotal: 4060, averageOrderValue: 2030 });
-    expect(body.cod).toMatchObject({ orders: 2, expected: 4060, reconciled: 4060, outstanding: 0, variance: 0, reconciledOrders: 2 });
+    expect(body.sales).toMatchObject({ deliveredOrders: 2, netSales: 4000, shippingRevenue: 60, billedTotal: 4060, averageOrderValue: 2030 });
+    expect(body.revenue).toMatchObject({ grossSales: 4000, discounts: 0, netSales: 4000, shippingRevenueNet: 60, total: 4060 });
+    // Cash the hub counted that day is reported at settlement level, with the declared amount and variance kept apart.
+    expect(body.cash.settlements).toMatchObject({ count: 2, counted: 4060, declared: 4060, variance: 0, fees: 20 });
     expect(body.supplierCosts).toMatchObject({ invoicedInPeriod: 1200, invoiceLines: 1, invoices: 1 });
-    // Only the order whose invoice cost is captured carries a cost and a profit; the other is reported as pending.
-    expect(body.profitability).toMatchObject({
-      ordersWithCost: 1, ordersCostPending: 1, costCoveragePercent: 50, revenueOfCostedOrders: 2000,
-      supplierCostOfCostedOrders: 1200, grossProfitRecorded: 800, grossMarginPercent: 40,
-    });
-    expect(body.operatingResult).toMatchObject({ value: null, status: 'INCOMPLETE', missing: ['SUPPLIER_COST_PENDING'] });
-    expect(body.costs.courierSettlementFees).toBe(20);
+    // Only the order whose invoice cost is captured carries a product cost; nothing is called a profit while any cost is still unknown.
+    expect(body.costs).toMatchObject({ products: 1200, delivery: 0, packaging: 0 });
+    expect(body.missing).toEqual(expect.arrayContaining([{ code: 'PURCHASE_COST', orders: 1 }, { code: 'COURIER_COST', orders: 2 }, { code: 'PACKAGING_COST', orders: 2 }]));
+    expect(body.grossProfit).toBeNull();
+    expect(body.distributableProfit).toBeNull();
+    expect(body.operatingResult).toMatchObject({ value: null, status: 'INCOMPLETE' });
+    expect(body.operatingResult.missing).toEqual(expect.arrayContaining(['PURCHASE_COST', 'COURIER_COST', 'PACKAGING_COST']));
 
     const orders = (await api().get(`/operations/finance/orders?${query}`).set(admin.auth).expect(200)).body;
     expect(orders.total).toBe(2);
     const byId = new Map<string, any>(orders.items.map((item: any) => [item.orderId, item]));
-    expect(byId.get(costed.order.id)).toMatchObject({ goods: 2000, deliveryFee: 30, total: 2030, cod: { status: 'settled', collected: 2030 }, cost: { status: 'CAPTURED', supplierCost: 1200, contribution: 800, marginPercent: 40 } });
-    expect(byId.get(pending.order.id).cost).toMatchObject({ status: 'PENDING', supplierCost: null, contribution: null, marginPercent: null });
+    expect(byId.get(costed.order.id)).toMatchObject({ goods: 2000, discounts: 0, deliveryFee: 30, total: 2030, cod: { status: 'settled', collected: 2030, settled: true } });
 
-    // Once the missing invoice cost is captured the period is complete and a recorded result appears.
+    // Once every cost is recorded the period is complete and a recorded result appears: goods + fee - product cost - delivery - packaging.
     await pending.addCost(700);
+    await costed.recordCosts(80, 10);
+    await pending.recordCosts(80, 10);
     const complete = (await api().get(`/operations/finance/summary?${query}`).set(admin.auth).expect(200)).body;
-    expect(complete.profitability).toMatchObject({ ordersWithCost: 2, costCoveragePercent: 100, grossProfitRecorded: 1400 });
-    expect(complete.operatingResult).toMatchObject({ value: 1400 + 60 - 20, status: 'RECORDED', missing: [] });
+    expect(complete.costs).toMatchObject({ products: 2600, delivery: 160, packaging: 20, total: 2780 });
+    expect(complete.delivery).toMatchObject({ revenue: 60, cost: 160, margin: -100, estimatedOrders: 0 });
+    expect(complete.grossProfit).toBe(1400);
+    expect(complete.distributableProfit).toBe(4000 + 60 - 2600 - 160 - 20);
+    expect(complete.operatingResult).toMatchObject({ value: 1280, status: 'RECORDED', missing: [] });
+    // Both orders' cash is counted, so the whole result is realised and 40% / 60% is payable now.
+    expect(complete.realisedProfit).toBe(1280);
+    expect(complete.pendingCollection.orders).toBe(0);
+    expect(complete.split).toMatchObject({ platformPercent: 40, platformShare: 512, partnerShare: 768, platformShareNow: 512, partnerShareNow: 768 });
+    expect(complete.capital.recovered).toBe(2780);
   });
 
-  it('records expenses (one-off and recurring), counts them in the period and voids instead of deleting', async () => {
+  it('records expenses, deducts only APPROVED direct costs from the shared profit, and voids instead of deleting', async () => {
     const oneOff = (await api().post('/operations/finance/expenses').set(admin.auth)
       .send({ category: 'MARKETING', description: 'Social ads', amount: 100, incurredOn: DAY }).expect(201)).body;
     const rent = (await api().post('/operations/finance/expenses').set(admin.auth)
       .send({ category: 'RENT', description: 'Warehouse rent', amount: 500, incurredOn: '2031-01-15', recurrence: 'MONTHLY' }).expect(201)).body;
     expenseIds.push(oneOff.id, rent.id);
+    expect(oneOff.kind).toBe('PLATFORM');
 
+    // The platform's own expenses are shown, never deducted from the profit shared with the capital partner.
     let summary = (await api().get(`/operations/finance/summary?${query}`).set(admin.auth).expect(200)).body;
-    expect(summary.costs.operatingExpenses).toBe(600);
-    expect(summary.costs.expensesByCategory).toEqual([{ category: 'RENT', total: 500 }, { category: 'MARKETING', total: 100 }]);
-    expect(summary.operatingResult.value).toBe(1400 + 60 - 20 - 600);
+    expect(summary.platformExpenses).toBe(600);
+    expect(summary.costs.directCosts).toBe(0);
+    expect(summary.distributableProfit).toBe(1280);
+
+    // A direct cost is counted only after an Admin approves it; until then the period is incomplete rather than silently wrong.
+    const direct = (await api().post('/operations/finance/expenses').set(admin.auth)
+      .send({ category: 'SUPPLIES', description: 'Sample kits for the order', amount: 50, incurredOn: DAY, kind: 'DIRECT' }).expect(201)).body;
+    expenseIds.push(direct.id);
+    summary = (await api().get(`/operations/finance/summary?${query}`).set(admin.auth).expect(200)).body;
+    expect(summary.status).toBe('INCOMPLETE');
+    expect(summary.missing).toEqual(expect.arrayContaining([{ code: 'DIRECT_COST_APPROVAL', orders: 1 }]));
+    expect(summary.distributableProfit).toBeNull();
+    await api().post(`/operations/finance/expenses/${direct.id}/approve`).set(hub.auth).expect(403);
+    await api().post(`/operations/finance/expenses/${oneOff.id}/approve`).set(admin.auth).expect(400);
+    await api().post(`/operations/finance/expenses/${direct.id}/approve`).set(admin.auth).expect(201);
+    await api().post(`/operations/finance/expenses/${direct.id}/approve`).set(admin.auth).expect(201);
+    summary = (await api().get(`/operations/finance/summary?${query}`).set(admin.auth).expect(200)).body;
+    expect(summary.costs.directCosts).toBe(50);
+    expect(summary.distributableProfit).toBe(1280 - 50);
+    expect(summary.split).toMatchObject({ platformShare: 492, partnerShare: 738 });
 
     // The monthly rent falls on the 15th: not on the 14th.
     const other = (await api().get('/operations/finance/summary?from=2031-03-14&to=2031-03-14').set(admin.auth).expect(200)).body;
-    expect(other.costs.operatingExpenses).toBe(0);
+    expect(other.platformExpenses).toBe(0);
 
     await api().post(`/operations/finance/expenses/${rent.id}/void`).set(admin.auth).send({ reason: 'x' }).expect(400);
     await api().post(`/operations/finance/expenses/${rent.id}/void`).set(admin.auth).send({ reason: 'Lease ended' }).expect(201);
     await api().post(`/operations/finance/expenses/${rent.id}/void`).set(admin.auth).send({ reason: 'Lease ended' }).expect(400);
     summary = (await api().get(`/operations/finance/summary?${query}`).set(admin.auth).expect(200)).body;
-    expect(summary.costs.operatingExpenses).toBe(100);
+    expect(summary.platformExpenses).toBe(100);
     const listed = (await api().get('/operations/finance/expenses?includeVoided=true').set(admin.auth).expect(200)).body;
     expect(listed.find((row: any) => row.id === rent.id)).toMatchObject({ voided: true, voidReason: 'Lease ended' });
     expect((await api().get('/operations/finance/expenses').set(admin.auth).expect(200)).body.some((row: any) => row.id === rent.id)).toBe(false);
   });
 
-  it('validates expense input', async () => {
+  it('validates expense input, and refuses packaging / delivery as a general expense (they are costed per order)', async () => {
     const valid = { category: 'RENT', description: 'Rent', amount: 10, incurredOn: DAY };
     for (const bad of [
       { ...valid, category: 'PAYROLL' }, { ...valid, amount: 0 }, { ...valid, amount: 10.123 }, { ...valid, incurredOn: '2031-02-30' },
-      { ...valid, description: 'x' }, { ...valid, endsOn: '2031-04-01' }, { ...valid, recurrence: 'MONTHLY', endsOn: '2031-03-01' },
+      { ...valid, description: 'x' }, { ...valid, endsOn: '2031-04-01' }, { ...valid, recurrence: 'MONTHLY', endsOn: '2031-03-01' }, { ...valid, kind: 'SHARED' },
     ]) {
       await api().post('/operations/finance/expenses').set(admin.auth).send(bad).expect(400);
     }
+    for (const category of ['PACKAGING', 'DELIVERY']) {
+      const res = await api().post('/operations/finance/expenses').set(admin.auth).send({ ...valid, category }).expect(400);
+      expect(res.body.code ?? res.body.message?.code).toBe('DUPLICATES_ORDER_COST');
+    }
   });
 
-  it('keeps estimates apart from recorded totals and never nets them into the result', async () => {
+  it('does not let settings or estimates change the recorded figures', async () => {
     const before = (await api().get(`/operations/finance/summary?${query}`).set(admin.auth).expect(200)).body;
-    expect(before.estimates).toMatchObject({ deliveryCost: null, packagingCost: null });
     const keys = ['commerce.delivery.internal_cost', 'commerce.packaging.carton_cost', 'commerce.packaging.label_cost'];
     await api().patch('/operations/settings').set(admin.auth).send({ changes: { [keys[0]]: 25, [keys[1]]: 4, [keys[2]]: 1 } }).expect(200);
     try {
       const after = (await api().get(`/operations/finance/summary?${query}`).set(admin.auth).expect(200)).body;
-      expect(after.estimates).toMatchObject({ deliveryCost: 50, packagingCost: 10, perOrder: { delivery: 25, carton: 4, label: 1 } });
-      expect(after.operatingResult.value).toBe(before.operatingResult.value);
-      expect(after.costs.operatingExpenses).toBe(before.costs.operatingExpenses);
+      expect(after.distributableProfit).toBe(before.distributableProfit);
+      expect(after.costs).toEqual(before.costs);
+      expect(after.delivery.estimatedOrders).toBe(0);
     } finally {
       for (const key of keys) await api().post(`/operations/settings/${key}/reset`).set(admin.auth).expect(201);
     }
@@ -192,7 +232,8 @@ describe('Admin finance (e2e)', () => {
     const series = (await api().get(`/operations/finance/series?${query}`).set(admin.auth).expect(200)).body;
     expect(series.granularity).toBe('day');
     expect(series.points).toHaveLength(1);
-    expect(series.points[0]).toMatchObject({ date: DAY, orders: 2, revenue: 4060, expenses: 100, codSettled: 4060, grossProfit: 1400, costedOrders: 2 });
+    // Only the approved DIRECT cost (50) is charted as a cost; platform expenses are not shared costs.
+    expect(series.points[0]).toMatchObject({ date: DAY, orders: 2, revenue: 4060, expenses: 50, codSettled: 4060 });
 
     const weekly = (await api().get('/operations/finance/series?from=2031-01-01&to=2031-03-31').set(admin.auth).expect(200)).body;
     expect(weekly.granularity).toBe('week');
@@ -200,11 +241,11 @@ describe('Admin finance (e2e)', () => {
 
     const all = (await api().get(`/operations/finance/transactions?${query}`).set(admin.auth).expect(200)).body;
     const types = all.items.map((item: any) => item.type).sort();
-    expect(types).toEqual(['COD_SETTLEMENT', 'COD_SETTLEMENT', 'EXPENSE', 'SALE', 'SALE', 'SUPPLIER_INVOICE', 'SUPPLIER_INVOICE']);
+    expect(types).toEqual(['COD_SETTLEMENT', 'COD_SETTLEMENT', 'EXPENSE', 'EXPENSE', 'SALE', 'SALE', 'SUPPLIER_INVOICE', 'SUPPLIER_INVOICE']);
     expect(all.items.filter((item: any) => item.type === 'SALE').every((item: any) => item.amount === 2030 && item.basis === 'RECORDED')).toBe(true);
     expect(all.items.filter((item: any) => item.type === 'COD_SETTLEMENT').every((item: any) => item.basis === 'RECONCILED')).toBe(true);
     expect(all.items.filter((item: any) => item.type === 'SUPPLIER_INVOICE').map((item: any) => item.amount).sort((a: number, b: number) => a - b)).toEqual([-1400, -1200]);
-    expect(all.items.find((item: any) => item.type === 'EXPENSE').amount).toBe(-100);
+    expect(all.items.filter((item: any) => item.type === 'EXPENSE').map((item: any) => item.amount).sort((a: number, b: number) => a - b)).toEqual([-100, -50]);
 
     const sales = (await api().get(`/operations/finance/transactions?${query}&type=SALE`).set(admin.auth).expect(200)).body;
     expect(sales.items).toHaveLength(2);

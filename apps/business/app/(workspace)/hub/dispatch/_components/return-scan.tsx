@@ -6,7 +6,6 @@ import { CopyId } from '@/components/workspace/copy-id'
 import { ParcelId } from './trip-ui'
 import { CommandError } from '@/components/workspace/kit'
 import { api } from '@/lib/api'
-import { getDevShipmentBarcode } from '@/lib/dev-barcode'
 import { shortId } from '@/lib/labels'
 import { useCommand } from '@/lib/use-api'
 
@@ -23,18 +22,7 @@ export interface ReturnParcel {
  */
 export function ReturnScanRow({ parcel, onDone }: { parcel: ReturnParcel; onDone: () => void }) {
   const [barcode, setBarcode] = React.useState('')
-  const [devBarcode, setDevBarcode] = React.useState<string | null>(null)
   const [confirmFinal, setConfirmFinal] = React.useState(false)
-
-  React.useEffect(() => {
-    let active = true
-    getDevShipmentBarcode(parcel.shipmentId).then((b) => {
-      if (active && b) setDevBarcode(b)
-    })
-    return () => {
-      active = false
-    }
-  }, [parcel.shipmentId])
 
   // A pending "final return" confirmation lapses on its own so a stray tap cannot linger.
   React.useEffect(() => {
@@ -76,16 +64,6 @@ export function ReturnScanRow({ parcel, onDone }: { parcel: ReturnParcel; onDone
           onChange={(e) => setBarcode(e.target.value)}
           className="min-w-48 flex-1"
         />
-        {devBarcode ? (
-          <button
-            type="button"
-            onClick={() => setBarcode(devBarcode)}
-            title="تعبئة الباركود التجريبي (للتطوير فقط)"
-            className="h-bw-control cursor-pointer rounded-bw-field border border-bw-line px-2 text-[11px] text-bw-ink-subtle hover:bg-bw-sunken"
-          >
-            باركود تجريبي
-          </button>
-        ) : null}
       </div>
 
       <div className="flex flex-wrap items-center gap-2">

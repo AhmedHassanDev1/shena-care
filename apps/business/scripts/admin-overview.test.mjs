@@ -137,6 +137,10 @@ test('overview payload enforces zero-mock guarantees and explicit incomplete pro
     actionRequired: { totalIssues: 0, affectedOrdersCount: 0, standaloneCasesCount: 0, criticalCount: 0, items: [] },
     stageBoard: { totalActive: 0, stages: [] },
     financialSummary: {
+      cash: {
+        expectedOnRoad: { amount: 0, orders: 0 }, inCourierCustody: { amount: 0, orders: 0 }, disputed: { amount: 0, orders: 0 },
+        settlements: { count: 0, counted: 0, declared: 0, variance: 0, fees: 0 }, currency: 'EGP',
+      },
       pendingCod: { amount: 0, shipmentCount: 0, currency: 'EGP' },
       unresolvedVariance: { amount: 0, caseCount: 0, currency: 'EGP', details: null },
     },
@@ -148,6 +152,9 @@ test('overview payload enforces zero-mock guarantees and explicit incomplete pro
   assert.equal(emptyAdminOverview.actionRequired.totalIssues, 0)
   assert.equal(emptyAdminOverview.actionRequired.affectedOrdersCount, 0)
   assert.equal(emptyAdminOverview.financialSummary.unresolvedVariance.amount, 0)
+  // The overview cash card reads the shared cash position: money still in courier custody is its own figure, not a guess.
+  assert.equal(emptyAdminOverview.financialSummary.cash.inCourierCustody.amount, 0)
+  assert.equal(emptyAdminOverview.financialSummary.cash.settlements.variance, 0)
 })
 
 /* ── Test Horizontal Bar Chart Sorting & Total Consistency ── */

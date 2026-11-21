@@ -70,8 +70,9 @@ describe('GLO-240 failed delivery retry, return to sender and cancellation (e2e)
     const run1 = await run(driverA);
     await addStop(run1, parcel.shipmentId).expect(201);
     await event(driverA, parcel.shipmentId, { type: 'HANDOFF_SCANNED', barcode: parcel.barcode }).expect(201);
-    await takeCustody(app, hub.auth, run1);
-    await http().post(`/fulfillment/delivery-batches/${run1}/dispatch`).set(hub.auth).expect(201);
+    // The courier's own label scan was the last one, so the run left the hub by itself.
+    expect((await prisma.deliveryBatch.findUniqueOrThrow({ where: { id: run1 } })).status).toBe('dispatched');
+    await http().post(`/fulfillment/delivery-batches/${run1}/dispatch`).set(hub.auth).expect(400);
 
     await event(driverA, parcel.shipmentId, { type: 'FAILED' }).expect(400);
     await event(driverA, parcel.shipmentId, { type: 'FAILED', reasonCode: 'TELEPORTED' }).expect(400);
@@ -105,8 +106,7 @@ describe('GLO-240 failed delivery retry, return to sender and cancellation (e2e)
     const handoff = await event(winner.driver, parcel.shipmentId, { type: 'HANDOFF_SCANNED', barcode: parcel.barcode }).expect(201);
     const firstHandoff = await prisma.shipmentEvent.findFirstOrThrow({ where: { shipmentId: parcel.shipmentId, type: 'HANDOFF_SCANNED' }, orderBy: { createdAt: 'asc' } });
     expect(handoff.body.id).not.toBe(firstHandoff.id); // custody is taken again for the new attempt
-    await takeCustody(app, hub.auth, winner.runId);
-    await http().post(`/fulfillment/delivery-batches/${winner.runId}/dispatch`).set(hub.auth).expect(201);
+    expect((await prisma.deliveryBatch.findUniqueOrThrow({ where: { id: winner.runId } })).status).toBe('dispatched');
     expect(await prisma.orderStatusEvent.count({ where: { orderId: parcel.orderId, status: 'shipped' } })).toBe(1);
     if (winner.other.id !== winner.driver.id) await http().get(`/fulfillment/shipments/${parcel.shipmentId}`).set(winner.other.auth).expect(404);
 

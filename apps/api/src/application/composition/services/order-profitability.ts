@@ -3,10 +3,10 @@ import { Prisma } from '@prisma/client';
 /**
  * Internal profitability of ONE order, on exactly the approved profit model's per-order terms (see `profit-model.ts`):
  *
- *   margin = goods sold net of discounts − purchase cost of those goods − packaging actually used − company-funded delivery
+ *   margin = goods sold net of every discount and coupon + delivery fee the customer paid − purchase cost of those goods − packaging − delivery cost
  *
- * where company-funded delivery is the actual courier cost beyond what the customer paid for delivery (never below zero). Customer delivery
- * fees are not revenue. Every figure is integer cents. A cost that is not recorded yet is never treated as zero for the verdict "fine", but
+ * The delivery fee is revenue and the courier cost (actual, or the quote's estimate while none is recorded) is a cost: they are never netted.
+ * Every figure is integer cents. A cost that is not recorded yet is never treated as zero for the verdict "fine", but
  * costs only ever add up: when the costs already known exceed the goods sold, the order is a loss whatever the missing ones turn out to be.
  */
 export interface OrderProfitInput {
@@ -28,7 +28,7 @@ export interface OrderProfit {
   /** All costs are recorded: the margin is final. */
   complete: boolean;
   missing: MissingOrderCost[];
-  costs: { purchase: number | null; packaging: number | null; companyFundedDelivery: number | null };
+  costs: { purchase: number | null; packaging: number | null; delivery: number | null };
 }
 
 export function evaluateOrderProfit(input: OrderProfitInput): OrderProfit {
@@ -36,12 +36,11 @@ export function evaluateOrderProfit(input: OrderProfitInput): OrderProfit {
   if (input.cogs === null) missing.push('PURCHASE_COST');
   if (input.packaging === null) missing.push('PACKAGING_COST');
   if (input.courier === null) missing.push('COURIER_COST');
-  const companyFunded = input.courier === null ? null : Math.max(input.courier - input.customerDeliveryFee, 0);
-  const marginSoFar = input.goodsNet - (input.cogs ?? 0) - (input.packaging ?? 0) - (companyFunded ?? 0);
+  const marginSoFar = input.goodsNet + input.customerDeliveryFee - (input.cogs ?? 0) - (input.packaging ?? 0) - (input.courier ?? 0);
   return {
     state: marginSoFar < 0 ? 'LOSS' : missing.length ? 'PENDING_COSTS' : 'PROFIT',
     marginSoFar, complete: missing.length === 0, missing,
-    costs: { purchase: input.cogs, packaging: input.packaging, companyFundedDelivery: companyFunded },
+    costs: { purchase: input.cogs, packaging: input.packaging, delivery: input.courier },
   };
 }
 

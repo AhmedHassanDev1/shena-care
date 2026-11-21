@@ -63,6 +63,9 @@ describe('GLO-212 driver run manifest and handoff replay (e2e)', () => {
       await prisma.shipmentEvent.deleteMany({ where: { shipmentId: { in: shipmentIds } } });
       await prisma.shipment.deleteMany({ where: { id: { in: shipmentIds } } });
       await prisma.orderItem.deleteMany({ where: { orderId: { in: orderIds } } });
+      // The courier's last scan releases the run, which creates the expected COD collection for each order.
+      await prisma.paymentCollection.deleteMany({ where: { orderId: { in: orderIds } } });
+      await prisma.orderStatusEvent.deleteMany({ where: { orderId: { in: orderIds } } });
       await prisma.order.deleteMany({ where: { id: { in: orderIds } } });
       await prisma.fulfillmentLocationOperator.deleteMany({ where: { locationId } });
       await prisma.fulfillmentLocation.deleteMany({ where: { id: locationId } });

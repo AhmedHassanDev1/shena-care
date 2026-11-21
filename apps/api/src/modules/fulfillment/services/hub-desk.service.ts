@@ -520,8 +520,11 @@ export class HubDeskService {
     if (recorded && typedList && !typedList.equals(recorded.listUnitPrice)) {
       throw new ConflictException({ code: 'LIST_PRICE_RECORDED', message: 'The supplier list price of this purchase is already recorded; correct it with a reason in the costs screen', listUnitPrice: recorded.listUnitPrice });
     }
-    const list = recorded ? new Prisma.Decimal(recorded.listUnitPrice) : typedList;
-    if (!list) throw new BadRequestException({ code: 'LIST_PRICE_REQUIRED', message: 'Enter the supplier list price once; the discount is a percentage of it' });
+    // The list price IS the product's price on the order line; there is no separate list-price field to fill in first.
+    const lineItem = order.items.find(item => item.id === orderItemId);
+    const productPrice = lineItem?.price != null ? new Prisma.Decimal(lineItem.price as Prisma.Decimal.Value) : null;
+    const list = recorded ? new Prisma.Decimal(recorded.listUnitPrice) : (typedList ?? productPrice);
+    if (!list) throw new BadRequestException({ code: 'LIST_PRICE_REQUIRED', message: 'This product has no price on the order, so the discount cannot be priced' });
     const discountPerUnit = list.mul(dto.discountPercent).div(100).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
     const cost = { listUnitPrice: list.toNumber(), discountPerUnit: discountPerUnit.toNumber() };
     PurchaseCostService.finalUnitCost(cost);

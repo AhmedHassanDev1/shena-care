@@ -176,11 +176,12 @@ describe('DashboardService RBAC & Empty Dataset', () => {
     expect(overview.salesChart.series).toHaveLength(24);
     expect(overview.salesChart.series[0].sales).toBeNull();
     expect(overview.kpis.netRealizedSales).toBeNull();
-    expect(overview.kpis.contributionProfit).toBeNull();
+    // The profit is no longer an Overview KPI: it lives on the Finance page only, from one model.
+    expect((overview.kpis as Record<string, unknown>).contributionProfit).toBeUndefined();
     expect(overview.financialSummary).toBeNull();
   });
 
-  it('returns zeroed sales and no_data contribution state for ADMIN on empty dataset', async () => {
+  it('returns zeroed sales and a zeroed cash position for ADMIN on empty dataset', async () => {
     const service = new DashboardService(createMockPrisma() as any);
     const overview = await service.getOverview({ roles: ['ADMIN'] }, 7);
 
@@ -189,8 +190,7 @@ describe('DashboardService RBAC & Empty Dataset', () => {
     expect(overview.salesChart.hasFinancialAccess).toBe(true);
     expect(overview.salesChart.series).toHaveLength(7);
     expect(overview.kpis.netRealizedSales?.amount).toBe(0);
-    expect(overview.kpis.contributionProfit?.status).toBe('no_data');
-    expect(overview.kpis.contributionProfit?.confirmedAmount).toBeNull();
+    expect((overview.kpis as Record<string, unknown>).contributionProfit).toBeUndefined();
     expect(overview.financialSummary?.unresolvedVariance.amount).toBe(0);
     expect(overview.actionRequired.totalIssues).toBe(0);
     expect(overview.actionRequired.affectedOrdersCount).toBe(0);

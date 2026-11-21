@@ -415,6 +415,32 @@ export class SourcingService {
     return (await this.getPurchaseAvailability(skuId)).orderable;
   }
 
+  /** Batch availability check for cart / checkout projection. */
+  async checkAvailabilityBatch(skuIds: string[], at = new Date()): Promise<Map<string, boolean>> {
+    const ids = [...new Set(skuIds.filter((id) => this.isUuid(id)))];
+    const result = new Map<string, boolean>(skuIds.map((id) => [id, false]));
+    if (!ids.length) return result;
+
+    if (isDemandOnlyMode()) {
+      for (const id of ids) result.set(id, true);
+      return result;
+    }
+
+    const offers = await this.prisma.supplierOffer.findMany({
+      where: { skuId: { in: ids }, isAvailable: true, supplier: { isActive: true } },
+      select: { skuId: true, lastConfirmedAt: true, lastObservedAt: true },
+    });
+
+    const windowMs = customerAvailabilityWindowMs();
+    const provisional = provisionalOrderingEnabled();
+    for (const id of ids) {
+      const skuOffers = offers.filter((o) => o.skuId === id);
+      const availability = resolvePurchaseAvailability(skuOffers, at, windowMs, provisional);
+      result.set(id, availability.orderable);
+    }
+    return result;
+  }
+
   /** Public projection deliberately excludes supplier identity and procurement cost. */
   async getPublicAvailability(skuId: string, at = new Date()) {
     const availability = await this.getPurchaseAvailability(skuId, at);

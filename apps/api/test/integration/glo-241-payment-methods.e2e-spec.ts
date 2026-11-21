@@ -10,6 +10,7 @@ import { AiClient } from '../../src/platform/ai';
 import { DeterministicAiClient } from '../fixtures/deterministic-ai';
 import { createActor, Actor } from '../fixtures/actors';
 import { createSellableSku } from '../fixtures/sellable-sku';
+import { takeCustody } from '../fixtures/custody';
 import { CAIRO_PIN, placeGuestOrder, signInCustomer } from '../fixtures/checkout';
 
 /** TEST DOUBLE ONLY — stands in for a future signed-callback PSP; never registered by the app. */
@@ -139,6 +140,7 @@ describe('GLO-241 payment method foundation (e2e)', () => {
     expect(await prisma.supplyRequest.count({ where: { orderId: order.id } })).toBe(1);
     await http().post(`/fulfillment/delivery-batches/${run.body.id}/stops`).set(hub.auth).send({ stops: [{ shipmentId: shipment.id }] }).expect(201);
     await prisma.order.update({ where: { id: order.id }, data: { status: 'packing' } });
+    await takeCustody(app, hub.auth, run.body.id); // a run only leaves once every parcel was scanned into custody
     await http().post(`/fulfillment/delivery-batches/${run.body.id}/dispatch`).set(hub.auth).expect(201);
     expect(await prisma.paymentCollection.count({ where: { orderId: order.id } })).toBe(0); // no driver cash due
     await http().post(`/fulfillment/shipments/${shipment.id}/events`).set(driver.auth).send({ type: 'DELIVERED', collectedAmount: 10 }).expect(400);

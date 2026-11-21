@@ -15,7 +15,11 @@ Hub `/hub/dispatch`, Courier `/driver`, Admin, customer tracking (reads the same
    `HANDOFF_DUPLICATE`, nothing changes), `NOT_IN_RUN` (a genuine label of another parcel, audited on that parcel as `HANDOFF_REJECTED`),
    `UNKNOWN_PARCEL`, `INVALID_STATE`. Progress and `missingShipmentIds` come back with every scan; `GET …/delivery-batches/:id` shows per stop
    `handoff { at, scannedById, receivedById }` and `duplicateScans`.
-3. **Dispatch gate.** `POST …/dispatch` is refused (`COURIER_REQUIRED`, `HANDOFF_INCOMPLETE` + the missing parcels) until a courier is assigned
+3. **Dispatch gate and automatic release.** The courier's own scan of the run's last parcel releases the run by itself (owner decision 2026-11-20): the same checks
+   as a manual dispatch run, the order becomes `shipped` and the expected COD is fixed. If any check refuses (cancelled order, delivery pin, payment) the run stays
+   `planning` for the Hub, which can still press «خروج المشوار» (`POST …/dispatch`, hub-only) as a fallback; a second dispatch of a released run answers 400. A scan
+   by the hub or an admin never releases a run. Cancelling an order that leaves a planning run whose remaining parcels are all already scanned releases it too.
+   Until release, a parcel the courier scanned already shows the customer «مع المندوب». `POST …/dispatch` is refused (`COURIER_REQUIRED`, `HANDOFF_INCOMPLETE` + the missing parcels) until a courier is assigned
    and every active parcel was scanned into custody; then parcels → `out_for_delivery`, orders → `shipped`, expected COD per order is fixed.
 4. **Courier.** Only the run's courier sees it (`GET /fulfillment/driver/runs`); other couriers get 404/403. Delivered needs the cash declaration
    (idempotent replay, a conflicting rewrite is a 409); failed needs a typed reason and the parcel stays in the courier's custody until the hub

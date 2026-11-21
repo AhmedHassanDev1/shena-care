@@ -212,61 +212,99 @@ export class ReconciliationService {
 
   // --- Advanced Refund Tracking ---
   
-  async initiateRefund(resolutionId: string, amount: number, currency: string, paymentProvider?: string) {
+  /**
+   * Starts a refund. The money is bounded three ways, all inside one transaction that holds the order's row lock, so concurrent or repeated
+   * requests can never refund more than the order allows:
+   *   1. goods part (amount − deliveryFeeAmount) ≤ the goods balance: what the customer was billed for goods after EVERY discount and coupon
+   *      (order total − delivery fee), minus the goods already refunded by live refunds; and, when the resolution lists items, ≤ the net value
+   *      of those items (their line totals scaled by the order's coupon, so a coupon is shared across lines in proportion);
+   *   2. delivery-fee part ≤ the delivery fee paid minus the delivery fee already refunded (refunded on its own, never mixed into goods);
+   *   3. the whole amount ≤ the money actually received (online confirmed amount, or COD cash declared/counted) minus live refunds.
+   * Failed refunds free their amount again; one refund per resolution (unique key).
+   */
+  async initiateRefund(resolutionId: string, amount: number, currency: string, paymentProvider?: string, deliveryFeeAmount = 0) {
     if (!this.isUuid(resolutionId)) throw new BadRequestException('Invalid resolution ID');
+    const seen = await this.prisma.orderResolution.findUnique({ where: { id: resolutionId }, select: { orderId: true } });
+    if (!seen) throw new NotFoundException('Resolution not found');
 
-    return this.prisma.$transaction(async (tx) => {
-      const resolution = await tx.orderResolution.findUnique({
-        where: { id: resolutionId },
-        include: { order: true },
-      });
-
-      if (!resolution) throw new NotFoundException('Resolution not found');
-      if (resolution.status === 'requested' || resolution.status === 'rejected') {
-        throw new BadRequestException(`Cannot refund a ${resolution.status} resolution`);
-      }
-
-      const existingRefund = await tx.refundTransaction.findUnique({
-        where: { resolutionId }
-      });
-      if (existingRefund) throw new BadRequestException('Refund already initiated for this resolution');
-
-      // A refund is in the order currency and, with every other live refund, never exceeds the money
-      // actually received: for COD that is the cash counted at the hub (or declared, before counting),
-      // never the order total of an unpaid order (GLO-240).
-      const requested = new Prisma.Decimal(amount);
-      if (!requested.greaterThan(0)) throw new BadRequestException('Refund amount must be positive');
-      if (currency !== resolution.order.currency) throw new BadRequestException(`Refunds for this order are in ${resolution.order.currency}`);
-      await tx.$queryRaw`SELECT id FROM "ordering"."orders" WHERE id = ${resolution.orderId}::uuid FOR UPDATE`;
-      const collection = await tx.paymentCollection.findUnique({ where: { orderId: resolution.orderId } });
-      const onlinePaid = resolution.order.paymentMethod !== 'COD'
-        ? (await tx.paymentAttempt.findFirst({ where: { orderId: resolution.orderId, status: 'confirmed' } }))?.amount ?? null : null;
-      // The refund follows the capture channel: online-confirmed amount, or COD cash actually received.
-      const received = resolution.order.paymentMethod !== 'COD' ? onlinePaid : !collection ? null
-        : collection.settlementBatchId && collection.collectedAmount ? collection.collectedAmount
-        : collection.status === 'collected' ? collection.declaredAmount : null;
-      if (!received || !received.greaterThan(0)) {
-        throw new ConflictException({ code: 'NO_CASH_RECEIVED', message: 'No customer cash was received for this order; nothing to refund' });
-      }
-      const others = await tx.refundTransaction.aggregate({
-        where: { orderId: resolution.orderId, status: { not: 'failed' } }, _sum: { amount: true },
-      });
-      const refundable = Prisma.Decimal.min(received, resolution.order.totalAmount).minus(others._sum.amount ?? 0);
-      if (requested.greaterThan(refundable)) {
-        throw new BadRequestException(`Refund exceeds the refundable balance of ${refundable.toFixed(2)} ${resolution.order.currency}`);
-      }
-
-      return tx.refundTransaction.create({
-        data: {
-          resolutionId,
-          orderId: resolution.orderId,
-          amount,
-          currency,
-          status: 'pending',
-          paymentProvider
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        // The order row is locked before anything is read, so two refunds on the same order queue instead of both passing the checks.
+        await tx.$queryRaw`SELECT id FROM "ordering"."orders" WHERE id = ${seen.orderId}::uuid FOR UPDATE`;
+        const resolution = await tx.orderResolution.findUnique({ where: { id: resolutionId }, include: { order: true, items: true } });
+        if (!resolution) throw new NotFoundException('Resolution not found');
+        if (resolution.status === 'requested' || resolution.status === 'rejected') {
+          throw new BadRequestException(`Cannot refund a ${resolution.status} resolution`);
         }
+        const existingRefund = await tx.refundTransaction.findUnique({ where: { resolutionId } });
+        if (existingRefund) throw new BadRequestException('Refund already initiated for this resolution');
+
+        const requested = new Prisma.Decimal(amount);
+        const feePart = new Prisma.Decimal(deliveryFeeAmount);
+        if (!requested.greaterThan(0)) throw new BadRequestException('Refund amount must be positive');
+        if (feePart.isNegative() || feePart.greaterThan(requested)) {
+          throw new BadRequestException({ code: 'INVALID_DELIVERY_FEE_REFUND', message: 'The delivery-fee part cannot be negative or exceed the refund amount' });
+        }
+        if (currency !== resolution.order.currency) throw new BadRequestException(`Refunds for this order are in ${resolution.order.currency}`);
+        const goodsPart = requested.minus(feePart);
+        const order = resolution.order;
+
+        const live = await tx.refundTransaction.findMany({ where: { orderId: order.id, status: { not: 'failed' } }, select: { amount: true, deliveryFeeAmount: true } });
+        const liveTotal = live.reduce((sum, row) => sum.plus(row.amount), new Prisma.Decimal(0));
+        const liveFees = live.reduce((sum, row) => sum.plus(row.deliveryFeeAmount), new Prisma.Decimal(0));
+        const liveGoods = liveTotal.minus(liveFees);
+
+        // 1. goods
+        const lines = await tx.orderItem.findMany({ where: { orderId: order.id, lineState: 'active' }, select: { id: true, quantity: true, price: true, discountAmount: true, lineTotal: true } });
+        const lineTotal = (line: { quantity: number; price: Prisma.Decimal; discountAmount: Prisma.Decimal | null; lineTotal: Prisma.Decimal | null }) =>
+          line.lineTotal ?? line.price.mul(line.quantity).minus(line.discountAmount ?? 0);
+        const grossGoods = lines.reduce((sum, line) => sum.plus(lineTotal(line)), new Prisma.Decimal(0));
+        const netGoods = Prisma.Decimal.max(order.totalAmount.minus(order.shippingFee), 0);
+        const goodsBalance = Prisma.Decimal.max(netGoods.minus(liveGoods), 0);
+        let goodsCap = goodsBalance;
+        if (resolution.items.length && grossGoods.greaterThan(0)) {
+          let claimedGross = new Prisma.Decimal(0);
+          for (const claimed of resolution.items) {
+            const line = lines.find(l => l.id === claimed.orderItemId);
+            if (line && line.quantity > 0) claimedGross = claimedGross.plus(lineTotal(line).mul(claimed.quantity).div(line.quantity));
+          }
+          // One rounding of the whole claim, so returning every unit of every line refunds exactly the goods that were billed.
+          goodsCap = Prisma.Decimal.min(netGoods.mul(claimedGross).div(grossGoods).toDecimalPlaces(2), goodsBalance);
+        }
+        if (goodsPart.greaterThan(goodsCap)) {
+          throw new BadRequestException({ code: 'REFUND_EXCEEDS_GOODS', message: `The goods part of this refund exceeds what can be refunded for these goods (${goodsCap.toFixed(2)} ${order.currency})`, refundableGoods: goodsCap.toFixed(2) });
+        }
+        // 2. delivery fee, on its own
+        const feeBalance = Prisma.Decimal.max(order.shippingFee.minus(liveFees), 0);
+        if (feePart.greaterThan(feeBalance)) {
+          throw new BadRequestException({ code: 'REFUND_EXCEEDS_DELIVERY_FEE', message: `The delivery-fee part exceeds the delivery fee still refundable (${feeBalance.toFixed(2)} ${order.currency})`, refundableDeliveryFee: feeBalance.toFixed(2) });
+        }
+
+        // 3. money actually received: the refund follows the capture channel (online-confirmed amount, or COD cash declared / counted). The courier's
+        // shortage never lowers it: the customer paid what the courier declared.
+        const collection = await tx.paymentCollection.findUnique({ where: { orderId: order.id } });
+        const onlinePaid = order.paymentMethod !== 'COD'
+          ? (await tx.paymentAttempt.findFirst({ where: { orderId: order.id, status: 'confirmed' } }))?.amount ?? null : null;
+        const received = order.paymentMethod !== 'COD' ? onlinePaid : !collection ? null
+          : collection.settlementBatchId && collection.collectedAmount ? collection.collectedAmount
+          : collection.status === 'collected' ? collection.declaredAmount : null;
+        if (!received || !received.greaterThan(0)) {
+          throw new ConflictException({ code: 'NO_CASH_RECEIVED', message: 'No customer cash was received for this order; nothing to refund' });
+        }
+        const refundable = Prisma.Decimal.min(received, order.totalAmount).minus(liveTotal);
+        if (requested.greaterThan(refundable)) {
+          throw new BadRequestException(`Refund exceeds the refundable balance of ${Prisma.Decimal.max(refundable, 0).toFixed(2)} ${order.currency}`);
+        }
+
+        return tx.refundTransaction.create({
+          data: { resolutionId, orderId: resolution.orderId, amount, deliveryFeeAmount: feePart, currency, status: 'pending', paymentProvider },
+        });
       });
-    });
+    } catch (error) {
+      // Two identical requests racing on the same resolution: the loser hits the unique key and gets the same answer as a repeat.
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') throw new BadRequestException('Refund already initiated for this resolution');
+      throw error;
+    }
   }
 
   async updateRefundStatus(resolutionId: string, status: RefundStatus, providerRef?: string, errorReason?: string) {
@@ -499,6 +537,7 @@ export class ReconciliationService {
     try {
       batchId = await this.prisma.$transaction(async (tx) => {
         let totalExpected = new Prisma.Decimal(0);
+        let totalDeclared = new Prisma.Decimal(0);
         const batch = await tx.courierSettlementBatch.create({
           data: {
             reference: dto.reference,
@@ -530,6 +569,7 @@ export class ReconciliationService {
           if (collection.locationId !== dto.locationId) refuse('COLLECTION_FROM_ANOTHER_HUB', `Cash for order ${collection.order.orderNumber} belongs to another hub`);
 
           totalExpected = totalExpected.plus(collection.expectedAmount);
+          totalDeclared = totalDeclared.plus(collection.declaredAmount as Prisma.Decimal);
           const collected = new Prisma.Decimal(colDto.collectedAmount);
           let status: SettlementStatus = 'settled';
           if (collected.lessThan(collection.expectedAmount)) status = 'short';
@@ -543,7 +583,8 @@ export class ReconciliationService {
           if (settled.count !== 1) throw new ConflictException(`Payment collection for order ${colDto.orderId} is already settled`);
         }
 
-        await tx.courierSettlementBatch.update({ where: { id: batch.id }, data: { totalExpected } });
+        // The difference between the cash counted and the cash the couriers declared is recorded on the settlement itself.
+        await tx.courierSettlementBatch.update({ where: { id: batch.id }, data: { totalExpected, totalDeclared, variance: totalCollected.minus(totalDeclared) } });
         return batch.id;
       });
     } catch (error) {
@@ -644,12 +685,15 @@ export class ReconciliationService {
         const currency = rows[0].currency;
         if (rows.some(row => row.currency !== currency)) throw new ConflictException('The round mixes currencies');
         const expected = rows.reduce((sum, row) => sum.plus(row.expectedAmount), new Prisma.Decimal(0));
+        const declaredTotal = rows.reduce((sum, row) => sum.plus(row.declaredAmount as Prisma.Decimal), new Prisma.Decimal(0));
         const runNote = dto.runId ? `[Run: ${dto.runId}] ${dto.notes ?? ''}`.trim() : dto.notes;
         const batch = await tx.courierSettlementBatch.create({ data: {
           reference: dto.reference, courierId: dto.courierId, locationId: dto.locationId, totalExpected: expected,
-          totalCollected: counted, fees, netSettled: counted.minus(fees), currency, actorId: dto.actorId, notes: runNote,
+          totalCollected: counted, totalDeclared: declaredTotal, variance: counted.minus(declaredTotal), fees, netSettled: counted.minus(fees), currency, actorId: dto.actorId, notes: runNote,
         } });
         for (const row of rows) {
+          // The order keeps what the courier declared (what the customer paid). A shortage of the counted cash is NOT spread over orders: it
+          // lives on the settlement (`variance`), because nothing says which order it belongs to.
           const declared = row.declaredAmount as Prisma.Decimal;
           const status: SettlementStatus = declared.lessThan(row.expectedAmount) ? 'short' : declared.greaterThan(row.expectedAmount) ? 'over' : 'settled';
           const settled = await tx.paymentCollection.updateMany({

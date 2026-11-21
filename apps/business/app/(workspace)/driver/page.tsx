@@ -30,10 +30,9 @@ import { useToast } from '@/components/bw/toast'
 import { CameraScanner } from '@/components/workspace/camera-scanner'
 import { ContinuousHandoffModal } from '@/components/workspace/continuous-handoff-modal'
 import { CopyId } from '@/components/workspace/copy-id'
-import { Egp } from '@/components/workspace/kit'
+import { CommandError, Egp } from '@/components/workspace/kit'
 import { LoadError, RoleShell } from '@/components/workspace/role-shell'
 import { api } from '@/lib/api'
-import { getDevShipmentBarcode } from '@/lib/dev-barcode'
 import { shortId } from '@/lib/labels'
 import { useActiveDeliveryStop } from '@/lib/courier-actions'
 import { useApi, useCommand } from '@/lib/use-api'
@@ -623,34 +622,26 @@ function QuickScanSheet({
 }) {
   const [code, setCode] = React.useState('')
   const [showCamera, setShowCamera] = React.useState(false)
-  const [devBarcode, setDevBarcode] = React.useState<string | null>(null)
   const dialog = useDialog()
   const toast = useToast()
   const isSubmitting = React.useRef(false)
 
   React.useEffect(() => {
     dialog.open()
-    let cancelled = false
-    getDevShipmentBarcode(stop.shipmentId).then((res) => {
-      if (!cancelled) setDevBarcode(res)
-    })
-    return () => {
-      cancelled = true
-    }
   }, [stop.shipmentId])
 
-  const scan = useCommand(() =>
+  const scan = useCommand((barcode: string) =>
     api(`/fulfillment/shipments/${stop.shipmentId}/events`, {
-      body: { type: 'HANDOFF_SCANNED', barcode: code.trim() },
+      body: { type: 'HANDOFF_SCANNED', barcode: barcode.trim() },
     })
   )
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!code.trim() || isSubmitting.current || scan.pending) return
+  // One path for typing, a hardware scanner and the camera: the label's own barcode, sent exactly as read.
+  const takeCustody = async (barcode: string) => {
+    if (!barcode.trim() || isSubmitting.current || scan.pending) return
     isSubmitting.current = true
     try {
-      const res = await scan.execute()
+      const res = await scan.execute(barcode)
       if (res) {
         toast.success(`تم استلام طرد ${stop.recipientName} في عهدتك بنجاح`)
         dialog.close()
@@ -659,6 +650,11 @@ function QuickScanSheet({
     } finally {
       isSubmitting.current = false
     }
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    void takeCustody(code)
   }
 
   return (
@@ -683,11 +679,14 @@ function QuickScanSheet({
           <div className="space-y-2">
             <CameraScanner
               onCode={(scanned) => {
+                // The waybill's barcode is taken straight from the camera and submitted; no extra tap.
                 setCode(scanned)
                 setShowCamera(false)
+                void takeCustody(scanned)
               }}
               onClose={() => setShowCamera(false)}
             />
+            <CommandError error={scan.error} />
           </div>
         ) : (
           <div className="space-y-3">
@@ -711,19 +710,6 @@ function QuickScanSheet({
                 <Camera className="size-3.5" aria-hidden />
                 <span>تشغيل الكاميرا</span>
               </Button>
-
-              {devBarcode ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setCode(devBarcode)}
-                  className="flex-1 text-xs text-bw-ink-soft hover:text-bw-ink cursor-pointer"
-                >
-                  <Scan className="size-3.5" aria-hidden />
-                  <span>تعبئة باركود الاختبار</span>
-                </Button>
-              ) : null}
             </div>
           </div>
         )}
