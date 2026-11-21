@@ -165,7 +165,7 @@ describe('Capital partner portal (e2e)', () => {
     expect(o.months).toHaveLength(1);
     expect(o.months[0]).toMatchObject({ period: '2024-06', settlement: 'DUE', partnerShare: 120 });
     expect(o.cash.settlements).toMatchObject({ counted: 935, declared: 935, variance: 0, count: 1 });
-    expect(o.capital.unresolvedGoods.status).toMatch(/AVAILABLE|INCOMPLETE/);
+    expect(o.capital.unresolvedGoods.status).toMatch(/AVAILABLE|INCOMPLETE|NO_DATA/);
 
     const m = (await api().get('/capital-partner/movements?from=2024-06-01&to=2024-06-30&limit=200').set(partner.auth).expect(200)).body;
     const types = m.items.map((item: any) => item.type).sort();
@@ -284,7 +284,9 @@ describe('Capital partner portal (e2e)', () => {
     expect(o.profit.status).toBe('INCOMPLETE');
     expect(o.profit.incompleteMonths).toEqual(['2024-07']);
     expect(o.profit.partnerShare).toBe(120); // only the complete month adds up
-    expect(o.capital.unresolvedGoods).toMatchObject({ status: 'INCOMPLETE', amount: null });
+    // Never a number while a sold order lacks its cost (NO_DATA when the database also holds data older than the 36-month window).
+    expect(o.capital.unresolvedGoods.amount).toBeNull();
+    expect(o.capital.unresolvedGoods.status).toMatch(/INCOMPLETE|NO_DATA/);
 
     // Direct costs: waiting for approval = shown, not counted; approved = funded and deducted.
     await deliveredOrder('2024-08-12');
