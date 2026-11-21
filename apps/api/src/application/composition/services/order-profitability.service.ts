@@ -4,6 +4,7 @@ import { PrismaService } from '../../../platform/database/prisma.service';
 import { AcquisitionCostService, PurchaseCostService } from '../../../modules/sourcing/public';
 import { FulfillmentService, PackingGate } from '../../../modules/fulfillment/public';
 import { SupportService } from '../../../modules/operations/services/support.service';
+import { quoteDeliveryEstimate } from './delivery-estimate';
 import { evaluateOrderProfit, orderPurchaseCost } from './order-profitability';
 
 const cents = (value: Prisma.Decimal | number | null | undefined) => Math.round(Number(value ?? 0) * 100);
@@ -26,7 +27,7 @@ export class OrderProfitabilityService {
   async evaluate(orderId: string) {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
-      select: { id: true, orderNumber: true, status: true, shippingFee: true,
+      select: { id: true, orderNumber: true, status: true, shippingFee: true, totalAmount: true, checkoutQuote: { select: { snapshot: true } },
         items: { where: { lineState: 'active' }, select: { id: true, quantity: true, price: true, discountAmount: true, lineTotal: true } } },
     });
     if (!order) throw new NotFoundException('Order not found');
@@ -35,18 +36,20 @@ export class OrderProfitabilityService {
       this.poCosts.contributionForOrders([order.id]),
       this.prisma.orderCostRecord.findUnique({ where: { orderId } }),
     ]);
-    const goods = order.items.reduce((sum, item) => sum.plus(item.lineTotal ?? item.price.mul(item.quantity).minus(item.discountAmount ?? 0)), new Prisma.Decimal(0));
+    // Goods the customer was billed after every discount and coupon: the order total without the delivery fee.
+    const goods = Prisma.Decimal.max(order.totalAmount.minus(order.shippingFee), 0);
+    const estimate = quoteDeliveryEstimate(order.checkoutQuote?.snapshot);
     const cogs = orderPurchaseCost(order.items, buyCosts, poCosts.get(order.id));
     const profit = evaluateOrderProfit({
       goodsNet: cents(goods), customerDeliveryFee: cents(order.shippingFee), cogs: cogs === null ? null : cents(cogs),
-      packaging: record?.packagingCost ? cents(record.packagingCost) : null, courier: record?.courierCost ? cents(record.courierCost) : null,
+      packaging: record?.packagingCost ? cents(record.packagingCost) : null, courier: record?.courierCost != null ? cents(record.courierCost) : estimate === null ? null : cents(estimate),
     });
     return {
       orderId: order.id, orderNumber: order.orderNumber, currency: 'EGP', state: profit.state, complete: profit.complete, missing: profit.missing,
       goodsNet: egp(cents(goods)), customerDeliveryFee: egp(cents(order.shippingFee)), marginSoFar: egp(profit.marginSoFar),
       costs: {
         purchase: profit.costs.purchase === null ? null : egp(profit.costs.purchase), packaging: profit.costs.packaging === null ? null : egp(profit.costs.packaging),
-        companyFundedDelivery: profit.costs.companyFundedDelivery === null ? null : egp(profit.costs.companyFundedDelivery),
+        delivery: profit.costs.delivery === null ? null : egp(profit.costs.delivery),
       },
     };
   }
@@ -59,8 +62,8 @@ export class OrderProfitabilityService {
       dedupKey: `order-loss:${orderId}`, category: 'sourcing', priority: 'high', orderId,
       title: `Loss-making order — ${result.orderNumber}`,
       description: [
-        `Goods sold net of discounts ${result.goodsNet} EGP; costs recorded so far exceed it by ${egp(-Math.round(Number(result.marginSoFar) * 100))} EGP.`,
-        `Purchase ${result.costs.purchase ?? 'not recorded'}, packaging ${result.costs.packaging ?? 'not recorded'}, company-funded delivery ${result.costs.companyFundedDelivery ?? 'not recorded'} EGP.`,
+        `Goods sold net of discounts and coupons ${result.goodsNet} EGP; costs recorded so far exceed it by ${egp(-Math.round(Number(result.marginSoFar) * 100))} EGP.`,
+        `Purchase ${result.costs.purchase ?? 'not recorded'}, packaging ${result.costs.packaging ?? 'not recorded'}, delivery ${result.costs.delivery ?? 'not recorded'} EGP.`,
         'The customer\'s confirmed price is unchanged. An authorized reviewer decides: accept the loss, query the supplier cost, or adjust future catalog pricing separately.',
       ].join(' '),
     }));

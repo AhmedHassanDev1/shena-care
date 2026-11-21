@@ -228,20 +228,26 @@ describe('Hub orders & preparation: barcode registration, handoff gate, loss rev
     expect({ price: lineAfter.price.toString(), lineTotal: lineAfter.lineTotal?.toString() }).toEqual(priceBefore);
     // Margin is Admin-only; the Hub records costs but does not see profit. 100 − 40 − 5 = 55 so far; the courier cost is still to come.
     await http().get(`/order-costs/${order.id}/profitability`).set(hub.auth).expect(403);
+    // Margin = goods billed after every discount + the delivery fee (revenue) − purchase − packaging − delivery cost; the fee is never netted against the courier.
+    // Until the actual courier cost is recorded the quote's base fee stands in as the delivery cost (an estimate), so the margin is already known.
+    const pending = (await http().get(`/order-costs/${order.id}/profitability`).set(admin.auth).expect(200)).body;
+    const fee = Number(pending.customerDeliveryFee);
+    expect(pending).toMatchObject({ state: 'PROFIT', complete: true, missing: [], goodsNet: '100.00', costs: { purchase: '40.00', packaging: '5.00' } });
+    expect(Number(pending.marginSoFar)).toBeCloseTo(100 + fee - 40 - 5 - Number(pending.costs.delivery), 2);
+    // The actual cost, once recorded, replaces the estimate.
+    await http().put(`/order-costs/${order.id}`).set(hub.auth).send({ courierCost: 80 }).expect(200);
     expect((await http().get(`/order-costs/${order.id}/profitability`).set(admin.auth).expect(200)).body)
-      .toMatchObject({ state: 'PENDING_COSTS', complete: false, missing: ['COURIER_COST'], goodsNet: '100.00', marginSoFar: '55.00', costs: { purchase: '40.00', packaging: '5.00', companyFundedDelivery: null } });
-    await http().put(`/order-costs/${order.id}`).set(hub.auth).send({ courierCost: 50 }).expect(200);
-    expect((await http().get(`/order-costs/${order.id}/profitability`).set(admin.auth).expect(200)).body)
-      .toMatchObject({ state: 'PROFIT', complete: true, marginSoFar: '55.00', costs: { companyFundedDelivery: '0.00' } });
+      .toMatchObject({ complete: true, marginSoFar: (100 + fee - 40 - 5 - 80).toFixed(2), costs: { delivery: '80.00' } });
   });
 
   it('flags a loss-making order once for an authorized review, never blocks the parcel and never changes the customer price', async () => {
-    // Sold for 100, bought for 150 (list 160, 10 discount): a loss before packaging and delivery are even counted.
-    const { order, shipmentId } = await verifiedOrder(skuLoss, { listUnitPrice: 160, discountPerUnit: 10 });
+    // Sold for 100 (+ the delivery fee), bought for 250 (list 260, 10 discount): a loss before packaging and delivery are even counted.
+    const { order, shipmentId } = await verifiedOrder(skuLoss, { listUnitPrice: 260, discountPerUnit: 10 });
     const line = await prisma.orderItem.findFirstOrThrow({ where: { orderId: order.id } });
     const priceBefore = { price: line.price.toString(), lineTotal: line.lineTotal?.toString(), total: (await prisma.order.findUniqueOrThrow({ where: { id: order.id } })).totalAmount.toString() };
 
-    expect((await http().get(`/order-costs/${order.id}/profitability`).set(admin.auth).expect(200)).body).toMatchObject({ state: 'LOSS', marginSoFar: '-50.00', costs: { purchase: '150.00' } });
+    const early = (await http().get(`/order-costs/${order.id}/profitability`).set(admin.auth).expect(200)).body;
+    expect(early).toMatchObject({ state: 'LOSS', marginSoFar: (Number(early.goodsNet) + Number(early.customerDeliveryFee) - 250 - Number(early.costs.delivery ?? 0)).toFixed(2), costs: { purchase: '250.00' } });
     await http().post(`/fulfillment/shipments/${shipmentId}/label`).set(hub.auth).expect(201);
     await shipmentEvent(shipmentId, { type: 'RECEIPT_PRINTED' }).expect(201);
     await shipmentEvent(shipmentId, { type: 'LABEL_PRINTED' }).expect(201);

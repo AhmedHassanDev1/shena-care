@@ -69,6 +69,11 @@ export class FinanceController {
     return this.expenses.create(dto, user.id);
   }
 
+  @Post('expenses/:id/approve')
+  approveExpense(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: { id: string }) {
+    return this.expenses.approve(id, user.id);
+  }
+
   @Post('expenses/:id/void')
   voidExpense(@Param('id', ParseUUIDPipe) id: string, @Body() dto: VoidExpenseDto, @CurrentUser() user: { id: string }) {
     return this.expenses.void(id, dto.reason, user.id);

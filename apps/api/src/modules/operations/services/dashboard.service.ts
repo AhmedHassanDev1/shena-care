@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
+import { readCashPosition } from '../../../platform/finance/cash-position';
 import { PrismaService } from '../../../platform/database/prisma.service';
 import {
   ActionCandidate,
   calcPeriodChangePercent,
   computeNetRealizedSales,
   DeliveredOrderFinancialInput,
-  evaluateOrderGoodsMargin,
   OverviewDays,
   RefundInput,
   roundMoney,
@@ -394,17 +394,10 @@ export class DashboardService {
       sparkline: number[];
     } | null = null;
 
-    let contributionProfit: {
-      status: 'incomplete' | 'no_data';
-      confirmedAmount: null;
-      goodsMarginOnly: number | null;
-      coveredOrdersCount: number;
-      totalDeliveredOrdersCount: number;
-      missingComponents: Array<'supplier_invoices' | 'packaging_costs' | 'delivery_expenses'>;
-    } | null = null;
 
     let financialSummary: {
       pendingCod: { amount: number; shipmentCount: number; currency: string };
+      cash: Awaited<ReturnType<typeof readCashPosition>> & { currency: string };
       unresolvedVariance: {
         amount: number;
         caseCount: number;
@@ -435,11 +428,7 @@ export class DashboardService {
             where: { status: 'succeeded', updatedAt: { gte: prevWindowStartUtc } },
             select: { amount: true, updatedAt: true },
           }),
-          this.prisma.paymentCollection.aggregate({
-            where: { status: 'expected' },
-            _sum: { expectedAmount: true },
-            _count: { id: true },
-          }),
+          readCashPosition(this.prisma),
         ]);
 
       const orderFinancialMap = new Map(deliveredOrdersData.map((o) => [o.id, o]));
@@ -509,97 +498,6 @@ export class DashboardService {
         sparkline: buckets.map((b) => b.sales ?? 0),
       };
 
-      // Evaluate actual supplier invoice coverage for delivered orders in current window
-      if (currentDeliveredOrderIds.length === 0) {
-        contributionProfit = {
-          status: 'no_data',
-          confirmedAmount: null,
-          goodsMarginOnly: null,
-          coveredOrdersCount: 0,
-          totalDeliveredOrdersCount: 0,
-          missingComponents: ['packaging_costs', 'delivery_expenses'],
-        };
-      } else {
-        const [deliveredOrderItems, deliveredAllocations] = await Promise.all([
-          this.prisma.orderItem.findMany({
-            where: { orderId: { in: currentDeliveredOrderIds }, lineState: 'active' },
-            select: {
-              id: true,
-              orderId: true,
-              quantity: true,
-              price: true,
-              discountAmount: true,
-              lineTotal: true,
-            },
-          }),
-          this.prisma.purchaseOrderLineAllocation.findMany({
-            where: { orderId: { in: currentDeliveredOrderIds } },
-            select: {
-              orderId: true,
-              orderItemId: true,
-              receivedQuantity: true,
-              line: {
-                select: {
-                  allocations: { select: { receivedQuantity: true } },
-                  costLots: { select: { quantity: true, unitCost: true } },
-                },
-              },
-            },
-          }),
-        ]);
-
-        let coveredOrdersCount = 0;
-        let goodsMarginSum = 0;
-        let allOrdersCovered = true;
-
-        for (const oid of currentDeliveredOrderIds) {
-          const itemsForOrder = deliveredOrderItems
-            .filter((it) => it.orderId === oid)
-            .map((it) => ({
-              id: it.id,
-              quantity: it.quantity,
-              price: Number(it.price),
-              discountAmount: Number(it.discountAmount ?? 0),
-              lineTotal: it.lineTotal !== null ? Number(it.lineTotal) : null,
-            }));
-
-          const allocsForOrder = deliveredAllocations
-            .filter((al) => al.orderId === oid)
-            .map((al) => ({
-              orderItemId: al.orderItemId,
-              receivedQuantity: al.receivedQuantity,
-              lineReceivedTotal: al.line.allocations.reduce((s, a) => s + a.receivedQuantity, 0),
-              lineCostedTotal: al.line.costLots.reduce((s, l) => s + l.quantity, 0),
-              lineCapturedValue: al.line.costLots.reduce(
-                (s, l) => s + Number(l.unitCost) * l.quantity,
-                0,
-              ),
-            }));
-
-          const res = evaluateOrderGoodsMargin(itemsForOrder, allocsForOrder);
-          if (res.complete && res.goodsMargin !== null) {
-            coveredOrdersCount += 1;
-            goodsMarginSum += res.goodsMargin;
-          } else {
-            allOrdersCovered = false;
-          }
-        }
-
-        const missingComponents: Array<'supplier_invoices' | 'packaging_costs' | 'delivery_expenses'> = [];
-        if (!allOrdersCovered) missingComponents.push('supplier_invoices');
-        // Packaging material costs and actual courier expenses do not exist in schema yet
-        missingComponents.push('packaging_costs', 'delivery_expenses');
-
-        contributionProfit = {
-          status: 'incomplete',
-          confirmedAmount: null,
-          goodsMarginOnly: allOrdersCovered ? roundMoney(goodsMarginSum) : null,
-          coveredOrdersCount,
-          totalDeliveredOrdersCount: currentDeliveredOrderIds.length,
-          missingComponents,
-        };
-      }
-
       const varianceSum = allCashVarianceRows.reduce(
         (acc, row) => acc + (Number(row.collectedAmount || 0) - Number(row.expectedAmount || 0)),
         0,
@@ -610,11 +508,15 @@ export class DashboardService {
         : null;
 
       financialSummary = {
+        // Cash the couriers still have to collect (orders out for delivery). Kept for older readers; the Admin card reads `cash`.
         pendingCod: {
-          amount: roundMoney(Number(pendingCodRes._sum.expectedAmount || 0)),
-          shipmentCount: pendingCodRes._count.id,
+          amount: roundMoney(pendingCodRes.expectedOnRoad.amount),
+          shipmentCount: pendingCodRes.expectedOnRoad.orders,
           currency: 'EGP',
         },
+        // The single definition shared with the Finance reports: what is still on the road, what couriers hold after delivering (declared, not
+        // counted by the hub yet) and what is disputed.
+        cash: { ...pendingCodRes, currency: 'EGP' },
         unresolvedVariance: {
           amount: roundMoney(varianceSum),
           caseCount: allCashVarianceRows.length,
@@ -875,7 +777,6 @@ export class DashboardService {
       days: daysCount,
       kpis: {
         netRealizedSales,
-        contributionProfit,
         newOrders: {
           count: newOrdersCount,
           previousCount: prevNewOrdersCount,

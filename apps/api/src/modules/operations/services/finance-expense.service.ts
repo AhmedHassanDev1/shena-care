@@ -7,6 +7,10 @@ export const EXPENSE_CATEGORIES = ['RENT', 'UTILITIES', 'MARKETING', 'PACKAGING'
 export const EXPENSE_RECURRENCES = ['NONE', 'WEEKLY', 'MONTHLY'] as const;
 export type ExpenseCategory = typeof EXPENSE_CATEGORIES[number];
 export type ExpenseRecurrence = typeof EXPENSE_RECURRENCES[number];
+export const EXPENSE_KINDS = ['DIRECT', 'PLATFORM'] as const;
+export type ExpenseKind = typeof EXPENSE_KINDS[number];
+/** Per-order delivery and packaging costs are recorded on the order itself; entering them here as well would count them twice. */
+export const ORDER_COST_CATEGORIES = ['PACKAGING', 'DELIVERY'] as const;
 
 const YMD = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -30,6 +34,10 @@ export class CreateExpenseDto {
   /** Last day a recurring expense applies; empty means it continues until voided. */
   @IsOptional() @Matches(YMD)
   endsOn?: string;
+
+  /** DIRECT: a shared operating cost, deducted from distributable profit once approved. PLATFORM (default): the platform's own cost, never deducted. */
+  @IsOptional() @IsIn(EXPENSE_KINDS as unknown as string[])
+  kind?: ExpenseKind;
 }
 
 export class VoidExpenseDto {
@@ -94,6 +102,9 @@ export class FinanceExpenseService {
 
   async create(dto: CreateExpenseDto, actorId: string) {
     const recurrence = dto.recurrence ?? 'NONE';
+    if ((ORDER_COST_CATEGORIES as readonly string[]).includes(dto.category)) {
+      throw new BadRequestException({ code: 'DUPLICATES_ORDER_COST', message: 'Packaging and delivery are costed per order; record them on the order, not as a general expense' });
+    }
     if (!isValidYmd(dto.incurredOn)) throw new BadRequestException({ code: 'INVALID_DATE', message: 'incurredOn is not a valid date' });
     if (dto.endsOn !== undefined) {
       if (recurrence === 'NONE') throw new BadRequestException({ code: 'ENDS_ON_REQUIRES_RECURRENCE', message: 'An end date applies only to a recurring expense' });
@@ -103,10 +114,20 @@ export class FinanceExpenseService {
       data: {
         category: dto.category, description: dto.description.trim(), amount: new Prisma.Decimal(dto.amount.toFixed(2)),
         incurredOn: new Date(`${dto.incurredOn}T00:00:00Z`), recurrence, endsOn: dto.endsOn ? new Date(`${dto.endsOn}T00:00:00Z`) : null,
-        recordedBy: actorId,
+        kind: dto.kind ?? 'PLATFORM', recordedBy: actorId,
       },
     });
     return this.present(expense);
+  }
+
+  /** An Admin approves a DIRECT expense before it can reduce the shared profit. Idempotent; PLATFORM expenses are never approved. */
+  async approve(id: string, actorId: string) {
+    const expense = await this.prisma.financeExpense.findUnique({ where: { id } });
+    if (!expense) throw new NotFoundException('Expense not found');
+    if (expense.voidedAt) throw new BadRequestException({ code: 'EXPENSE_VOIDED', message: 'A voided expense cannot be approved' });
+    if (expense.kind !== 'DIRECT') throw new BadRequestException({ code: 'NOT_A_DIRECT_COST', message: 'Only a DIRECT cost is approved; platform costs are never shared' });
+    if (expense.approvedAt) return this.present(expense);
+    return this.present(await this.prisma.financeExpense.update({ where: { id }, data: { approvedBy: actorId, approvedAt: new Date() } }));
   }
 
   async void(id: string, reason: string, actorId: string) {
@@ -137,13 +158,17 @@ export class FinanceExpenseService {
     });
     return rows.flatMap(row => expenseOccurrences(
       { incurredOn: ymd(row.incurredOn), recurrence: row.recurrence as ExpenseRecurrence, endsOn: row.endsOn ? ymd(row.endsOn) : null }, from, to,
-    ).map(date => ({ expenseId: row.id, category: row.category as ExpenseCategory, description: row.description, date, amount: Number(row.amount) })));
+    ).map(date => ({
+      expenseId: row.id, category: row.category as ExpenseCategory, description: row.description, date, amount: Number(row.amount),
+      kind: row.kind as ExpenseKind, approved: !!row.approvedAt,
+    })));
   }
 
-  private present(row: { id: string; category: string; description: string; amount: Prisma.Decimal; currency: string; incurredOn: Date; recurrence: string; endsOn: Date | null; recordedBy: string; voidedAt: Date | null; voidReason: string | null; createdAt: Date }) {
+  private present(row: { id: string; category: string; description: string; amount: Prisma.Decimal; currency: string; incurredOn: Date; recurrence: string; endsOn: Date | null; kind: string; approvedAt: Date | null; recordedBy: string; voidedAt: Date | null; voidReason: string | null; createdAt: Date }) {
     return {
       id: row.id, category: row.category, description: row.description, amount: Number(row.amount), currency: row.currency,
       incurredOn: ymd(row.incurredOn), recurrence: row.recurrence, endsOn: row.endsOn ? ymd(row.endsOn) : null,
+      kind: row.kind, approved: !!row.approvedAt, approvedAt: row.approvedAt ? row.approvedAt.toISOString() : null,
       recordedBy: row.recordedBy, voided: !!row.voidedAt, voidReason: row.voidReason, createdAt: row.createdAt.toISOString(),
     };
   }

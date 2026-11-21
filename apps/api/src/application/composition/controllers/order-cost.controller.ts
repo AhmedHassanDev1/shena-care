@@ -4,7 +4,7 @@ import { RolesGuard } from '../../../modules/accounts/guards/roles.guard';
 import { Roles } from '../../../modules/accounts/decorators/roles.decorator';
 import { CurrentUser } from '../../../modules/accounts/decorators/current-user.decorator';
 import { PermissionsGuard, RequirePermissions } from '../../../platform/auth';
-import { OrderCostService, RecordOrderCostDto } from '../services/order-cost.service';
+import { ConfirmDamageDto, OrderCostService, RecordOrderCostDto } from '../services/order-cost.service';
 import { OrderProfitabilityService } from '../services/order-profitability.service';
 
 /**
@@ -33,6 +33,14 @@ export class OrderCostController {
   @Get(':orderId')
   forOrder(@Param('orderId', ParseUUIDPipe) orderId: string) {
     return this.costs.forOrder(orderId);
+  }
+
+  /** An Admin confirms that goods bought for a cancelled or returned order are damaged (otherwise they stay recoverable, not a loss). */
+  @Put(':orderId/damage')
+  @Roles('ADMIN')
+  @HttpCode(HttpStatus.OK)
+  confirmDamage(@Param('orderId', ParseUUIDPipe) orderId: string, @Body() dto: ConfirmDamageDto, @CurrentUser() user: { id: string }) {
+    return this.costs.confirmDamage(orderId, dto, { id: user.id });
   }
 
   @Put(':orderId')

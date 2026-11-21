@@ -258,17 +258,12 @@ describe('C1 backend Cart-to-Cash acceptance (GLO-235)', () => {
     const tracking = await http().get(`/ordering/orders/${order.orderNumber}/tracking`).set(customer.auth).expect(200);
     expect(tracking.body.status).toBe('DELIVERED');
 
-    // The delivery cost is frozen from the price the system quoted at checkout; nobody types it, and a hand-recorded value is never overwritten.
+    // The quote's base fee is only an ESTIMATE of the delivery cost: it is kept in the quote and used (labelled estimated) by the reports while nobody
+    // has recorded the actual cost. It is never written into the order's cost record as if it were actual.
     const quote = await prisma.checkoutQuote.findUniqueOrThrow({ where: { orderId: order.id } });
-    const quotedBase = Number((quote.snapshot as { deliveryFeeBase?: number }).deliveryFeeBase);
-    expect(quotedBase).toBeGreaterThan(0);
-    let cost = await prisma.orderCostRecord.findUnique({ where: { orderId: order.id } });
-    for (let i = 0; i < 30 && !cost?.courierCost; i += 1) {
-      await new Promise(resolve => setTimeout(resolve, 100));
-      cost = await prisma.orderCostRecord.findUnique({ where: { orderId: order.id } });
-    }
-    expect(Number(cost?.courierCost)).toBe(quotedBase);
-    expect(cost?.courierRecordedBy).toBe('system:QUOTE_BASE_FEE');
+    expect(Number((quote.snapshot as { deliveryFeeBase?: number }).deliveryFeeBase)).toBeGreaterThan(0);
+    await new Promise(resolve => setTimeout(resolve, 300));
+    expect((await prisma.orderCostRecord.findUnique({ where: { orderId: order.id } }))?.courierCost ?? null).toBeNull();
   });
 
   it('8. physical cash count settles exactly once at the right hub for the right courier', async () => {
