@@ -3,7 +3,7 @@
 import * as React from 'react'
 import { api, ApiError, getToken, onUnauthorized, setToken } from '@/lib/api'
 
-export type StaffRole = 'ADMIN' | 'HUB_OPERATOR' | 'SUPPLIER' | 'DRIVER' | 'CUSTOMER'
+export type StaffRole = 'ADMIN' | 'HUB_OPERATOR' | 'SUPPLIER' | 'DRIVER' | 'CAPITAL_PARTNER' | 'CUSTOMER'
 
 export interface WorkspaceMe {
   id: string
@@ -34,6 +34,7 @@ export function homeFor(me: WorkspaceMe): string {
   if (me.roles.includes('HUB_OPERATOR')) return '/hub'
   if (me.roles.includes('SUPPLIER')) return '/supplier'
   if (me.roles.includes('DRIVER')) return '/driver'
+  if (me.roles.includes('CAPITAL_PARTNER')) return '/partner'
   return '/login'
 }
 

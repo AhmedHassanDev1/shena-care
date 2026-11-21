@@ -3619,6 +3619,8 @@ enum Role {
   HUB_OPERATOR
   SUPPLIER
   DRIVER
+  /// The single capital partner (MVP): read-only portal over their own funding, movements and profit settlements.
+  CAPITAL_PARTNER
 
   @@schema("accounts")
 }
@@ -4005,6 +4007,53 @@ model FinancePeriodClose {
   closedAt           DateTime @default(now()) @map("closed_at")
 
   @@map("finance_period_closes")
+  @@schema("operations")
+}
+
+/// The capital partner who funds purchases and direct costs and is paid back capital plus a share of the distributable profit (MVP: exactly one
+/// active partner, enforced by a partial unique index). `account_id` is the staff login (accounts.customers) that may read the portal; no Accounts
+/// relation on purpose (context boundary). Nothing here changes a profit figure: the partner only reads what the finance model already computes.
+model CapitalPartner {
+  id          String   @id @default(uuid()) @db.Uuid
+  accountId   String   @unique @map("account_id") @db.Uuid
+  displayName String   @map("display_name") @db.VarChar(120)
+  isActive    Boolean  @default(true) @map("is_active")
+  createdBy   String   @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  entries CapitalPartnerEntry[]
+
+  @@map("capital_partners")
+  @@schema("operations")
+}
+
+/// Money actually paid to the capital partner, recorded by an Admin. Append-only: a wrong entry is voided with a reason, never edited, so the
+/// ledger keeps its history. CAPITAL_RETURN gives back funded capital; PROFIT_PAYOUT pays the partner share of one month of distributable profit.
+/// The two are different kinds on purpose: capital recovery is never profit. `idempotency_key` makes a retried request create one row.
+model CapitalPartnerEntry {
+  id             String    @id @default(uuid()) @db.Uuid
+  partnerId      String    @map("partner_id") @db.Uuid
+  /// CAPITAL_RETURN | PROFIT_PAYOUT
+  kind           String    @db.VarChar(16)
+  amount         Decimal   @db.Decimal(12, 2)
+  /// Cairo calendar date the money was handed over.
+  paidOn         DateTime  @map("paid_on") @db.Date
+  /// The profit month a PROFIT_PAYOUT settles (YYYY-MM, required); optional for a CAPITAL_RETURN.
+  period         String?   @db.VarChar(7)
+  reference      String    @db.VarChar(80)
+  note           String?   @db.VarChar(300)
+  idempotencyKey String    @unique @map("idempotency_key") @db.Uuid
+  recordedBy     String    @map("recorded_by")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  voidedAt       DateTime? @map("voided_at")
+  voidedBy       String?   @map("voided_by")
+  voidReason     String?   @map("void_reason")
+
+  partner CapitalPartner @relation(fields: [partnerId], references: [id], onDelete: Restrict)
+
+  @@index([partnerId, paidOn])
+  @@index([partnerId, kind, period])
+  @@map("capital_partner_entries")
   @@schema("operations")
 }
 

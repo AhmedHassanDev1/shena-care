@@ -35,7 +35,7 @@ export const previousPeriods = (count: number, now = new Date()): string[] => {
   });
 };
 
-type Presented = ReturnType<ProfitService["presentFigures"]>;
+export type Presented = ReturnType<ProfitService["presentFigures"]>;
 
 /**
  * Monthly distributable profit, assembled from the records the platform already keeps and calculated by the pure model in `profit-model.ts`.
@@ -56,17 +56,22 @@ export class ProfitService {
     return this.settings.effective<number>(SETTING_KEYS.profitSharePercent);
   }
 
-  /** First event wins: an order belongs to the period it was first delivered (or first cancelled/returned). */
-  private async firstEventOrders(statuses: string[], range: ReportRange) {
+  /** First event wins: an order belongs to the period it was first delivered (or first cancelled/returned). The value is that first event's instant. */
+  async firstEventDates(statuses: string[], range: ReportRange): Promise<Map<string, Date>> {
     const events = await this.prisma.orderStatusEvent.findMany({
       where: { status: { in: statuses as never[] }, createdAt: { gte: range.start, lt: range.end } },
       select: { orderId: true, createdAt: true }, orderBy: { createdAt: 'asc' },
     });
-    const ids = [...new Set(events.map(event => event.orderId))];
-    if (!ids.length) return [] as string[];
-    const earlier = await this.prisma.orderStatusEvent.findMany({ where: { orderId: { in: ids }, status: { in: statuses as never[] }, createdAt: { lt: range.start } }, select: { orderId: true } });
-    const seenBefore = new Set(earlier.map(event => event.orderId));
-    return ids.filter(id => !seenBefore.has(id));
+    const first = new Map<string, Date>();
+    for (const event of events) if (!first.has(event.orderId)) first.set(event.orderId, event.createdAt);
+    if (!first.size) return first;
+    const earlier = await this.prisma.orderStatusEvent.findMany({ where: { orderId: { in: [...first.keys()] }, status: { in: statuses as never[] }, createdAt: { lt: range.start } }, select: { orderId: true } });
+    for (const event of earlier) first.delete(event.orderId);
+    return first;
+  }
+
+  private async firstEventOrders(statuses: string[], range: ReportRange) {
+    return [...(await this.firstEventDates(statuses, range)).keys()];
   }
 
   /** The cash position (see `readCashPosition`): shared by every report, never part of the profit. */
@@ -169,7 +174,26 @@ export class ProfitService {
       const missing = [order.cogs === null ? 'PURCHASE_COST' : null, order.courier === null ? 'COURIER_COST' : null, order.packaging === null ? 'PACKAGING_COST' : null].filter(Boolean) as string[];
       return missing.length ? [{ orderId: order.orderId, orderNumber: order.orderNumber, missing }] : [];
     }).slice(0, 25);
-    return { result, needsCost, cash: await this.cashPosition(range) };
+    // `detail` hands the per-order inputs of the model to readers that need to show what formed a figure (the capital partner portal).
+    return { result, needsCost, cash: await this.cashPosition(range), detail: { orders, ended: endedOrders } };
+  }
+
+  /**
+   * The figures of a month for readers that walk many months (the capital partner portal): a closed month returns its frozen copy WITHOUT
+   * recomputing anything; an open month is computed live with the configured percentage. Nothing here writes.
+   */
+  async figuresFor(period: string, now = new Date()) {
+    const range = monthRange(period, now);
+    const closed = await this.prisma.financePeriodClose.findUnique({ where: { period } });
+    if (closed) return { figures: closed.figures as unknown as Presented, closed: { at: closed.closedAt }, percent: Number(closed.profitSharePercent), monthEnded: true, range };
+    const percent = this.configuredPercent();
+    const { result } = await this.compute(range, percent);
+    return { figures: this.presentFigures(period, range, result), closed: null, percent, monthEnded: range.ended, range };
+  }
+
+  /** The configured platform percentage in force now (what an open month uses). */
+  currentPercent(): number {
+    return this.configuredPercent();
   }
 
   /** Cents to EGP for the response and for the frozen copy. */
