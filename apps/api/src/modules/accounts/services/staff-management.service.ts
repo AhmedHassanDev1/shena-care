@@ -4,7 +4,7 @@ import { PrismaService } from '../../../platform/database/prisma.service';
 import { Role, Prisma } from '@prisma/client';
 import { CreateStaffDto, UpdateStaffProfileDto } from '../dto/staff-management.dto';
 
-export const ALLOWED_STAFF_ROLES: Role[] = [Role.ADMIN, Role.HUB_OPERATOR, Role.SUPPLIER, Role.DRIVER];
+export const ALLOWED_STAFF_ROLES: Role[] = [Role.ADMIN, Role.HUB_OPERATOR, Role.SUPPLIER, Role.DRIVER, Role.CAPITAL_PARTNER];
 /** A supplier login or a driver login is a single-purpose account: it never also carries Admin or Hub authority. */
 const EXCLUSIVE_ROLES: Role[] = [Role.SUPPLIER, Role.DRIVER];
 
@@ -18,6 +18,11 @@ export function assertRoleCombination(roles: Role[], supplierId: string | null |
   const exclusive = staffRoles.find(role => EXCLUSIVE_ROLES.includes(role));
   if (exclusive && staffRoles.length > 1) {
     throw new BadRequestException({ code: 'ROLE_COMBINATION_NOT_ALLOWED', message: `${exclusive} accounts cannot hold any other staff role.` });
+  }
+  // Separation of duties: the capital partner is paid out and has costs approved by an Admin, so the same login can never be both. A person may
+  // hold the Hub operator role as well (two separate logins' worth of authority in one account), but the roles stay separate in every guard.
+  if (staffRoles.includes(Role.CAPITAL_PARTNER) && staffRoles.includes(Role.ADMIN)) {
+    throw new BadRequestException({ code: 'ROLE_COMBINATION_NOT_ALLOWED', message: 'A capital partner account cannot also be an Admin.' });
   }
   if (staffRoles.includes(Role.SUPPLIER) && !supplierId) {
     throw new BadRequestException({ code: 'SUPPLIER_REQUIRED', message: 'A supplier login must belong to a supplier company.' });

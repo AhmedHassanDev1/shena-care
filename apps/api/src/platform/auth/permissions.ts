@@ -40,5 +40,7 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   DRIVER: [
     'delivery.handoff', 'delivery.complete',
     'cod.read'
-  ]
+  ],
+  // The capital partner reads only their own finance portal (`/capital-partner/*`, guarded by the role and the partner profile); no operational permission.
+  CAPITAL_PARTNER: []
 };
