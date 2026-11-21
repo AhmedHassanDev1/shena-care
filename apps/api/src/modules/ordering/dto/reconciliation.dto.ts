@@ -201,6 +201,12 @@ export class InitiateRefundDto {
   @IsString()
   @IsIn(['cash', 'bank_transfer', 'vodafone_cash', 'instapay'])
   paymentProvider?: string;
+
+  /** Part of `amount` that returns the customer's delivery fee (goods are refunded in the rest). Defaults to 0. */
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  deliveryFeeAmount?: number;
 }
 
 export class UpdateRefundStatusDto {

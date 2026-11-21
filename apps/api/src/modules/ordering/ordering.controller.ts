@@ -96,7 +96,7 @@ export class OrderingController {
     @Param('id') id: string,
     @Body() dto: InitiateRefundDto
   ) {
-    return this.reconciliationService.initiateRefund(id, dto.amount, dto.currency, dto.paymentProvider);
+    return this.reconciliationService.initiateRefund(id, dto.amount, dto.currency, dto.paymentProvider, dto.deliveryFeeAmount ?? 0);
   }
 
   @Patch('resolutions/:id/refund/status')
