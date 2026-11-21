@@ -178,14 +178,14 @@ function AdminOverview() {
         />
         <Stat
           label="تحصيل لم يُسوَّ"
-          value={cod ? cod.pendingCod.amount.toLocaleString('en-US') : 0}
+          value={cod ? (cod.cash ? cod.cash.inCourierCustody.amount : cod.pendingCod.amount).toLocaleString('en-US') : 0}
           unit="ج.م"
           tone="amber"
           href="/admin/cash"
           loading={initial}
           className="col-span-2 lg:col-span-1"
           periodTag={<span className="rounded bg-bw-veil-3 px-1.5 py-0.5 text-[10px] font-medium text-bw-ink-subtle">تشغيلي حالي</span>}
-          hint={cod ? (cod.unresolvedVariance.caseCount > 0 ? `فروق عدّ: ${cod.unresolvedVariance.caseCount} حالة` : <><bdi className="bw-code">{cod.pendingCod.shipmentCount}</bdi> شحنة عند المناديب</>) : undefined}
+          hint={cod ? (cod.unresolvedVariance.caseCount > 0 ? `فروق عدّ: ${cod.unresolvedVariance.caseCount} حالة` : <><bdi className="bw-code">{cod.cash ? cod.cash.inCourierCustody.orders : cod.pendingCod.shipmentCount}</bdi> طلب كاشه مع المناديب ولسه ماتعدّش</>) : undefined}
         />
       </StatStrip>
 

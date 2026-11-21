@@ -78,7 +78,22 @@ export interface StageCardData {
   href: string
 }
 
+export interface CashAmount { amount: number; orders: number }
+
+/** One definition of the cash position, shared with the Finance page. */
+export interface CashPosition {
+  /** Expected from customers, still on the road: not yet declared by the courier. */
+  expectedOnRoad: CashAmount
+  /** Declared by the courier as collected, not yet counted by the hub: money still in courier custody. */
+  inCourierCustody: CashAmount
+  disputed: CashAmount
+  /** Counted by the hub in settlements of the period; variance = counted − declared. */
+  settlements: { count: number; counted: number; declared: number; variance: number; fees: number }
+  currency?: string
+}
+
 export interface CodFinancialSummary {
+  cash?: CashPosition
   pendingCod: {
     amount: number
     shipmentCount: number
@@ -96,7 +111,8 @@ export interface AdminOverviewData {
   days: OverviewDays
   kpis: {
     netRealizedSales: NetRealizedSalesKpi | null
-    contributionProfit: ContributionProfitKpi | null
+    /** Removed from the API: the profit lives on the Finance page only. */
+    contributionProfit?: ContributionProfitKpi | null
     newOrders: CountKpiMetric
     completedOrders: CountKpiMetric
     openOrders: { count: number }
