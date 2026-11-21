@@ -301,7 +301,9 @@ export class AccountsService {
         console.error(`[ACCOUNTS] guest adoption failed for customer ${customerId}: ${(err as Error).message}`);
       }
     }
-    return this.createSession(customerId, challenge.pendingIntent);
+    // Only the verified owner of the number learns that it already had an account, so the client can say so after sign-in.
+    const session = await this.createSession(customerId, challenge.pendingIntent);
+    return { ...session, isNewAccount: !identity };
   }
 
   private async createSession(customerId: string, pendingIntent?: string | null) {

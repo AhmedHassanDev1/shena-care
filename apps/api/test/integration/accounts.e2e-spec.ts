@@ -41,6 +41,17 @@ describe('Accounts (e2e)', () => {
       '+201155555555', '+201166666666', '+201177777777', '+201188888888', '+201199999999', '+201211111111', '+201511111111',
       '+201022220001', '+201022220002', '+201022220003', '+201022220004',
     ] } } });
+
+    // The OTP Flow asserts that +201211111111 signs up as a new account, so a previous run's account must not survive.
+    const prisma = app.get(PrismaService);
+    const identity = await prisma.identity.findUnique({
+      where: { provider_providerId: { provider: 'PHONE', providerId: '+201211111111' } },
+    });
+    if (identity) {
+      await prisma.session.deleteMany({ where: { customerId: identity.customerId } });
+      await prisma.identity.deleteMany({ where: { customerId: identity.customerId } });
+      await prisma.customer.delete({ where: { id: identity.customerId } });
+    }
   };
 
   const testEmail = `test-${Date.now()}@example.com`;
@@ -167,6 +178,7 @@ describe('Accounts (e2e)', () => {
         .expect(201);
         
       expect(res.body.token).toBeDefined();
+      expect(res.body.isNewAccount).toBe(true);
 
       // The new phone account: its verified number for checkout's recipient, and no name until the customer gives one.
       const me = await request(app.getHttpServer()).get('/accounts/me').set('Authorization', `Bearer ${res.body.token}`).expect(200);
@@ -178,6 +190,23 @@ describe('Accounts (e2e)', () => {
         .post('/accounts/otp/verify')
         .send({ phoneNumber: testPhone, code: otpCode })
         .expect(401);
+    });
+
+    it('should sign into an existing number and flag it as not new', async () => {
+      // A fresh challenge written directly, so the resend cooldown does not block the second sign-in.
+      const { PrismaService } = require('../../src/platform/database/prisma.service');
+      const prisma = app.get(PrismaService);
+      await prisma.otpChallenge.create({
+        data: { phoneNumber: '+201211111111', code: '123456', expiresAt: new Date(Date.now() + 5 * 60 * 1000) },
+      });
+
+      const res = await request(app.getHttpServer())
+        .post('/accounts/otp/verify')
+        .send({ phoneNumber: testPhone, code: '123456' })
+        .expect(201);
+
+      expect(res.body.token).toBeDefined();
+      expect(res.body.isNewAccount).toBe(false);
     });
     
     it('should limit failed attempts', async () => {

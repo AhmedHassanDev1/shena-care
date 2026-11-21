@@ -18,6 +18,7 @@ import { fillMessage } from '@/lib/i18n/messages';
 import { cn } from '@/lib/utils';
 import { DevEmailLoginPanel } from './DevEmailLoginPanel';
 import {
+  EXISTING_ACCOUNT_NOTICE_MS,
   apiErrorCode,
   apiRetryAfter,
   displayMobile,
@@ -63,6 +64,7 @@ export function AuthModal({
   const [phoneError, setPhoneError] = useState('');
   const [code, setCode] = useState('');
   const [otpError, setOtpError] = useState('');
+  const [existingAccount, setExistingAccount] = useState(false);
 
   const [sendState, setSendState] = useState<AsyncState>('idle');
   const [verifyState, setVerifyState] = useState<AsyncState>('idle');
@@ -86,6 +88,7 @@ export function AuthModal({
       setPhoneError('');
       setNameError('');
       setOtpError('');
+      setExistingAccount(false);
       setSendState('idle');
       setVerifyState('idle');
     }
@@ -200,11 +203,14 @@ export function AuthModal({
     setOtpError('');
 
     try {
-      await auth.verifyOtp(
+      const session = await auth.verifyOtp(
         challenge.phoneNumber,
         submitted,
         challenge.name
       );
+      // The sign-up form sends a name; if the number already had an account, say so instead of looking like a new sign-up.
+      const signedIntoExisting = session.isNewAccount === false && Boolean(challenge.name);
+      setExistingAccount(signedIntoExisting);
       setVerifyState('success');
       setStep('success');
 
@@ -214,7 +220,7 @@ export function AuthModal({
       window.setTimeout(async () => {
         verifyingRef.current = false;
         await onSuccess(user);
-      }, 700);
+      }, signedIntoExisting ? EXISTING_ACCOUNT_NOTICE_MS : 700);
     } catch (err) {
       verifyingRef.current = false;
       const errorCode = apiErrorCode(err);
@@ -501,7 +507,7 @@ export function AuthModal({
               {m.authSuccessTitle}
             </DialogTitle>
             <DialogDescription className="text-14 leading-22 text-stone mt-1">
-              {m.authSuccessSubtitle}
+              {existingAccount ? m.authExistingAccountNotice : m.authSuccessSubtitle}
             </DialogDescription>
           </div>
         )}

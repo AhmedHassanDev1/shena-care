@@ -16,7 +16,14 @@ import { useLocale, useMessages } from '@/lib/i18n/LocaleProvider';
 import { fillMessage } from '@/lib/i18n/messages';
 import { routes } from '@/lib/routes';
 import { useAuth } from '../AuthContext';
-import { apiErrorCode, apiRetryAfter, displayMobile, safeReturnTo, toLatinDigits } from '../lib/auth-helpers';
+import {
+  EXISTING_ACCOUNT_NOTICE_MS,
+  apiErrorCode,
+  apiRetryAfter,
+  displayMobile,
+  safeReturnTo,
+  toLatinDigits,
+} from '../lib/auth-helpers';
 import { cartChangedByAdoption, markAuthReturn } from '../lib/auth-return';
 import {
   challengeFrom,
@@ -55,6 +62,7 @@ export function OtpVerificationForm() {
   const [resendState, setResendState] = useState<AsyncState>('idle');
   const [failure, setFailure] = useState<Failure | null>(null);
   const [notice, setNotice] = useState('');
+  const [existingAccount, setExistingAccount] = useState(false);
   const [limitNotice, setLimitNotice] = useState('');
   const [now, setNow] = useState(() => Date.now());
   const [countdownNotice, setCountdownNotice] = useState('');
@@ -142,11 +150,14 @@ export function OtpVerificationForm() {
       const session = await auth.verifyOtp(challenge.phoneNumber, submitted, challenge.name);
       sessionRef.current = session;
       clearOtpChallenge();
+      // The sign-up form sends a name; if the number already had an account, say so instead of looking like a new sign-up.
+      const signedIntoExisting = session.isNewAccount === false && Boolean(challenge.name);
+      setExistingAccount(signedIntoExisting);
       setVerifyState('success');
 
       redirectTimerRef.current = window.setTimeout(() => {
         finish(session.returnTo, before).catch(() => router.replace(safeReturnTo(returnTo)));
-      }, SUCCESS_AUTO_NAVIGATE_MS);
+      }, signedIntoExisting ? EXISTING_ACCOUNT_NOTICE_MS : SUCCESS_AUTO_NAVIGATE_MS);
     } catch (err) {
       verifyingRef.current = false;
       const errorCode = apiErrorCode(err);
@@ -251,7 +262,7 @@ export function OtpVerificationForm() {
           {m.authSuccessTitle}
         </h2>
         <p className="mt-2 text-15 text-stone leading-22">
-          {m.authSuccessSubtitle}
+          {existingAccount ? m.authExistingAccountNotice : m.authSuccessSubtitle}
         </p>
 
         <div className="mt-8 flex flex-col gap-3.5 w-full">
