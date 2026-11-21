@@ -1777,6 +1777,8 @@ model RefundTransaction {
   resolutionId    String       @unique @map("resolution_id") @db.Uuid
   orderId         String       @map("order_id") @db.Uuid
   amount          Decimal      @db.Decimal(10, 2)
+  /// Part of `amount` that refunds the customer's delivery fee (0 when the refund is goods only). Goods part = amount − this.
+  deliveryFeeAmount Decimal    @default(0) @map("delivery_fee_amount") @db.Decimal(10, 2)
   currency        String       @db.VarChar(3)
   status          RefundStatus @default(pending)
   paymentProvider String?      @map("payment_provider")
@@ -1897,7 +1899,12 @@ model CourierSettlementBatch {
   /// Hub where the cash was physically counted.
   locationId     String?  @map("location_id") @db.Uuid
   totalExpected  Decimal  @map("total_expected") @db.Decimal(10, 2)
+  /// Cash physically counted at the hub.
   totalCollected Decimal  @map("total_collected") @db.Decimal(10, 2)
+  /// Cash the couriers declared for the collections of this settlement (null on settlements made before this was recorded).
+  totalDeclared  Decimal? @map("total_declared") @db.Decimal(10, 2)
+  /// totalCollected − totalDeclared: negative = shortage, positive = surplus. Recorded on the settlement only, never spread over orders.
+  variance       Decimal? @db.Decimal(10, 2)
   fees           Decimal  @default(0) @db.Decimal(10, 2)
   netSettled     Decimal  @map("net_settled") @db.Decimal(10, 2)
   currency       String   @db.VarChar(3)
@@ -3887,6 +3894,11 @@ model FinanceExpense {
   /// NONE | WEEKLY | MONTHLY
   recurrence  String    @default("NONE") @db.VarChar(10)
   endsOn      DateTime? @map("ends_on") @db.Date
+  /// DIRECT = an operating cost of the shared business that the capital partner funds (deducted from distributable profit once approved);
+  /// PLATFORM = the platform's own cost (never deducted from the shared profit). Rows that existed before this field are PLATFORM.
+  kind        String    @default("PLATFORM") @db.VarChar(10)
+  approvedBy  String?   @map("approved_by")
+  approvedAt  DateTime? @map("approved_at")
   recordedBy  String    @map("recorded_by")
   voidedAt    DateTime? @map("voided_at")
   voidedBy    String?   @map("voided_by")
@@ -3964,6 +3976,12 @@ model OrderCostRecord {
   packagingCost       Decimal?  @map("packaging_cost") @db.Decimal(10, 2)
   packagingRecordedBy String?   @map("packaging_recorded_by")
   packagingRecordedAt DateTime? @map("packaging_recorded_at")
+  /// Purchase cost of goods bought for this (cancelled or returned) order that an Admin confirmed as damaged / written off. Goods not
+  /// confirmed stay recoverable: they are not a loss. Counted in the month of `damageConfirmedAt`, at most once per order.
+  damagedAmount       Decimal?  @map("damaged_amount") @db.Decimal(10, 2)
+  damageReason        String?   @map("damage_reason")
+  damageConfirmedBy   String?   @map("damage_confirmed_by")
+  damageConfirmedAt   DateTime? @map("damage_confirmed_at")
   /// Append-only record of every overwrite of a recorded cost (who, when, why, previous values).
   corrections         Json      @default("[]")
   createdAt           DateTime  @default(now()) @map("created_at")
