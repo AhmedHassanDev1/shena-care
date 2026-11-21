@@ -5,12 +5,12 @@ Branch `fix/financial-closure`, 2026-11-21. Basis: `financial-audit.md` (closure
 
 ## الملخص التنفيذي (بالعربي)
 
-**التوصية: READY FOR LAUNCH (النواة المالية)** بشرطين تشغيليين خارج الكود، مفيش **P0** ولا **P1** مفتوح.
+**التوصية: READY (النواة المالية) على بيئة Development**، مفيش **P0** ولا **P1** مفتوح. المشروع كله Development ومفيش Production Environment حاليًا، فكل ما يلي عن «الإطلاق» يخص يوم يتعمل فيه Production.
 
 - **الربح المعروض بقى موثوق**: الأوردر المرجعي (مبيعات 1,000، كوبون 100، رسوم توصيل 35، شراء 700، توصيل فعلي 25، تغليف 10) بيطلع **200** (كان 290)، والتوزيع بنسبة 40% = منصة 80 وشريك 120. الـ13 سيناريو مالي: **98 قيمة مطابقة، 0 فرق** (كانت 46 من 67).
 - **اتقفل B1–B5**: خصم الكوبون وإيراد الشحن ككيان مستقل وتكلفة التوصيل الفعلية (والتقديرية متعلّمة)، كارت «تحصيل لم يُسوَّ» (الكاش مع المندوب) من تعريف واحد، المبلغ المعدود والمُعلَن والفرق على التسوية، منع الاسترداد الزائد/المكرر/المتزامن بقفل وقيود، والبضاعة المشتراة لأوردر ملغي/مرتجع مش خسارة تلقائية (التلف المؤكد بس).
 - **الشرطان قبل الإطلاق الفعلي** (مش مشاكل في الكود):
-  1. **الـ migration `20261121090000_finance_closure` لازم تتطبّق على القاعدة المستهدفة بموافقتك** — اتطبّقت على قواعد محلية معزولة بس، **مش على Supabase**، وهي إضافية بالكامل (أعمدة جديدة قابلة للـ null أو بقيمة افتراضية + قيود CHECK، بدون لمس بيانات قديمة).
+  1. **الـ migration `20261121090000_finance_closure` اتطبّقت على Supabase Dev (2026-11-21)** بعد backup اتجرّبت استعادته، وبدون تغيير أي صف (التفاصيل في `final-e2e-report.md`). لما يتعمل Production لازم تتطبّق عليه بنفس الطريقة (backup ثم `migrate deploy`).
   2. **الأوردرات القديمة بدون سجل تكلفة** هتخلّي شهرها «غير مكتمل» لحد ما التكاليف تتسجّل (مفيش ترحيل ولا backfill اتعمل بقرار منك). الأدمن لازم كمان يعتمد أي «تكلفة مباشرة» عشان تدخل في الحساب.
 - **قرارات لسه مفتوحة (مش بتمنع الإطلاق)**: ترحيل الخسارة (حاليًا لأ: شهر خسارة = حصة منصة صفر)، تقسيم الشهر المفتوح عند تغيير النسبة، تكلفة المحاولة الفاشلة المتكررة، وطريقة إعادة إغلاق شهور اتقفلت بالنموذج القديم.
 - **حدود الفحص**: التشغيل الكامل للاختبارات والمتصفح على بيانات محلية؛ مفيش بيانات إنتاج، ولا نشر، ولا تطبيق على Supabase.
@@ -27,7 +27,7 @@ Branch `fix/financial-closure`, 2026-11-21. Basis: `financial-audit.md` (closure
 | Is "settled cash" reliable? | **Yes** on both settlement paths: counted, declared and variance are kept apart on the settlement |
 | Can a refund exceed what is owed? | **No** — goods, delivery-fee and cash-received caps inside one transaction with the order row locked (partial, concurrent and duplicate requests tested) |
 
-Conditions before real launch: **(1)** apply the additive migration `20261121090000_finance_closure` on the target database (needs your approval; not applied on Supabase); **(2)** record the costs of any existing orders that must appear in a profit month (no backfill was run) and have the Admin approve direct costs.
+Conditions before a future Production launch: **(1)** apply the additive migration `20261121090000_finance_closure` on the Production database (backup first, then `migrate deploy`); it is **already applied on Supabase Dev** (2026-11-21, 0 rows changed, backup restore-verified); **(2)** record the costs of any existing orders that must appear in a profit month (no backfill was run) and have the Admin approve direct costs.
 
 ## 2. What works correctly (executed)
 
@@ -77,7 +77,7 @@ month close refused while data is missing or cash is still with couriers, frozen
 | Schema drift vs `schema.prisma` | none in the finance tables; the 12 drifted tables (id/updated_at defaults) are older and unrelated |
 | Statements | 10 `ADD COLUMN`, 3 `ADD CONSTRAINT … CHECK`; no `UPDATE`, no `DROP`, no data rewrite |
 
-Not applied to Supabase. `refund_transactions` had 0 legacy rows in the test; the column default `0` satisfies the new CHECK for any existing non-negative refund.
+Applied to Supabase **Dev** only, on 2026-11-21 (no Production environment exists). `refund_transactions` had 0 legacy rows in the test; the column default `0` satisfies the new CHECK for any existing non-negative refund.
 
 **Profit split (executed, exact numbers):** reference order distributable profit 200 → platform **80 (40%)**, partner **120 (60%)** (`financial-audit-scenarios`); `admin-finance`: 1,280 → platform 512 / partner 768; `profit-share`: 155 → platform 62 / partner 93, payable-now shares follow counted cash only (0 until the cash is counted), the closed month keeps 40% when the setting later becomes 50% (`profit-share` test 'closes a month…'). Rounding: platform share rounded once, partner = profit − platform, so the two always add up.
 Refunds: partial, coupon pro-rata, fee-only, concurrent, duplicate, failed-refund release, cash-received cap — `refund-caps` 9/9; sealed return reverses COGS and a 250 refund on a 100 return is refused (FIN-07). COD: counted / declared / variance on both settlement paths (FIN-08, FIN-09, FIN-09b, FIN-10).

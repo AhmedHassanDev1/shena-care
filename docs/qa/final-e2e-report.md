@@ -3,6 +3,24 @@
 Branch `fix/financial-closure`, 2026-11-21. This file starts with the **closure pass**; the report of the previous pass (2026-11-20, `qa/e2e-lifecycle-audit`) follows unchanged under "Previous pass".
 Companion documents: `financial-audit.md`, `financial-scenarios.md`, `production-readiness.md`, `e2e-scenario-matrix.md`, `bugs-and-fixes.md`, `ux-ui-audit.md`, `screenshots/`.
 
+## إغلاق الإصدار على بيئة التطوير (2026-11-21) — Development فقط
+
+**المشروع كله Development ومفيش Production Environment.** مفيش أي نشر على Railway ولا إنشاء أو تعديل لبيئة إنتاج.
+
+| البند | الحالة |
+|---|---|
+| `main` المحلي | `19c7e29`، فيه إصلاحات B1–B5 كلها (commits `a265f6f` … `958a138`) |
+| قاعدة Supabase Dev | المشروع `cluidtctwgxxhybzftft` (اتأكدت هويته: `NODE_ENV=development` وهو نفس المشروع اللي المالك أكّد إنه Dev يوم 2026-11-20) |
+| Backup قبل الـ migration | `Desktop/db-backups/supabase-before-finance-closure-20261121-043105.dump` (984 KB)، **استعادته اتجرّبت** في قاعدة محلية: 138 جدول و1,879 صف، العدد متطابق في كل جدول |
+| Migration `20261121090000_finance_closure` | **اتطبّقت بنجاح على Dev** بـ `prisma migrate deploy` (الوحيدة المعلّقة؛ الباقي كان مطبّق) |
+| سلامة البيانات بعد الـ migration | 138 جدول و**صفر اختلاف في عدد الصفوف** مقارنةً بالـ backup؛ 10 أعمدة جديدة موجودة بالقيم الافتراضية الصحيحة؛ 3 قيود CHECK موجودة؛ تسويات قديمة بدون `total_declared`/`variance` مخترعة (0)؛ استردادات بجزء رسوم ≠ 0 (0)؛ سجلات تكلفة بتلف (0)؛ `prisma migrate status`: "Database schema is up to date"؛ مفيش migrations فاشلة |
+| الاختبارات الوظيفية للنظام المالي | على قواعد محلية معزولة فقط (قاعدة Dev ممنوع تتشغّل عليها الاختبارات). Dev مفيهاش بيانات مالية حالياً (0 مصروفات)، فالتحقق على Dev هو سلامة المخطط والبيانات، وحساب الأرباح اتأكد في الاختبارات المحلية (98/98 قيمة) |
+| مراجعة الـ47 commit قبل الـ push | 35 commit عادي + 12 merge: تغييرات مقصودة (Hub/Driver/Admin/Business، دورة الطلب، المالية، تقارير QA). مسح الأسرار على كل السطور المضافة: **لا شيء**. مفيش `.env` ولا dump ولا ملفات مؤقتة ولا ملفات > 1MB. الحذف الوحيد `apps/business/lib/dev-barcode.ts` مقصود (إزالة باركود الاختبار). `STAFF_CREDENTIALS.md` و`.env` في `.gitignore` وغير متتبّعين |
+| Push إلى GitHub | **اتعمل**: `origin/main` = `main` (0 ahead / 0 behind). **من غير أي Deploy** |
+| الـ Builds | API وbusiness وstorefront: ناجحة |
+
+---
+
 ## الملخص التنفيذي (بالعربي) — جولة إغلاق النظام المالي
 
 - **اتقفل B1–B5**: خصم الكوبون، إيراد الشحن وتكلفة التوصيل كبنود مستقلة، «تحصيل لم يُسوَّ» من تعريف واحد، المعدود/المُعلَن/الفرق على التسوية، منع الاسترداد الزائد والمكرر والمتزامن بقفل وقيود، والبضاعة المشتراة لأوردر ملغي أو مرتجع مش خسارة تلقائية (التلف المؤكد من الأدمن بس). الأوردر المرجعي بيطلع **200** (كان 290).
