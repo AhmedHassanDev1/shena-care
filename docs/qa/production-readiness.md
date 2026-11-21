@@ -62,6 +62,26 @@ month close refused while data is missing or cash is still with couriers, frozen
 | P2-4 | An open month uses the current percentage for the whole month; closed months are frozen | a mid-month change is not split by date |
 | P2-5 | Months closed in the old frozen shape are read with a fallback by the trend but not by the Finance page | re-close after the migration if any exists |
 
+## 4b. Migration safety and the 40% / 60% split (executed 2026-11-21)
+
+**Migration `20261121090000_finance_closure`** — upgrade test on a fresh scratch database (`fin_upgrade_test`): all earlier migrations applied, legacy rows inserted (2 expenses, 1 courier settlement, 1 cost record), then the migration applied.
+
+| Check | Result |
+|---|---|
+| Legacy column values changed by the migration | **0** (every pre-existing column of every legacy row identical; row counts equal) |
+| Legacy expenses | become `PLATFORM`, not approved (never shared, never deducted from the shared profit) |
+| Legacy settlements | `total_declared` and `variance` stay **null**: nothing is invented, no historical settlement is rewritten |
+| Legacy cost records | `damaged_amount` null |
+| New constraints reject bad data | expense kind `SHARED` rejected; negative damage rejected (refund fee ≤ amount is covered by `refund-caps`) |
+| Re-running `migrate deploy` | "No pending migrations" |
+| Schema drift vs `schema.prisma` | none in the finance tables; the 12 drifted tables (id/updated_at defaults) are older and unrelated |
+| Statements | 10 `ADD COLUMN`, 3 `ADD CONSTRAINT … CHECK`; no `UPDATE`, no `DROP`, no data rewrite |
+
+Not applied to Supabase. `refund_transactions` had 0 legacy rows in the test; the column default `0` satisfies the new CHECK for any existing non-negative refund.
+
+**Profit split (executed, exact numbers):** reference order distributable profit 200 → platform **80 (40%)**, partner **120 (60%)** (`financial-audit-scenarios`); `admin-finance`: 1,280 → platform 512 / partner 768; `profit-share`: 155 → platform 62 / partner 93, payable-now shares follow counted cash only (0 until the cash is counted), the closed month keeps 40% when the setting later becomes 50% (`profit-share` test 'closes a month…'). Rounding: platform share rounded once, partner = profit − platform, so the two always add up.
+Refunds: partial, coupon pro-rata, fee-only, concurrent, duplicate, failed-refund release, cash-received cap — `refund-caps` 9/9; sealed return reverses COGS and a 250 refund on a 100 return is refused (FIN-07). COD: counted / declared / variance on both settlement paths (FIN-08, FIN-09, FIN-09b, FIN-10).
+
 ## 5. Decisions that were applied (from your messages)
 
 Distributable profit model and the percentage from Admin Settings · platform personal technical expenses are not deducted from the shared profit (kind `PLATFORM`) ·
