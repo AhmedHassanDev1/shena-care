@@ -1,4 +1,43 @@
-# ShinaCare — Financial logic and reporting audit (read from the code, verified on data)
+# ShinaCare — Financial logic and reporting audit (closure status + original audit)
+
+## الملخص التنفيذي بعد الإغلاق (2026-11-21، فرع `fix/financial-closure`)
+
+- **اتنفّذ واتقفل B1–B5**، وكل واحد له اختبار يمنع رجوعه. نموذج الربح المعتمد بقى هو الحساب الوحيد في النظام:
+  **الربح القابل للتوزيع = صافي المبيعات + إيراد الشحن − تكلفة المنتجات الفعلية − التوصيل − التغليف − التلف المؤكد − التكاليف المباشرة المعتمدة**، وبعدها المنصة بتاخد النسبة المضبوطة من إعدادات الأدمن (40% حاليًا) والباقي للشريك.
+- **الأوردر المرجعي (مبيعات 1,000، كوبون 100، رسوم توصيل 35، شراء 700، توصيل فعلي 25، تغليف 10): الربح 200** (كان معروض 290). المنصة 80 والشريك 120.
+- **B1** — الكوبون بيتخصم، رسوم الشحن إيراد مستقل وتكلفة التوصيل الفعلية مصروف مستقل (والمقدَّرة من عرض السعر بتتعلّم «تقديرية» وبتتبدّل بالفعلية)، المصروفات العامة للمنصة مش بتتخصم من الربح المشترك، التكلفة المباشرة ما بتتحسبش غير بعد اعتماد الأدمن، ومفيش ترحيل خسائر.
+- **B2** — «تحصيل لم يُسوَّ» = الكاش اللي المندوب أعلن تحصيله ولسه ماتعدّش في الهب (في عهدته)، من تعريف واحد مشترك بين النظرة العامة وصفحة المالية والملخص؛ المتوقع في الطريق بيتعرض لوحده ومابيتعدّش مرتين.
+- **B3** — التسوية بتحفظ المبلغ المُعلَن والمبلغ المعدود والفرق (`variance`) على مستوى التسوية؛ مفيش عجز بيتوزّع على أوردر بدون دليل، ومبلغ العميل ما بيتغيّرش بسبب عجز المندوب.
+- **B4** — الاسترداد ممنوع يزيد عن رصيد البضاعة (بعد كل الخصومات والكوبونات والاستردادات السابقة) ولا عن رسوم التوصيل المدفوعة (بيتحسب لوحده) ولا عن الفلوس المستلمة، داخل معاملة واحدة بقفل صف الأوردر، فالطلبات المتزامنة والمكررة آمنة. الاستردادات الفاشلة بتحرّر المبلغ.
+- **B5** — البضاعة المشتراة لأوردر ملغي/مرتجع مش خسارة تلقائية (بتظهر «رأس مال محبوس في بضاعة قابلة للبيع»)؛ الخسارة هي التلف اللي الأدمن بيأكده (مرة واحدة)، والمرتجع السليم المقفول بيرجّع تكلفته من تكلفة المبيعات، ومرتجع «غير سليم» أو مستخدم مش بيرجّع.
+- **اللي اتفحص**: السيناريوهات المالية (13 سيناريو، 98 قيمة) **98 مطابقة و0 فرق** (كانت 46 من 67)، واختبارات الاسترداد المتزامن، والصفحتين (المالية والنظرة العامة) على Desktop وMobile ببيانات حقيقية من API محلي. التفاصيل في `financial-scenarios.md` و`final-e2e-report.md`.
+- **ما اتغيّرش**: مفيش ترحيل بيانات قديمة ولا تعديل لتسويات قديمة. الـ migration (`20261121090000_finance_closure`) إضافي بالكامل (أعمدة جديدة قابلة للـ null أو بقيمة افتراضية + قيود CHECK) واتطبّق **على قاعدة محلية بس، مش على Supabase**.
+- **القرارات المعلّقة بالنص**: ترحيل الخسارة (مفيش ترحيل: شهر خسارة = حصة منصة صفر)، تقسيم الشهر المفتوح عند تغيير النسبة، تكلفة المحاولة الفاشلة المتكررة (FIN-F9)، وإعادة إغلاق الشهور المقفولة بالنموذج القديم (لا شهور مقفولة معروفة في بيانات حقيقية).
+
+### Closure map (finding → fix → proof)
+
+| Finding | Fix | Proof |
+|---|---|---|
+| FIN-F1 coupon not deducted | `profit-model.ts` + `profit.service.ts`: net sales = order total − delivery fee; discounts per order; refunds scaled by the coupon | `financial-audit-scenarios` FIN-01e/g/k/l/m; `profit-model.spec` |
+| FIN-F2 overview cash card | `platform/finance/cash-position.ts` `readCashPosition()` shared by profit, summary and overview | FIN-01s–v, FIN-08, FIN-10f; browser check (Overview and Finance show the same 26,345) |
+| FIN-F3 counted vs declared | `CourierSettlementBatch.totalDeclared` / `variance`; both settlement paths (`settlements/batch`, `settlements/rounds`) | FIN-09c–d, FIN-09b-a…i |
+| FIN-F4 over-refund | `ReconciliationService.initiateRefund`: order row lock, goods cap, delivery-fee cap, cash-received cap; codes `REFUND_EXCEEDS_GOODS`, `REFUND_EXCEEDS_DELIVERY_FEE`, `INVALID_DELIVERY_FEE_REFUND`, `NO_CASH_RECEIVED`; `RefundTransaction.deliveryFeeAmount` with CHECK 0..amount | `refund-caps.e2e-spec` (9: partial, coupon pro-rata, fee only, 6 concurrent, 2 concurrent big, 3 duplicates, failed refund frees balance, no cash, malformed); FIN-07a/f/g |
+| FIN-F5 `summary` blind in Buy List mode | `FinanceReportService.summary` = `ProfitService.presentFigures` + sales, cash, supplier-invoice information | `admin-finance.e2e-spec`; FIN-01p |
+| FIN-F6 delivery surplus | shipping revenue and delivery cost are separate; `delivery.{revenue,cost,margin,estimatedOrders,estimatedAmount}` | FIN-01j, FIN-02f, FIN-03d, FIN-04, FIN-12b |
+| FIN-F7 bought-then-cancelled / returned goods | `OrderCostRecord.damagedAmount…` + `PUT /order-costs/:orderId/damage` (Admin, once, ≤ paid); `capital.tiedUpInRecoverableGoods`; sealed-intact return receipts reverse COGS | FIN-05a–l, FIN-06, FIN-07e/h; `profit-model.spec` |
+| §9 M4 expense model | `FinanceExpense.kind` (DIRECT / PLATFORM), `POST …/expenses/:id/approve`; `PACKAGING`/`DELIVERY` refused (`DUPLICATES_ORDER_COST`); only approved DIRECT reduces the shared profit; an unapproved one makes the period INCOMPLETE (`DIRECT_COST_APPROVAL`) | `admin-finance.e2e-spec`, `profit-share.e2e-spec` |
+| FIN-F11 `discountsGiven` meaning | `discounts` = coupons only; compare-at saving as `listPriceSaving` (information) | FIN-02e/g |
+| FIN-F12 stale overview KPI | `contributionProfit` removed from the overview; profit lives on the Finance page only | `dashboard.service.ts`, business `overview-types.ts` |
+| Month close | freezes the figures and the percentage; refused while data is missing (`PERIOD_INCOMPLETE`) or delivered orders still have cash with the courier (`PERIOD_CASH_PENDING`); later setting or cost changes never rewrite it | `profit-share.e2e-spec` |
+| Delivery cost from the quote | the listener that wrote the quote's base fee into the cost record as if actual was removed; the quote is an estimate read at report time | `c2c-backend-acceptance`, FIN-04 |
+
+Residual, deliberately not done: per-attempt courier cost (FIN-F9); a "cash spent on purchases for orders in flight" figure (the capital view shows recovered / tied up / recoverable, not in-flight purchase cash); outstanding cash of earlier months on the page of a later month (FIN-F10 original); a month closed before this change keeps its old frozen shape: the trend chart reads it with a fallback, but the Finance page expects the new shape, so such a month must be re-closed or recomputed first (none is known to exist); no migration or backfill of historical data.
+
+---
+
+# Original audit (2026-11-20, before the fixes)
+
+The sections below are the audit as it stood **before** the closure; they are kept as the record. Where a finding is closed, the map above says how.
 
 Branch `qa/e2e-lifecycle-audit`, 2026-11-20. **Nothing financial was changed**: no formula, no data, no setting. The only additions are a test suite
 (`apps/api/test/integration/financial-audit-scenarios.e2e-spec.ts`) and these reports. Every number below marked "verified" was produced by that suite on a

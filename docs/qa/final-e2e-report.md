@@ -1,4 +1,47 @@
-# ShinaCare — final E2E report
+# ShinaCare — final E2E report (financial closure pass on top of the lifecycle pass)
+
+Branch `fix/financial-closure`, 2026-11-21. This file starts with the **closure pass**; the report of the previous pass (2026-11-20, `qa/e2e-lifecycle-audit`) follows unchanged under "Previous pass".
+Companion documents: `financial-audit.md`, `financial-scenarios.md`, `production-readiness.md`, `e2e-scenario-matrix.md`, `bugs-and-fixes.md`, `ux-ui-audit.md`, `screenshots/`.
+
+## الملخص التنفيذي (بالعربي) — جولة إغلاق النظام المالي
+
+- **اتقفل B1–B5**: خصم الكوبون، إيراد الشحن وتكلفة التوصيل كبنود مستقلة، «تحصيل لم يُسوَّ» من تعريف واحد، المعدود/المُعلَن/الفرق على التسوية، منع الاسترداد الزائد والمكرر والمتزامن بقفل وقيود، والبضاعة المشتراة لأوردر ملغي أو مرتجع مش خسارة تلقائية (التلف المؤكد من الأدمن بس). الأوردر المرجعي بيطلع **200** (كان 290).
+- **السيناريوهات المالية**: 13 سيناريو، **98 قيمة مطابقة و0 فرق** (قبل: 46 من 67). أي تعريف اتغيّر «متوقعه» موضّح بسببه في `financial-scenarios.md`.
+- **الـRegression الكامل** (196 ملف، قاعدة محلية معزولة `auto_dispatch_test`): 178 نجح و18 فشل؛ 1483 اختبار، 1427 نجح و55 فشل. **15 ملف من الـ18 فشلوا بنفس العدد بالظبط على نسخة نضيفة من الـmain** (الـbaseline). الـ3 الباقيين اتحلّلوا بالدليل: `dashboard-metrics` (من تعديلي: الـKPI اتشال) **اتصلّح (9/9)**، و`research-fetcher-security` بيفشل بس في الـworktree لأن ملف `.env` المحلي (قائمة نطاقات الوسائط المعتمدة) مش موجود فيه، **وينجح 9/9 بنفس القيمة**، والكود مطابق للـmain، و`interventions` بيفشل **بنفس الطريقة على نسخة نضيفة من الـmain** (قاعدة الاختبار فيها آلاف الأوردرات المتأخرة والقائمة بتقف عند 500).
+- **مفيش فشل متقطع في PostgreSQL المرة دي**: الأربع ملفات اللي كانت بتفشل متقطعة (order-tracking، supply-plan، cash-round-settlement، brand-product-line) نجحوا في التشغيل الكامل. سبب التعطل القديم ما اتحددش، فمفيش ادّعاء إنه اتحل.
+- **المتصفح** (بيانات حقيقية من API محلي على القاعدة المعزولة): صفحة المالية والنظرة العامة على Desktop (1440) وMobile (390): الأرقام متطابقة بين الصفحتين (كاش مع المناديب 26,345)، شهر مقفول بنموذج جديد بيعرض 430 / 275 / 155 / منصة 62 / شريك 93، مفيش تمرير أفقي، النصوص العربية سليمة. اللقطات في `screenshots/finance-closure-*`.
+- **الحالة**: مفيش نشر ولا Migration على Supabase؛ الـmigration إضافية ومحلية بس. التفاصيل والتوصية في `production-readiness.md`.
+
+## Closure pass results
+
+| Check | Result |
+|---|---|
+| API `tsc --noEmit` | clean |
+| API lint on every changed file | clean, except 6 pre-existing `no-explicit-any` in `ordering.controller.ts` (untouched lines) |
+| Financial scenarios (13 tests, 98 values) | **13/13, 98 PASS, 0 FAIL** (before: 46/67) |
+| New / rewritten finance suites | `profit-model.spec` (unit, 14), `refund-caps` (9), `admin-finance` (8), `profit-share` (7), `hub-orders-preparation` (12), `c2c-backend-acceptance` (12), `dashboard-metrics` (9): all pass |
+| Full API regression | 196 suites / 1483 tests: 178 / 1427 passed; 18 / 55 failed → 15 suites identical to clean `main`, 1 identical on clean `main` (`interventions`), 1 environmental (`research-fetcher-security`, passes with the local `.env` value), 1 mine and fixed (`dashboard-metrics`) |
+| Business `tsc --noEmit` | clean |
+| Business tests (`node --test`, 10 files) | 52/52 |
+| Business `check-contrast` | 173/177: the 4 failures are raw palette classes in `driver/*` pages, files not touched by this work |
+| Web | no file changed; not re-run |
+| Browser (built-in, real API on the isolated DB) | Finance + Overview, Desktop 1440 and Mobile 390, no horizontal overflow (console not re-inspected after the final reload) |
+
+### Baseline comparison (same method as before: clean copy of `main` `b968a59`, same scratch database)
+
+Failing suites and failed-test counts identical on the clean copy and on this branch: brand-research 12, care-consultation 1, cart-reorder 5, catalog-enhancement-pending 1, catalog-intake 1, catalog-policy 6, glo-205-security-regressions 1, glo-77-candidate-review-publish 1, glo285-media-service 3, media-editorial 1, product-read-performance 1, product-search-provider 1, product-sku-media 5, rc-smoke 1, sourcing 11. `interventions` (1) fails identically on the clean copy. `ai-client-privacy`, which failed in the previous pass, passed in this run.
+
+### Concurrency and isolation
+
+The refund suite runs 6 concurrent refunds of 100 against a 400 balance (exactly 4 accepted), two concurrent 400 refunds (one accepted), and three identical requests (one row). Everything ran on the local scratch PostgreSQL (`*_test` databases only); no Supabase, no production data, no deployment.
+
+### Not executed
+
+Production data volume; refunds in an already closed month; supplier-PO mode money flow; the capital-partner portal (out of scope); the Finance page with a completed *open* month was checked through a closed month and the API (the scratch database's current month has older orders without cost records, so it is correctly INCOMPLETE).
+
+---
+
+# Previous pass (2026-11-20, `qa/e2e-lifecycle-audit`)
 
 Branch `qa/e2e-lifecycle-audit` (from `perf/cart-backend-optimization` at `f6aa2b4`), 2026-11-20. `main` untouched. Not merged, not pushed.
 Companion documents: `e2e-scenario-matrix.md`, `bugs-and-fixes.md`, `ux-ui-audit.md`, `financial-audit.md`, `financial-scenarios.md`, `production-readiness.md`, `screenshots/`.

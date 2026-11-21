@@ -1,4 +1,82 @@
-# ShinaCare — financial production readiness
+# ShinaCare — financial production readiness (after the closure fixes)
+
+Branch `fix/financial-closure`, 2026-11-21. Basis: `financial-audit.md` (closure map + original audit), `financial-scenarios.md` (98 values, before/after),
+`final-e2e-report.md` (regression and browser check). The section **"Original assessment"** at the end is the 2026-11-20 verdict before the fixes, kept as the record.
+
+## الملخص التنفيذي (بالعربي)
+
+**التوصية: READY FOR LAUNCH (النواة المالية)** بشرطين تشغيليين خارج الكود، مفيش **P0** ولا **P1** مفتوح.
+
+- **الربح المعروض بقى موثوق**: الأوردر المرجعي (مبيعات 1,000، كوبون 100، رسوم توصيل 35، شراء 700، توصيل فعلي 25، تغليف 10) بيطلع **200** (كان 290)، والتوزيع بنسبة 40% = منصة 80 وشريك 120. الـ13 سيناريو مالي: **98 قيمة مطابقة، 0 فرق** (كانت 46 من 67).
+- **اتقفل B1–B5**: خصم الكوبون وإيراد الشحن ككيان مستقل وتكلفة التوصيل الفعلية (والتقديرية متعلّمة)، كارت «تحصيل لم يُسوَّ» (الكاش مع المندوب) من تعريف واحد، المبلغ المعدود والمُعلَن والفرق على التسوية، منع الاسترداد الزائد/المكرر/المتزامن بقفل وقيود، والبضاعة المشتراة لأوردر ملغي/مرتجع مش خسارة تلقائية (التلف المؤكد بس).
+- **الشرطان قبل الإطلاق الفعلي** (مش مشاكل في الكود):
+  1. **الـ migration `20261121090000_finance_closure` لازم تتطبّق على القاعدة المستهدفة بموافقتك** — اتطبّقت على قواعد محلية معزولة بس، **مش على Supabase**، وهي إضافية بالكامل (أعمدة جديدة قابلة للـ null أو بقيمة افتراضية + قيود CHECK، بدون لمس بيانات قديمة).
+  2. **الأوردرات القديمة بدون سجل تكلفة** هتخلّي شهرها «غير مكتمل» لحد ما التكاليف تتسجّل (مفيش ترحيل ولا backfill اتعمل بقرار منك). الأدمن لازم كمان يعتمد أي «تكلفة مباشرة» عشان تدخل في الحساب.
+- **قرارات لسه مفتوحة (مش بتمنع الإطلاق)**: ترحيل الخسارة (حاليًا لأ: شهر خسارة = حصة منصة صفر)، تقسيم الشهر المفتوح عند تغيير النسبة، تكلفة المحاولة الفاشلة المتكررة، وطريقة إعادة إغلاق شهور اتقفلت بالنموذج القديم.
+- **حدود الفحص**: التشغيل الكامل للاختبارات والمتصفح على بيانات محلية؛ مفيش بيانات إنتاج، ولا نشر، ولا تطبيق على Supabase.
+
+## 1. Verdict
+
+| | |
+|---|---|
+| Recommendation | **READY FOR LAUNCH (financial core)**, subject to the two operational conditions below |
+| P0 / P1 open | **none** (the four P1 of the original audit, FIN-F1…F4, are closed and covered by tests) |
+| P2 | 5 open, accepted consciously (section 4) |
+| Is the profit figure shown to the Admin reliable? | **Yes** for recorded data: distributable profit = net sales + shipping revenue − actual product cost − delivery − packaging − confirmed damages − approved direct costs; it is withheld (INCOMPLETE) instead of guessed when a cost is missing |
+| Is the Overview cash card reliable? | **Yes** — one shared definition: cash the courier declared and the hub has not counted yet |
+| Is "settled cash" reliable? | **Yes** on both settlement paths: counted, declared and variance are kept apart on the settlement |
+| Can a refund exceed what is owed? | **No** — goods, delivery-fee and cash-received caps inside one transaction with the order row locked (partial, concurrent and duplicate requests tested) |
+
+Conditions before real launch: **(1)** apply the additive migration `20261121090000_finance_closure` on the target database (needs your approval; not applied on Supabase); **(2)** record the costs of any existing orders that must appear in a profit month (no backfill was run) and have the Admin approve direct costs.
+
+## 2. What works correctly (executed)
+
+Order totals and COD arithmetic · coupon deducted once from sales · supplier discount in the purchase cost (80 − 10 = 70) and exact cost across batches at different prices (280) ·
+packaging frozen at preparation · manual courier cost kept; the quote only as a labelled estimate until the actual cost is recorded · free shipping carried by the company (delivery margin −25) ·
+cancelled-after-purchase goods recoverable, a confirmed damage counted once · failed delivery returned to the hub costs only the courier and the bag · sealed returned unit reverses its cost ·
+cash declared by the courier visible as courier custody, never double counted with the expected cash · counted, declared and variance on the settlement, no shortage pushed on an order ·
+refund caps under partial, concurrent and duplicate requests · duplicate and concurrent DELIVERED, settlements and cancellations act once · Cairo day/month boundaries and cent rounding · Admin-only finance, refunds, damage confirmation and expense approval ·
+month close refused while data is missing or cash is still with couriers, frozen figures and percentage afterwards.
+
+## 3. Assessment by dimension
+
+| Dimension | Before | After | Why |
+|---|---|---|---|
+| Accuracy | Medium | **Good** | one profit model; 98/98 values match the hand calculation |
+| Data integrity | Good | **Good** | refund and settlement writes under row locks / unique keys; CHECK constraints (refund fee ≤ amount, damage ≥ 0, expense kind) |
+| Auditability | Good | **Good** | damage has actor, reason, time; expense approval has actor and time; settlement keeps declared + counted + variance; closed months frozen |
+| Financial reconciliation | Medium | **Good** | expected / declared / counted / variance all stored and reported; outstanding cash defined once |
+| Double counting | Good | **Good** | per-order costs refused as general expenses (`DUPLICATES_ORDER_COST`); estimate replaced, not added, by the actual cost |
+| Missing-cost tracking | Good with gaps | **Good** | missing purchase / courier / packaging / unapproved direct cost → INCOMPLETE with counts |
+| Access control | Good | **Good** | damage confirmation and expense approval Admin-only |
+| Data migration risk | Medium | **Medium** | additive migration, no historic rewrite; old orders without cost records stay INCOMPLETE; months closed in the old shape need re-closing |
+| Reporting consistency | Poor → Medium | **Good** | `summary` returns the same figures as the Finance page; Overview reads the same cash position |
+
+## 4. Open items (accepted, none blocks launch)
+
+| # | Item | Effect |
+|---|---|---|
+| P2-1 | Per-attempt courier cost (a failed trip followed by a retry is one cost record) | understates delivery cost for retried orders until recorded by hand |
+| P2-2 | No "cash spent on purchases for orders in flight" figure | capital view shows recovered / tied up / recoverable only |
+| P2-3 | Loss months do not carry forward (no policy decided) | a loss month gives platform share 0; the next month starts clean |
+| P2-4 | An open month uses the current percentage for the whole month; closed months are frozen | a mid-month change is not split by date |
+| P2-5 | Months closed in the old frozen shape are read with a fallback by the trend but not by the Finance page | re-close after the migration if any exists |
+
+## 5. Decisions that were applied (from your messages)
+
+Distributable profit model and the percentage from Admin Settings · platform personal technical expenses are not deducted from the shared profit (kind `PLATFORM`) ·
+approved direct costs only (kind `DIRECT` + Admin approval) · recovered capital shown apart from the partner's profit share · old closed settlements untouched when the percentage changes ·
+sound returns are not a loss; goods bought for a cancelled order are not an automatic loss if reusable · actual delivery cost when present, the quote as a labelled estimate otherwise ·
+no shortage distributed to an individual order without evidence; the customer's paid amount is never changed by a courier shortage · no historical data migration or backfill · profit and summary use one definition.
+
+## 6. What was not verified
+
+Production data volume and legacy-data behaviour (no production data was touched) · refunds in an already closed month · supplier-PO mode money flow (out of MVP scope) ·
+the capital-partner portal (explicitly out of scope) · any deployment or Supabase migration (forbidden by the instructions).
+
+---
+
+# Original assessment (2026-11-20, before the fixes)
 
 Branch `qa/e2e-lifecycle-audit`, 2026-11-20. Basis: `financial-audit.md` (code and data flow), `financial-scenarios.md` (67 values checked by hand and on data),
 `final-e2e-report.md` (regression). **No financial formula, setting or data was changed.** Everything marked "proposed" waits for your approval.
