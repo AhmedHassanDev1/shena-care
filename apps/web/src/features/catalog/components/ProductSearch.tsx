@@ -16,7 +16,7 @@ import { routes } from '@/lib/routes';
 import { cn } from '@/lib/utils';
 import { suggestProducts } from '../api/discovery';
 import { categoryLabel } from '../lib/card-model';
-import { buildSearchOptions, normalizeSearchQuery, readRecentSearches, rememberSearch, stepActiveIndex } from '../lib/search-helpers';
+import { buildSearchOptions, nextScrollTopForOptionVisibility, normalizeSearchQuery, readRecentSearches, rememberSearch, stepActiveIndex } from '../lib/search-helpers';
 
 interface ProductSearchProps {
   id: string;
@@ -32,6 +32,19 @@ const HISTORY_KEY = 'shinacare.search.session.v1';
 export function ProductSearch(props: ProductSearchProps) {
   const [open, setOpen] = useState(false);
   const m = useMessages();
+
+  useEffect(() => {
+    if (!props.mobile) return;
+    const desktop = window.matchMedia('(min-width: 768px)');
+    const closeOnDesktop = (event: MediaQueryListEvent) => {
+      if (event.matches) setOpen(false);
+    };
+
+    if (desktop.matches) setOpen(false);
+    desktop.addEventListener('change', closeOnDesktop);
+    return () => desktop.removeEventListener('change', closeOnDesktop);
+  }, [props.mobile]);
+
   if (!props.mobile) return <SearchCombobox {...props} />;
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -59,6 +72,7 @@ function SearchCombobox({ id, label, placeholder, defaultValue = '', mobile, onN
   const [recent, setRecent] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const resultsPanelRef = useRef<HTMLDivElement>(null);
   const normalized = normalizeSearchQuery(query);
   const ready = normalized.length >= 2 && normalized === debounced;
 
@@ -106,7 +120,21 @@ function SearchCombobox({ id, label, placeholder, defaultValue = '', mobile, onN
   }
 
   useEffect(() => {
-    if (active) document.getElementById(`${id}-${active.id}`)?.scrollIntoView({ block: 'nearest' });
+    if (!active || !resultsPanelRef.current) return;
+    const option = document.getElementById(`${id}-${active.id}`);
+    if (!option) return;
+
+    const panel = resultsPanelRef.current;
+    const panelBounds = panel.getBoundingClientRect();
+    const optionBounds = option.getBoundingClientRect();
+    const nextScrollTop = nextScrollTopForOptionVisibility({
+      scrollTop: panel.scrollTop,
+      viewportTop: panelBounds.top,
+      viewportBottom: panelBounds.bottom,
+      optionTop: optionBounds.top,
+      optionBottom: optionBounds.bottom,
+    });
+    if (nextScrollTop !== panel.scrollTop) panel.scrollTop = nextScrollTop;
   }, [active, id]);
   useEffect(() => {
     if (!focused || mobile) return;
@@ -137,7 +165,7 @@ function SearchCombobox({ id, label, placeholder, defaultValue = '', mobile, onN
         endAdornment={query ? <button type="button" aria-label={m.searchClear} onClick={() => { setQuery(''); setActiveIndex(-1); inputRef.current?.focus(); readHistory(); }}
           className="flex size-11 shrink-0 items-center justify-center rounded-full text-stone hover:text-cobalt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cobalt"><Icon name="close" size={18} /></button> : null} />
 
-      {showPanel ? <div className={cn('overflow-y-auto overscroll-contain bg-linen text-ink', mobile
+      {showPanel ? <div ref={resultsPanelRef} className={cn('overflow-y-auto overscroll-contain bg-linen text-ink', mobile
         ? 'mt-4 min-h-0 flex-1 pb-safe' : 'absolute end-0 top-full z-overlay mt-2 w-full min-w-80 max-w-[calc(100vw-2rem)] max-h-[70dvh] rounded-card shadow-elevation-2')}>
         {normalized.length < 2 ? <div className="px-4 py-4">
           <p className="m-0 text-14 text-stone">{m.searchHint}</p>

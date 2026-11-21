@@ -146,3 +146,20 @@ export function stepActiveIndex(
   }
   return currentIndex > 0 ? currentIndex - 1 : total - 1;
 }
+
+/** Returns the suggestion panel's next scroll position without moving the document. */
+export function nextScrollTopForOptionVisibility(input: {
+  scrollTop: number;
+  viewportTop: number;
+  viewportBottom: number;
+  optionTop: number;
+  optionBottom: number;
+}): number {
+  if (input.optionTop < input.viewportTop) {
+    return Math.max(0, input.scrollTop + input.optionTop - input.viewportTop);
+  }
+  if (input.optionBottom > input.viewportBottom) {
+    return input.scrollTop + input.optionBottom - input.viewportBottom;
+  }
+  return input.scrollTop;
+}

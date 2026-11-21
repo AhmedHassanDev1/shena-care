@@ -2,6 +2,7 @@ import {
   buildSearchOptions,
   matchActiveBrands,
   normalizeSearchQuery,
+  nextScrollTopForOptionVisibility,
   stepActiveIndex,
   rememberSearch,
   readRecentSearches,
@@ -91,5 +92,31 @@ describe('search-helpers', () => {
     expect(stepActiveIndex(0, 3, 'ArrowUp')).toBe(2);
     expect(stepActiveIndex(1, 3, 'Home')).toBe(0);
     expect(stepActiveIndex(0, 3, 'End')).toBe(2);
+  });
+
+  it('keeps keyboard navigation scroll confined to the suggestion panel', () => {
+    expect(nextScrollTopForOptionVisibility({
+      scrollTop: 100,
+      viewportTop: 200,
+      viewportBottom: 500,
+      optionTop: 140,
+      optionBottom: 190,
+    })).toBe(40);
+
+    expect(nextScrollTopForOptionVisibility({
+      scrollTop: 100,
+      viewportTop: 200,
+      viewportBottom: 500,
+      optionTop: 480,
+      optionBottom: 530,
+    })).toBe(130);
+
+    expect(nextScrollTopForOptionVisibility({
+      scrollTop: 100,
+      viewportTop: 200,
+      viewportBottom: 500,
+      optionTop: 260,
+      optionBottom: 320,
+    })).toBe(100);
   });
 });
