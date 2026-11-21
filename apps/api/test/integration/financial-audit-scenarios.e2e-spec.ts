@@ -23,14 +23,17 @@ import { createSellableSku } from '../fixtures/sellable-sku';
  * FINANCIAL AUDIT SCENARIOS. Real HTTP, real database (disposable `*_test`), the MVP's INTERNAL_BUY_LIST sourcing, from checkout to
  * Admin report. Reference numbers: goods 1,000, customer discount 100, purchase cost 700 (list 80 − supplier discount 10, 10 units),
  * customer delivery fee 35, actual delivery cost 25, packaging 10. The "ideal" figure of every row is worked out by hand first
- * (comments), the "actual" one is what the three Admin sources return; rows are written to a ledger (FIN_LEDGER_PATH or the temp dir)
- * that feeds docs/qa/financial-scenarios.md. A mismatch is NOT hidden: it is recorded as FAIL and the current behaviour is pinned,
- * so a future fix has to update the pin on purpose. Reports are compared as deltas, so other data in the database never matters.
+ * (comments) from the APPROVED profit model:
+ *   distributable profit = net sales + shipping revenue − actual product cost − delivery − packaging − confirmed damages − approved direct costs;
+ * the "actual" one is what the three Admin sources return (Finance profit page, Finance summary, Overview). Rows are written to a ledger
+ * (FIN_LEDGER_PATH or the temp dir) that feeds docs/qa/financial-scenarios.md. A mismatch is NOT hidden: it is recorded as FAIL.
+ * The first run of this suite (before the closure fixes) is kept in the report as the "before" column. Reports are compared as deltas, so
+ * other data in the database never matters.
  */
 type Row = { id: string; scenario: string; metric: string; ideal: number | string | null; actual: number | string | null; verdict: 'PASS' | 'FAIL' | 'INFO'; note?: string };
 const ledger: Row[] = [];
 const r2 = (value: unknown) => (value === null || value === undefined ? null : Math.round(Number(value) * 100) / 100);
-const log = (id: string, scenario: string, metric: string, ideal: number | null, actual: unknown, note?: string) => {
+const log = (id: string, scenario: string, metric: string, ideal: number | string | null, actual: unknown, note?: string) => {
   const a = r2(actual);
   ledger.push({ id, scenario, metric, ideal, actual: a, verdict: ideal === null ? 'INFO' : ideal === a ? 'PASS' : 'FAIL', note });
   return a;
@@ -53,29 +56,46 @@ describe('Financial audit scenarios (e2e)', () => {
     const overview = (await http().get('/operations/dashboard/overview?days=1').set(admin.auth).expect(200)).body;
     return { profit, summary, overview };
   };
-  /** after − before for every figure the reports expose, so leftovers in the database never matter. */
-  const delta = (a: any, b: any) => ({
-    p: {
-      sales: r2(b.profit.revenue.productSales - a.profit.revenue.productSales), refunds: r2(b.profit.revenue.refunds - a.profit.revenue.refunds),
-      purchase: r2(b.profit.costs.purchase - a.profit.costs.purchase), delivery: r2(b.profit.costs.companyFundedDelivery - a.profit.costs.companyFundedDelivery),
-      packaging: r2(b.profit.costs.packaging - a.profit.costs.packaging), losses: r2(b.profit.costs.losses - a.profit.costs.losses),
-      // From the components, so the delta exists even when other data in a shared database keeps the month INCOMPLETE (netProfit null).
-      net: r2((b.profit.revenue.net - b.profit.costs.total) - (a.profit.revenue.net - a.profit.costs.total)),
-      customerFees: r2(b.profit.delivery.customerFees - a.profit.delivery.customerFees), courierCost: r2(b.profit.delivery.courierCost - a.profit.delivery.courierCost),
-      outstanding: r2(b.profit.cod.outstanding - a.profit.cod.outstanding), settled: r2(b.profit.cod.settled - a.profit.cod.settled), eligible: b.profit.eligibleOrders - a.profit.eligibleOrders,
-    },
-    s: {
-      orders: b.summary.sales.deliveredOrders - a.summary.sales.deliveredOrders, goods: r2(b.summary.sales.goodsRevenue - a.summary.sales.goodsRevenue),
-      discounts: r2(b.summary.sales.discountsGiven - a.summary.sales.discountsGiven), fees: r2(b.summary.sales.deliveryFeeRevenue - a.summary.sales.deliveryFeeRevenue),
-      billed: r2(b.summary.sales.billedTotal - a.summary.sales.billedTotal), refunds: r2(b.summary.costs.refunds - a.summary.costs.refunds),
-      codReconciled: r2(b.summary.cod.reconciled - a.summary.cod.reconciled), codOutstanding: r2(b.summary.cod.outstanding - a.summary.cod.outstanding),
-      grossProfit: b.summary.profitability.grossProfitRecorded, resultStatus: b.summary.operatingResult.status,
-    },
-    d: {
-      netSales: r2((b.overview.kpis.netRealizedSales?.amount ?? 0) - (a.overview.kpis.netRealizedSales?.amount ?? 0)),
-      pendingCod: r2((b.overview.financialSummary?.pendingCod.amount ?? 0) - (a.overview.financialSummary?.pendingCod.amount ?? 0)),
-    },
-  });
+  const num = (value: unknown) => Number(value ?? 0);
+  /** after − before for every figure the reports expose, so leftovers in the database never matter. Net figures come from the components. */
+  const delta = (a: any, b: any) => {
+    const net = (x: any) => num(x.profit.revenue.total) - num(x.profit.costs.total);
+    const gross = (x: any) => num(x.summary.revenue.netSalesAfterRefunds) - num(x.summary.costs.products);
+    return {
+      p: {
+        sales: r2(num(b.profit.revenue.netSales) - num(a.profit.revenue.netSales)), shipping: r2(num(b.profit.revenue.shippingRevenueNet) - num(a.profit.revenue.shippingRevenueNet)),
+        refunds: r2(num(b.profit.revenue.productRefunds) - num(a.profit.revenue.productRefunds)),
+        purchase: r2(num(b.profit.costs.products) - num(a.profit.costs.products)), delivery: r2(num(b.profit.costs.delivery) - num(a.profit.costs.delivery)),
+        packaging: r2(num(b.profit.costs.packaging) - num(a.profit.costs.packaging)), damages: r2(num(b.profit.costs.damages) - num(a.profit.costs.damages)),
+        net: r2(net(b) - net(a)),
+        deliveryMargin: r2(num(b.profit.delivery.margin) - num(a.profit.delivery.margin)),
+        estimatedOrders: num(b.profit.delivery.estimatedOrders) - num(a.profit.delivery.estimatedOrders), estimatedAmount: r2(num(b.profit.delivery.estimatedAmount) - num(a.profit.delivery.estimatedAmount)),
+        recoverable: r2(num(b.profit.capital.tiedUpInRecoverableGoods) - num(a.profit.capital.tiedUpInRecoverableGoods)),
+        tiedUp: r2(num(b.profit.capital.tiedUpInUnsettledOrders) - num(a.profit.capital.tiedUpInUnsettledOrders)),
+        pending: num(b.profit.pendingCollection.orders) - num(a.profit.pendingCollection.orders),
+        eligible: b.profit.eligibleOrders - a.profit.eligibleOrders,
+      },
+      s: {
+        orders: b.summary.sales.deliveredOrders - a.summary.sales.deliveredOrders, goods: r2(num(b.summary.sales.netSales) - num(a.summary.sales.netSales)),
+        discounts: r2(num(b.summary.sales.discounts) - num(a.summary.sales.discounts)), fees: r2(num(b.summary.sales.shippingRevenue) - num(a.summary.sales.shippingRevenue)),
+        billed: r2(num(b.summary.sales.billedTotal) - num(a.summary.sales.billedTotal)), refunds: r2(num(b.summary.sales.productRefunds) - num(a.summary.sales.productRefunds)),
+        grossProfit: r2(gross(b) - gross(a)),
+        counted: r2(num(b.summary.cash.settlements.counted) - num(a.summary.cash.settlements.counted)), declared: r2(num(b.summary.cash.settlements.declared) - num(a.summary.cash.settlements.declared)),
+        variance: r2(num(b.summary.cash.settlements.variance) - num(a.summary.cash.settlements.variance)),
+        custody: r2(num(b.summary.cash.inCourierCustody.amount) - num(a.summary.cash.inCourierCustody.amount)),
+        onRoad: r2(num(b.summary.cash.expectedOnRoad.amount) - num(a.summary.cash.expectedOnRoad.amount)),
+      },
+      c: {
+        counted: r2(num(b.profit.cash.settlements.counted) - num(a.profit.cash.settlements.counted)),
+        custody: r2(num(b.profit.cash.inCourierCustody.amount) - num(a.profit.cash.inCourierCustody.amount)),
+      },
+      d: {
+        netSales: r2(num(b.overview.kpis.netRealizedSales?.amount) - num(a.overview.kpis.netRealizedSales?.amount)),
+        custody: r2(num(b.overview.financialSummary?.cash.inCourierCustody.amount) - num(a.overview.financialSummary?.cash.inCourierCustody.amount)),
+        onRoad: r2(num(b.overview.financialSummary?.cash.expectedOnRoad.amount) - num(a.overview.financialSummary?.cash.expectedOnRoad.amount)),
+      },
+    };
+  };
 
   const settle = async () => { for (let i = 0; i < 100; i++) { await events.dispatchPending(); if (!await prisma.domainEvent.count({ where: { status: { not: 'delivered' } } })) return; await new Promise(res => setTimeout(res, 50)); } };
 
@@ -168,7 +188,8 @@ describe('Financial audit scenarios (e2e)', () => {
     log('FIN-01b', 'FIN-01', 'order.shippingFee', 35, row.shippingFee);
     log('FIN-01c', 'FIN-01', 'order.totalAmount = 1000 − 100 + 35', 935, row.totalAmount);
     log('FIN-01d', 'FIN-01', 'order.codAmount', 935, row.codAmount);
-    log('FIN-01e', 'FIN-01', 'Σ orderItem.lineTotal (is the order discount allocated to lines?)', 900, row.items.reduce((s, i) => s + Number(i.lineTotal), 0), 'lines keep the pre-discount price; the 100 lives only in order.appliedPromotions');
+    const coupon = ((row.appliedPromotions as any[]) ?? []).reduce((s, p) => s + Number(p.valueApplied ?? 0), 0);
+    log('FIN-01e', 'FIN-01', 'Σ orderItem.lineTotal − coupon (the order discount is order-level, never allocated to lines; reports deduct it)', 900, row.items.reduce((s, i) => s + Number(i.lineTotal), 0) - coupon, 'lines keep the pre-coupon price by design; the 100 lives in order.appliedPromotions and every report subtracts it');
     expect(Number(row.totalAmount)).toBe(935);
     expect(((row.appliedPromotions as any[])[0]).valueApplied).toBe(100);
 
@@ -176,33 +197,36 @@ describe('Financial audit scenarios (e2e)', () => {
     const shipmentId = await receiveAndPack(order, lines, 25);
     await sendOut(shipmentId);
     await deliver(shipmentId, 935).expect(201);
-    await new Promise(res => setTimeout(res, 300)); // the delivery-cost listener is asynchronous
+    await new Promise(res => setTimeout(res, 300)); // make sure no asynchronous listener changes the cost record
     const mid = await snap();
     await countCash(order.id, 935).expect(201);
     const after = await snap();
 
-    // Manual cost recorded at 25 must survive the automatic snapshot (quote base fee would be 35).
-    log('FIN-01f', 'FIN-01', 'courierCost kept as recorded by hand (listener must not overwrite)', 25, (await costRecord(order.id))?.courierCost);
+    // Manual cost recorded at 25 must stay exactly as recorded (nothing overwrites it with the quote's 35).
+    log('FIN-01f', 'FIN-01', 'courierCost kept as recorded by hand (nothing overwrites it)', 25, (await costRecord(order.id))?.courierCost);
 
     const d = delta(before, after); const dMid = delta(before, mid);
     // Hand calculation. Net sales 900. Shipping revenue 35. COGS 700. Delivery cost 25. Packaging 10.
-    // Ideal gross profit = 900 − 700 = 200; ideal net profit = 900 + 35 − 700 − 25 − 10 = 200.
-    log('FIN-01g', 'FIN-01', 'profit.productSales (net sales after the order discount)', 900, d.p.sales, 'profit sums line totals, so the 100 discount is not deducted');
-    log('FIN-01h', 'FIN-01', 'profit.costs.purchase (COGS)', 700, d.p.purchase);
+    // Ideal gross profit = 900 − 700 = 200; ideal distributable profit = 900 + 35 − 700 − 25 − 10 = 200.
+    log('FIN-01g', 'FIN-01', 'profit.revenue.netSales (net sales after the order discount)', 900, d.p.sales);
+    log('FIN-01h', 'FIN-01', 'profit.costs.products (COGS)', 700, d.p.purchase);
     log('FIN-01i', 'FIN-01', 'profit.costs.packaging', 10, d.p.packaging);
-    log('FIN-01j', 'FIN-01', 'profit.costs.companyFundedDelivery (ideal: 25 cost is shown, 35 fee is revenue)', 25, d.p.delivery, 'profit model nets the fee against the cost: max(0, 25 − 35) = 0; the 10 surplus is dropped');
-    log('FIN-01k', 'FIN-01', 'profit.netProfit', 200, d.p.net);
-    log('FIN-01l', 'FIN-01', 'summary.goodsRevenue (net sales)', 900, d.s.goods, 'summary uses order.subtotal (before the order discount)');
-    log('FIN-01m', 'FIN-01', 'summary.discountsGiven (order-level 100)', 100, d.s.discounts, 'summary adds only compare-at savings; the coupon is not counted');
-    log('FIN-01n', 'FIN-01', 'summary.deliveryFeeRevenue', 35, d.s.fees);
-    log('FIN-01o', 'FIN-01', 'summary.billedTotal', 935, d.s.billed);
-    log('FIN-01p', 'FIN-01', 'summary gross profit available in INTERNAL_BUY_LIST', 200, d.s.grossProfit, 'summary needs supplier PO invoice lots; the Buy List has none → always null');
+    log('FIN-01j', 'FIN-01', 'profit.costs.delivery (actual cost 25 is shown; the 35 fee is revenue, not netted)', 25, d.p.delivery);
+    log('FIN-01k', 'FIN-01', 'distributable profit (900 + 35 − 700 − 25 − 10)', 200, d.p.net);
+    log('FIN-01l', 'FIN-01', 'summary.sales.netSales (net sales after the coupon)', 900, d.s.goods);
+    log('FIN-01m', 'FIN-01', 'summary.sales.discounts (order-level 100)', 100, d.s.discounts);
+    log('FIN-01n', 'FIN-01', 'summary.sales.shippingRevenue', 35, d.s.fees);
+    log('FIN-01o', 'FIN-01', 'summary.sales.billedTotal', 935, d.s.billed);
+    log('FIN-01p', 'FIN-01', 'summary gross profit in INTERNAL_BUY_LIST (net sales − product cost)', 200, d.s.grossProfit);
     log('FIN-01q', 'FIN-01', 'overview.netRealizedSales (goods net of discount, fee excluded)', 900, d.d.netSales);
-    log('FIN-01r', 'FIN-01', 'profit.cod.settled after count', 935, d.p.settled);
-    log('FIN-01s', 'FIN-01', 'profit.cod.outstanding after count', 0, d.p.outstanding);
-    log('FIN-01t', 'FIN-01', 'overview.pendingCod while cash is declared but not yet counted (ideal 935 still unsettled)', 935, dMid.d.pendingCod, 'dashboard counts only status "expected"; declared cash is invisible there');
-    log('FIN-01u', 'FIN-01', 'profit.cod.outstanding while declared, not counted', 935, dMid.p.outstanding);
-    // Pin the current behaviour (see ledger for the verdict).
+    log('FIN-01r', 'FIN-01', 'cash the hub counted (summary.cash.settlements.counted)', 935, d.s.counted);
+    log('FIN-01s', 'FIN-01', 'cash still in the courier custody after the count', 0, d.s.custody);
+    log('FIN-01t', 'FIN-01', 'overview cash card: in courier custody while declared but not counted', 935, dMid.d.custody, 'the Admin Overview card now reads the shared cash position');
+    log('FIN-01u', 'FIN-01', 'summary cash in custody while declared, not counted', 935, dMid.s.custody);
+    const notEnded = await http().put(`/order-costs/${order.id}/damage`).set(admin.auth).send({ amount: 10, reason: 'Trying to write off a sold order' });
+    log('FIN-01w', 'FIN-01', 'a delivered order keeps its cost: a damage cannot be confirmed on it', 409, notEnded.status);
+    log('FIN-01v', 'FIN-01', 'declared cash is not also counted as expected-on-road (no double counting)', 0, dMid.d.onRoad);
+    // Pin the figures the model guarantees.
     expect(d.p.purchase).toBe(700); expect(d.p.packaging).toBe(10); expect(d.p.eligible).toBe(1);
   });
 
@@ -218,11 +242,13 @@ describe('Financial audit scenarios (e2e)', () => {
     const shipmentId = await receiveAndPack(order, lines, 25);
     await sendOut(shipmentId); await deliver(shipmentId, 535).expect(201); await new Promise(res => setTimeout(res, 300)); await countCash(order.id, 535).expect(201);
     const d = delta(before, await snap());
-    // Hand: net sales 500, COGS 350, fee 35 − cost 25 = +10, packaging 10 → net profit = 500 − 350 + 35 − 25 − 10 = 150.
-    log('FIN-02c', 'FIN-02', 'profit.productSales', 500, d.p.sales);
-    log('FIN-02d', 'FIN-02', 'summary.goodsRevenue', 500, d.s.goods);
-    log('FIN-02e', 'FIN-02', 'summary.discountsGiven (informational, not subtracted again)', 100, d.s.discounts, 'shown next to goods that are already net; a reader may subtract it twice');
-    log('FIN-02f', 'FIN-02', 'profit.netProfit', 150, d.p.net);
+    // Hand: net sales 500, COGS 350, fee 35 − cost 25 = +10, packaging 10 → distributable = 500 − 350 + 35 − 25 − 10 = 150.
+    log('FIN-02c', 'FIN-02', 'profit.revenue.netSales', 500, d.p.sales);
+    log('FIN-02d', 'FIN-02', 'summary.sales.netSales', 500, d.s.goods);
+    log('FIN-02e', 'FIN-02', 'summary.sales.discounts (coupons only: the compare-at saving is already inside the price, so it is never deducted again)', 0, d.s.discounts);
+    log('FIN-02f', 'FIN-02', 'distributable profit', 150, d.p.net);
+    const listing = (await http().get(`/operations/finance/orders?from=${today}&to=${today}&limit=100`).set(admin.auth).expect(200)).body;
+    log('FIN-02g', 'FIN-02', 'orders list shows the compare-at saving as information only (listPriceSaving)', 100, listing.items.find((x: any) => x.orderId === order.id)?.listPriceSaving);
     expect(d.p.sales).toBe(500);
   });
 
@@ -236,13 +262,14 @@ describe('Financial audit scenarios (e2e)', () => {
     const shipmentId = await receiveAndPack(order, lines, 25);
     await sendOut(shipmentId); await deliver(shipmentId, 300).expect(201); await new Promise(res => setTimeout(res, 300)); await countCash(order.id, 300).expect(201);
     const d = delta(before, await snap());
-    // Hand: 300 − 150 − 25 − 10 = 115.
-    log('FIN-03b', 'FIN-03', 'profit.companyFundedDelivery', 25, d.p.delivery);
-    log('FIN-03c', 'FIN-03', 'profit.netProfit', 115, d.p.net);
+    // Hand: 300 − 150 − 25 − 10 = 115. Delivery margin = 0 revenue − 25 cost.
+    log('FIN-03b', 'FIN-03', 'profit.costs.delivery', 25, d.p.delivery);
+    log('FIN-03c', 'FIN-03', 'distributable profit', 115, d.p.net);
+    log('FIN-03d', 'FIN-03', 'delivery margin (shipping revenue 0 − delivery cost 25)', -25, d.p.deliveryMargin);
     expect(d.p.net).toBe(115);
   });
 
-  it('FIN-04 automatic delivery cost (nobody typed it): the quote base fee 35 is recorded at delivery', async () => {
+  it('FIN-04 automatic delivery cost (nobody typed it): the quote base fee 35 is an ESTIMATE until the actual cost is recorded', async () => {
     const A = await newSku(); const lines = [{ sku: A, qty: 4 }]; // 400
     const before = await snap();
     const order = await place(lines);
@@ -250,25 +277,49 @@ describe('Financial audit scenarios (e2e)', () => {
     const shipmentId = await receiveAndPack(order, lines); // no manual courier cost
     await sendOut(shipmentId); await deliver(shipmentId, 435).expect(201); await new Promise(res => setTimeout(res, 400)); await countCash(order.id, 435).expect(201);
     const record = await costRecord(order.id);
-    log('FIN-04a', 'FIN-04', 'courierCost recorded automatically', 35, record?.courierCost, `by ${record?.courierRecordedBy}`);
+    log('FIN-04a', 'FIN-04', 'the quote is never written into the cost record as if it were actual (courierCost stays empty)', 0, record?.courierCost ?? 0, 'the estimate is read from the checkout quote and labelled');
     const d = delta(before, await snap());
-    // Hand with the recorded 35: 400 − 240 + (35 fee − 35 cost) − 10 packaging = 150.
-    log('FIN-04b', 'FIN-04', 'profit.netProfit', 150, d.p.net);
+    // Hand with the estimated 35: 400 − 240 + (35 fee − 35 estimated cost) − 10 packaging = 150.
+    log('FIN-04b', 'FIN-04', 'distributable profit (delivery counted at the quote estimate)', 150, d.p.net);
+    log('FIN-04c', 'FIN-04', 'profit.delivery.estimatedOrders (the delivery cost is marked estimated)', 1, d.p.estimatedOrders);
+    log('FIN-04d', 'FIN-04', 'profit.delivery.estimatedAmount', 35, d.p.estimatedAmount);
+    // Recording the actual cost replaces the estimate.
+    await http().put(`/order-costs/${order.id}`).set(hub.auth).send({ courierCost: 20 }).expect(200);
+    const e = delta(before, await snap());
+    log('FIN-04e', 'FIN-04', 'once the actual cost 20 is recorded it replaces the estimate (400 − 240 + 35 − 20 − 10)', 165, e.p.net);
+    log('FIN-04f', 'FIN-04', 'no estimated order is left', 0, e.p.estimatedOrders);
     expect(d.p.net).toBe(150);
   });
 
-  it('FIN-05 cancelled after the goods were bought: what is lost, and where it shows', async () => {
+  it('FIN-05 cancelled after the goods were bought: reusable goods are not a loss; a confirmed damage is', async () => {
     const A = await newSku(); const lines = [{ sku: A, qty: 4 }];
     const before = await snap();
     const order = await place(lines);
     await buy(lines, 70, 0); // 280 spent
     await http().post(`/ordering/orders/${order.id}/cancel`).set(admin.auth).send({ reasonCode: 'CUSTOMER_REQUEST' }).expect(201);
     const d = delta(before, await snap());
-    // Hand: 280 of purchases for goods nobody takes. Cash is out, no sale, no COGS of a sale. Either a loss of 280 or inventory of 280 (policy).
-    log('FIN-05a', 'FIN-05', 'profit.losses (purchase of a cancelled order)', 280, d.p.losses, 'recognised as a loss immediately; no inventory asset is tracked (policy D5 not decided)');
-    log('FIN-05b', 'FIN-05', 'profit.netProfit', -280, d.p.net, 'a month with only this order cannot show a net profit (incomplete?) → null counts as FAIL');
-    log('FIN-05c', 'FIN-05', 'summary reflects the purchase', -280, d.s.grossProfit, 'summary has no purchase-loss concept');
-    expect(d.p.losses).toBe(280);
+    // Hand: 280 of goods bought for an order nobody takes. They are still sellable: capital tied up, NOT a loss, and no profit effect.
+    log('FIN-05a', 'FIN-05', 'profit.costs.damages (goods bought for a cancelled order are not an automatic loss)', 0, d.p.damages);
+    log('FIN-05b', 'FIN-05', 'effect on the distributable profit', 0, d.p.net);
+    log('FIN-05c', 'FIN-05', 'capital tied up in recoverable goods (shown, not deducted)', 280, d.p.recoverable);
+    // An Admin confirms the goods are damaged: only then is the cost a loss, once, in the month it is confirmed.
+    const over = await http().put(`/order-costs/${order.id}/damage`).set(admin.auth).send({ amount: 280.01, reason: 'Sealed goods damaged in storage' });
+    log('FIN-05i', 'FIN-05', 'a damage above what was paid for the goods (280) is refused', 400, over.status);
+    const byHub = await http().put(`/order-costs/${order.id}/damage`).set(hub.auth).send({ amount: 280, reason: 'Sealed goods damaged in storage' });
+    log('FIN-05j', 'FIN-05', 'only an Admin confirms a damage', 403, byHub.status);
+    const confirm = await http().put(`/order-costs/${order.id}/damage`).set(admin.auth).send({ amount: 280, reason: 'Sealed goods damaged in storage' });
+    log('FIN-05d', 'FIN-05', 'confirm damage → accepted', 200, confirm.status);
+    const e = delta(before, await snap());
+    log('FIN-05e', 'FIN-05', 'profit.costs.damages after the confirmation', 280, e.p.damages);
+    log('FIN-05f', 'FIN-05', 'distributable profit after the confirmation', -280, e.p.net);
+    log('FIN-05g', 'FIN-05', 'recoverable goods after the confirmation', 0, e.p.recoverable);
+    const again = await http().put(`/order-costs/${order.id}/damage`).set(admin.auth).send({ amount: 100, reason: 'A different amount' });
+    const replay = await http().put(`/order-costs/${order.id}/damage`).set(admin.auth).send({ amount: 280, reason: 'Sealed goods damaged in storage' });
+    log('FIN-05k', 'FIN-05', 'the same confirmation sent again is a harmless replay', 200, replay.status);
+    const unchanged = delta(before, await snap());
+    log('FIN-05l', 'FIN-05', 'the replay does not count the damage twice', 280, unchanged.p.damages);
+    log('FIN-05h', 'FIN-05', 'a second, different confirmation is refused (counted at most once)', 409, again.status);
+    expect(d.p.damages).toBe(0);
   });
 
   it('FIN-06 failed delivery → returned to the hub → closed as returned: cash, cost and loss', async () => {
@@ -283,13 +334,15 @@ describe('Financial audit scenarios (e2e)', () => {
     const collection = await prisma.paymentCollection.findUnique({ where: { orderId: order.id } });
     log('FIN-06a', 'FIN-06', 'COD collection after the order is returned', 0, collection?.status === 'voided' ? 0 : 1, `status ${collection?.status}`);
     const d = delta(before, await snap());
-    // Hand: purchase 100 + courier 25 + packaging 10 = 135 lost (no sale). The failed trip itself cost 25 once.
-    log('FIN-06b', 'FIN-06', 'profit.losses (purchase + courier + packaging)', 135, d.p.losses);
+    // Hand: the failed trip cost 25 and the bag 10 are spent for good (no sale): −35. The 100 of goods are back in stock: not a loss.
+    log('FIN-06b', 'FIN-06', 'effect on the distributable profit (courier 25 + packaging 10; goods are recoverable)', -35, d.p.net);
     log('FIN-06c', 'FIN-06', 'orders counted as sales', 0, d.p.eligible);
+    log('FIN-06d', 'FIN-06', 'capital tied up in the recoverable goods', 100, d.p.recoverable);
+    log('FIN-06e', 'FIN-06', 'profit.costs.damages', 0, d.p.damages);
     expect(d.p.eligible).toBe(0);
   });
 
-  it('FIN-07 delivered, then a partial return: refund 100, one unit back — revenue, cost and the returned goods', async () => {
+  it('FIN-07 delivered, then a partial return: the refund is capped at the returned goods, duplicates are refused, the sealed unit re-enters stock', async () => {
     const A = await newSku(); const lines = [{ sku: A, qty: 4 }]; // 400
     const before = await snap();
     const order = await place(lines);
@@ -299,20 +352,27 @@ describe('Financial audit scenarios (e2e)', () => {
     const item = (await prisma.orderItem.findFirstOrThrow({ where: { orderId: order.id } }));
     const resolution = (await http().post('/ordering/resolutions').set(admin.auth).send({ orderId: order.id, type: 'return', actorId: 'ignored', items: [{ orderItemId: item.id, quantity: 1 }] }).expect(201)).body;
     await http().patch(`/ordering/resolutions/${resolution.id}/status`).set(admin.auth).send({ status: 'approved', actorId: 'ignored' }).expect(200);
-    // The refund amount is free text: 1 unit costs 100 but the API accepts 250 (bounded only by cash received).
-    await http().post(`/ordering/resolutions/${resolution.id}/refund`).set(admin.auth).send({ amount: 250, currency: 'EGP' }).expect(201);
-    log('FIN-07a', 'FIN-07', 'refund > value of the returned item is refused (1 unit = 100)', 400, 201, 'POST refund 250 for a 1-unit (100) return was ACCEPTED; only the order total and cash received bound it');
+    // 1 unit costs the customer 100: a 250 refund is above what these goods allow.
+    const tooMuch = await http().post(`/ordering/resolutions/${resolution.id}/refund`).set(admin.auth).send({ amount: 250, currency: 'EGP' });
+    log('FIN-07a', 'FIN-07', 'refund above the value of the returned item (1 unit = 100) is refused', 400, tooMuch.status, `code ${tooMuch.body?.code ?? tooMuch.body?.message}`);
+    const exact = await http().post(`/ordering/resolutions/${resolution.id}/refund`).set(admin.auth).send({ amount: 100, currency: 'EGP' });
+    log('FIN-07f', 'FIN-07', 'the exact refund of 100 is accepted', 201, exact.status);
+    const repeat = await http().post(`/ordering/resolutions/${resolution.id}/refund`).set(admin.auth).send({ amount: 100, currency: 'EGP' });
+    log('FIN-07g', 'FIN-07', 'a duplicate refund request for the same return is refused', 400, repeat.status);
     await http().patch(`/ordering/resolutions/${resolution.id}/refund/status`).set(admin.auth).send({ status: 'succeeded', providerRef: 'FIN-PROOF-1' }).expect(200);
+    // The hub inspected the returned unit: sealed and intact, so it goes back to stock and is not a cost of this sale.
+    await prisma.returnReceipt.create({ data: { locationId, resolutionId: resolution.id, orderId: order.id, orderItemId: item.id, skuId: A.id, quantity: 1, identityMethod: 'manual', inspectionResult: 'SEALED_INTACT', disposition: 'RETURN_TO_SUPPLIER', idempotencyKey: randomUUID(), actorId: hub.id } });
     const d = delta(before, await snap());
-    // Hand with a correct 100 refund: sales 400 − 100 = 300; COGS stays 240 unless the returned unit (60) is resold → then COGS 180.
-    log('FIN-07b', 'FIN-07', 'profit.refunds', 100, d.p.refunds, 'refund recorded as typed (250)');
-    log('FIN-07c', 'FIN-07', 'summary.costs.refunds', 100, d.s.refunds);
-    log('FIN-07d', 'FIN-07', 'overview.netSales (400 − refund)', 300, d.d.netSales);
-    log('FIN-07e', 'FIN-07', 'returned unit re-enters stock (COGS adjusted)', 180, d.p.purchase, 'no inventory: COGS stays at 240 even when the unit is resellable');
-    expect(d.p.refunds).toBe(250);
+    // Hand with a correct 100 refund: sales 400 − 100 = 300; COGS 240 − 60 (the sealed unit is back in stock) = 180.
+    log('FIN-07b', 'FIN-07', 'profit.revenue.productRefunds', 100, d.p.refunds);
+    log('FIN-07c', 'FIN-07', 'summary.sales.productRefunds', 100, d.s.refunds);
+    log('FIN-07d', 'FIN-07', 'overview.netRealizedSales (400 − refund)', 300, d.d.netSales);
+    log('FIN-07e', 'FIN-07', 'returned sealed unit re-enters stock (COGS adjusted)', 180, d.p.purchase);
+    log('FIN-07h', 'FIN-07', 'distributable profit (300 + 35 − 180 − 25 − 10)', 120, d.p.net);
+    expect(d.p.refunds).toBe(100);
   });
 
-  it('FIN-08 delivered, cash declared by the courier but not counted yet: is it visible as unsettled?', async () => {
+  it('FIN-08 delivered, cash declared by the courier but not counted yet: it is visible as cash in the courier custody', async () => {
     const A = await newSku(); const lines = [{ sku: A, qty: 2 }];
     const before = await snap();
     const order = await place(lines);
@@ -321,26 +381,31 @@ describe('Financial audit scenarios (e2e)', () => {
     await sendOut(shipmentId); await deliver(shipmentId, 235).expect(201); await new Promise(res => setTimeout(res, 300));
     const d = delta(before, await snap());
     const collection = await prisma.paymentCollection.findUniqueOrThrow({ where: { orderId: order.id } });
-    log('FIN-08a', 'FIN-08', 'order status after DELIVERED', 0, collection.status === 'collected' ? 0 : 1, 'order is delivered while cash is only declared (status collected), not counted');
-    log('FIN-08b', 'FIN-08', 'profit.cod.outstanding', 235, d.p.outstanding);
-    log('FIN-08c', 'FIN-08', 'overview.pendingCod («تحصيل لم يُسوَّ» on the Admin overview)', 235, d.d.pendingCod, 'only status "expected" counts; declared cash with the courier is excluded');
-    log('FIN-08d', 'FIN-08', 'summary.cod.outstanding', 235, d.s.codOutstanding);
-    log('FIN-08e', 'FIN-08', 'profit.cod.settled', 0, d.p.settled);
-    expect(d.p.outstanding).toBe(235); expect(d.p.settled).toBe(0);
+    log('FIN-08a', 'FIN-08', 'collection after DELIVERED is "collected" (declared, not counted)', 0, collection.status === 'collected' ? 0 : 1);
+    log('FIN-08b', 'FIN-08', 'profit page cash.inCourierCustody', 235, d.c.custody);
+    log('FIN-08c', 'FIN-08', 'Admin Overview «تحصيل لم يُسوَّ» (cash in courier custody)', 235, d.d.custody);
+    log('FIN-08d', 'FIN-08', 'summary cash.inCourierCustody', 235, d.s.custody);
+    log('FIN-08e', 'FIN-08', 'cash counted so far', 0, d.s.counted);
+    log('FIN-08f', 'FIN-08', 'the same cash is not also "expected on the road"', 0, d.s.onRoad);
+    log('FIN-08g', 'FIN-08', 'profit not yet payable (the order awaits its cash count)', 1, d.p.pending);
+    expect(d.s.custody).toBe(235); expect(d.s.counted).toBe(0);
   });
 
-  it('FIN-09 settlement variance: courier declared 235, the hub counts 200 — what the order shows', async () => {
+  it('FIN-09 settlement variance: courier declared 235, the hub counts 200 — what the order and the settlement show', async () => {
     const A = await newSku(); const lines = [{ sku: A, qty: 2 }];
     const order = await place(lines);
     await buy(lines, 50, 0);
     const shipmentId = await receiveAndPack(order, lines, 25);
     await sendOut(shipmentId); await deliver(shipmentId, 235).expect(201);
-    await http().post('/ordering/settlements/batch').set(admin.auth).send({ courierId: driver.id, locationId, reference: 'FIN-VAR-' + randomUUID(), currency: 'EGP', totalCollected: 200, collections: [{ orderId: order.id, collectedAmount: 200 }] }).expect(res => expect([201, 400, 409]).toContain(res.status));
+    const res = await http().post('/ordering/settlements/batch').set(admin.auth).send({ courierId: driver.id, locationId, reference: 'FIN-VAR-' + randomUUID(), currency: 'EGP', totalCollected: 200, collections: [{ orderId: order.id, collectedAmount: 200 }] });
     const collection = await prisma.paymentCollection.findUniqueOrThrow({ where: { orderId: order.id } });
-    log('FIN-09a', 'FIN-09', 'collection.collectedAmount equals what the hub counted (200)', 200, collection.collectedAmount, `status ${collection.status}; declared ${collection.declaredAmount}`);
+    log('FIN-09a', 'FIN-09', 'collection.collectedAmount equals what the hub counted (200)', 200, collection.collectedAmount, `HTTP ${res.status}; status ${collection.status}; declared ${collection.declaredAmount}`);
+    const batch = collection.settlementBatchId ? await prisma.courierSettlementBatch.findUnique({ where: { id: collection.settlementBatchId } }) : null;
+    log('FIN-09c', 'FIN-09', 'settlement.totalDeclared keeps what the courier declared (235)', 235, batch?.totalDeclared);
+    log('FIN-09d', 'FIN-09', 'settlement.variance = counted − declared (the shortage is recorded at settlement level)', -35, batch?.variance);
   });
 
-  it('FIN-09b the hub desk\'s own settlement path (rounds): declared 235, physically counted 200 — what the reports say is collected', async () => {
+  it('FIN-09b the hub desk\'s own settlement path (rounds): declared 235, physically counted 200 — the shortage stays on the settlement', async () => {
     const A = await newSku(); const lines = [{ sku: A, qty: 2 }];
     const before = await snap();
     const order = await place(lines);
@@ -350,13 +415,18 @@ describe('Financial audit scenarios (e2e)', () => {
     await http().post('/ordering/settlements/rounds').set(hub.auth).send({ courierId: driver.id, locationId, reference: 'FIN-RND-' + randomUUID(), countedTotal: 200, orderIds: [order.id] }).expect(201);
     const collection = await prisma.paymentCollection.findUniqueOrThrow({ where: { orderId: order.id } });
     const batch = await prisma.courierSettlementBatch.findUniqueOrThrow({ where: { id: collection.settlementBatchId! } });
-    log('FIN-09b-a', 'FIN-09b', 'order collectedAmount = cash physically counted (200)', 200, collection.collectedAmount, `status ${collection.status}; declared ${collection.declaredAmount}; batch counted ${batch.totalCollected}, expected ${batch.totalExpected}`);
-    log('FIN-09b-b', 'FIN-09b', 'the 35 shortage is attributed to the order (status short)', 1, collection.status === 'short' ? 1 : 0, 'the round compares the courier\'s declaration with the expectation, never the count');
+    // Nothing says WHICH order the 35 is missing from, so no order is charged with it and the customer's paid amount is untouched.
+    log('FIN-09b-a', 'FIN-09b', 'the order keeps the amount the customer paid / the courier declared (235); no shortage is pushed onto it', 235, collection.collectedAmount, `status ${collection.status}; declared ${collection.declaredAmount}`);
+    log('FIN-09b-b', 'FIN-09b', 'the order is not marked "short" without order-level evidence', 0, collection.status === 'short' ? 1 : 0);
     const d = delta(before, await snap());
-    log('FIN-09b-c', 'FIN-09b', 'summary.cod.reconciled (cash counted)', 200, d.s.codReconciled, 'reports sum order.collectedAmount, which is the declaration');
-    log('FIN-09b-d', 'FIN-09b', 'profit.cod.settled', 200, d.p.settled);
+    log('FIN-09b-c', 'FIN-09b', 'summary cash counted (what the hub physically counted)', 200, d.s.counted);
+    log('FIN-09b-d', 'FIN-09b', 'summary cash declared by the courier', 235, d.s.declared);
+    log('FIN-09b-e', 'FIN-09b', 'settlement variance (counted − declared)', -35, d.s.variance);
+    log('FIN-09b-f', 'FIN-09b', 'the batch stores the counted amount (200)', 200, batch.totalCollected);
+    log('FIN-09b-i', 'FIN-09b', 'the batch stores the declared amount (235)', 235, batch.totalDeclared);
     const stored = (await http().get(`/ordering/settlements/batches/${batch.id}`).set(hub.auth).expect(200)).body;
-    log('FIN-09b-e', 'FIN-09b', 'the shortage (counted 200 vs expected 235) is recorded on the settlement batch', -35, Number(stored.totalCollected) - Number(stored.totalExpected), 'recorded at batch level only');
+    log('FIN-09b-g', 'FIN-09b', 'the shortage (counted 200 vs declared 235) is on the settlement batch', -35, Number(stored.totalCollected) - Number(stored.totalDeclared), 'recorded at settlement level only');
+    log('FIN-09b-h', 'FIN-09b', 'cash left in the courier custody after the round', 0, d.s.custody);
   });
 
   it('FIN-10 duplicate and concurrent events change nothing twice', async () => {
@@ -374,7 +444,8 @@ describe('Financial audit scenarios (e2e)', () => {
     log('FIN-10c', 'FIN-10', 'two concurrent counts with different references settle once', 1, await prisma.courierSettlementBatch.count({ where: { id: { in: (await prisma.paymentCollection.findMany({ where: { orderId: order.id }, select: { settlementBatchId: true } })).map(x => x.settlementBatchId!).filter(Boolean) } } }), `statuses ${counts.map(x => x.status).join(',')}`);
     const d = delta(before, await snap());
     log('FIN-10d', 'FIN-10', 'COGS counted once', 100, d.p.purchase);
-    log('FIN-10e', 'FIN-10', 'profit.settled counted once', 235, d.p.settled);
+    log('FIN-10e', 'FIN-10', 'cash counted once (summary.cash.settlements.counted)', 235, d.s.counted);
+    log('FIN-10f', 'FIN-10', 'the cash in custody is not counted twice either', 0, d.s.custody);
     expect(d.p.purchase).toBe(100);
   });
 
@@ -388,8 +459,8 @@ describe('Financial audit scenarios (e2e)', () => {
     await sendOut(shipmentId); await deliver(shipmentId, 435).expect(201); await new Promise(res => setTimeout(res, 300)); await countCash(order.id, 435).expect(201);
     const d = delta(before, await snap());
     log('FIN-12a', 'FIN-12', 'COGS = 2 × 60 + 2 × 80', 280, d.p.purchase);
-    // Hand, full accounting: 400 − 280 − 10 packaging + (35 fee − 25 cost) = 120; the profit model drops the 10 surplus → 110.
-    log('FIN-12b', 'FIN-12', 'profit.netProfit (full accounting 120)', 120, d.p.net, 'the approved model does not count the fee surplus');
+    // Hand, full accounting: 400 − 280 − 10 packaging + (35 fee − 25 cost) = 120.
+    log('FIN-12b', 'FIN-12', 'distributable profit (400 + 35 − 280 − 25 − 10)', 120, d.p.net);
     expect(d.p.purchase).toBe(280);
   });
 
@@ -414,8 +485,8 @@ describe('Financial audit scenarios (e2e)', () => {
     log('FIN-11b', 'FIN-11', 'summary: order at 00:00:00.000 Cairo on Feb 1 belongs to February', 1, feb.sales.deliveredOrders);
     log('FIN-11c', 'FIN-11', 'profit: January has the first order only', 1, pJan.eligibleOrders);
     log('FIN-11d', 'FIN-11', 'profit: February has the second order only', 1, pFeb.eligibleOrders);
-    log('FIN-11e', 'FIN-11', 'rounding: 3 × 33.33 = 99.99 in summary goods', 99.99, jan.sales.goodsRevenue);
-    log('FIN-11f', 'FIN-11', 'rounding: 3 × 33.33 = 99.99 in profit productSales', 99.99, pJan.revenue.productSales);
+    log('FIN-11e', 'FIN-11', 'rounding: 3 × 33.33 = 99.99 in summary net sales', 99.99, jan.sales.netSales);
+    log('FIN-11f', 'FIN-11', 'rounding: 3 × 33.33 = 99.99 in profit net sales', 99.99, pJan.revenue.netSales);
     expect(jan.sales.deliveredOrders).toBe(1); expect(feb.sales.deliveredOrders).toBe(1);
   });
 });
