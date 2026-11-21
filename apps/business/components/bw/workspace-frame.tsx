@@ -4,7 +4,7 @@ import * as React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
-  ClipboardList, Ellipsis, FileSpreadsheet, Heart, History, LayoutDashboard, ListChecks,
+  Briefcase, ClipboardList, Ellipsis, FileSpreadsheet, HandCoins, Heart, History, LayoutDashboard, ListChecks, ReceiptText,
   LogOut, PackageOpen, Route, ScanLine,
   Radio, ShoppingBag, Settings2, Store, Truck, Undo2, UserRound, Users, Wallet,
 } from 'lucide-react'
@@ -21,7 +21,7 @@ import { cn } from '@/lib/utils'
  *   task    → hub scanner station: kohl bar with the task name and an explicit exit, no other navigation
  */
 
-export type Role = 'admin' | 'supplier' | 'hub' | 'driver'
+export type Role = 'admin' | 'supplier' | 'hub' | 'driver' | 'partner'
 export type WorkspaceMode = 'desktop' | 'mobile' | 'task' | 'responsive'
 
 /** `supplierFlow` entries belong to the supplier/PO/RFQ workflow, which stays in code but is inactive in the first release (GLO-295). */
@@ -73,6 +73,15 @@ const roleNav: Record<Role, { title: string; roleLabel: string; primary?: string
       { id: 'handoff', label: 'التسليم للمندوب', icon: Truck, href: '/hub/dispatch' },
       { id: 'returns', label: 'المرتجعات', icon: Undo2, href: '/hub/returns' },
       { id: 'costs', label: 'تكلفة الفواتير', icon: Wallet, href: '/hub/costs', supplierFlow: true },
+    ],
+  },
+  partner: {
+    title: 'بوابة الشريك',
+    roleLabel: 'شريك رأس المال',
+    items: [
+      { id: 'overview', label: 'نظرة عامة', icon: LayoutDashboard, href: '/partner' },
+      { id: 'ledger', label: 'رأس المال والحركات', icon: ReceiptText, href: '/partner/ledger' },
+      { id: 'settlements', label: 'الأرباح والتسويات', icon: HandCoins, href: '/partner/settlements' },
     ],
   },
   driver: {
@@ -127,6 +136,7 @@ export function WorkspaceFrame({
   counts,
   exitHref = '/hub',
   hiddenNavIds,
+  extraNav,
   onLogout,
   children,
 }: {
@@ -140,10 +150,18 @@ export function WorkspaceFrame({
   exitHref?: string
   /** Entries of a capability that is switched off (the API refuses those routes regardless). */
   hiddenNavIds?: string[]
+  /** A person who holds two roles gets a plain link to the other workspace; the roles themselves stay separate. */
+  extraNav?: Array<{ id: string; label: string; href: string }>
   onLogout?: () => void
   children: React.ReactNode
 }) {
-  const nav = { ...roleNav[role], items: roleNav[role].items.filter((item) => !hiddenNavIds?.includes(item.id) && (SUPPLIER_FLOW_ENABLED || !item.supplierFlow)) }
+  const nav = {
+    ...roleNav[role],
+    items: [
+      ...roleNav[role].items.filter((item) => !hiddenNavIds?.includes(item.id) && (SUPPLIER_FLOW_ENABLED || !item.supplierFlow)),
+      ...(extraNav ?? []).map((link): NavItem => ({ ...link, icon: Briefcase })),
+    ],
+  }
   const isItemActive = (itemId: string) => {
     if (itemId === active) return true
     if (role === 'admin' && itemId === 'suppliers' && (active === 'sourcing' || active === 'enrollment')) return true

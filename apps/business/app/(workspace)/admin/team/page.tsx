@@ -11,9 +11,9 @@ import { staffAccess } from '@/lib/staff-access'
 import { useApi, useCommand } from '@/lib/use-api'
 import { cn } from '@/lib/utils'
 
-type Role = 'ADMIN' | 'HUB_OPERATOR' | 'DRIVER' | 'SUPPLIER'
+type Role = 'ADMIN' | 'HUB_OPERATOR' | 'DRIVER' | 'SUPPLIER' | 'CAPITAL_PARTNER'
 type Staff = { id: string; name: string; email: string; phone?: string | null; roles: Role[]; isActive: boolean; supplierId: string | null; supplier: { id: string; name: string } | null; locations?: Array<{ id: string; name: string }> | null; activeSessions?: number | null }
-const roleLabel: Record<Role, string> = { ADMIN: 'الإدارة', HUB_OPERATOR: 'المخزن', DRIVER: 'التوصيل', SUPPLIER: 'مورد' }
+const roleLabel: Record<Role, string> = { ADMIN: 'الإدارة', HUB_OPERATOR: 'المخزن', DRIVER: 'التوصيل', SUPPLIER: 'مورد', CAPITAL_PARTNER: 'شريك رأس المال' }
 const initials = (name: string) => name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase()
 
 export default function TeamPage() {
@@ -98,12 +98,14 @@ function StaffDialog({ item, locations, onClose, onSaved }: { item: Staff | null
   })
   const toggleRole=(value:Role)=>setRoles(current=>current.includes(value)?current.filter(r=>r!==value):[...current,value])
   const exclusive = roles.includes('DRIVER') || roles.includes('SUPPLIER')
-  const selectableRoles: Role[] = item ? ['ADMIN','HUB_OPERATOR','DRIVER', ...(item.roles.includes('SUPPLIER')?['SUPPLIER' as Role]:[])] : ['ADMIN','HUB_OPERATOR','DRIVER']
+  const selectableRoles: Role[] = item ? ['ADMIN','HUB_OPERATOR','DRIVER','CAPITAL_PARTNER', ...(item.roles.includes('SUPPLIER')?['SUPPLIER' as Role]:[])] : ['ADMIN','HUB_OPERATOR','DRIVER','CAPITAL_PARTNER']
+  // The partner is paid and has costs approved by an Admin: never the same login. A partner may also be a Hub operator.
+  const blocked = (r: Role) => (exclusive && !roles.includes(r)) || (r === 'ADMIN' && roles.includes('CAPITAL_PARTNER')) || (r === 'CAPITAL_PARTNER' && roles.includes('ADMIN'))
   return <dialog ref={dialogRef} onCancel={e=>{e.preventDefault();onClose()}} aria-labelledby="staff-title" className="bw-glass-raised fixed inset-0 z-50 m-auto max-h-[90dvh] w-[min(34rem,calc(100vw-2rem))] overflow-y-auto rounded-bw-card p-0 text-bw-ink backdrop:bg-bw-kohl/60"><form className="space-y-4 p-5" onSubmit={async e=>{e.preventDefault(); if(await saving.execute())onSaved()}}>
     <div className="flex items-center justify-between"><h2 id="staff-title" className="text-bw-heading font-bold">{resetOnly?'تعيين كلمة مرور':item?'تعديل الموظف':'إضافة موظف'}</h2><button type="button" onClick={onClose} className="grid size-9 place-items-center rounded-full text-bw-ink-soft transition-colors hover:bg-bw-veil-4 hover:text-bw-ink" aria-label="إغلاق"><X className="size-4" aria-hidden /></button></div>
     {!resetOnly ? <><Field label="الاسم" value={name} onChange={e=>setName(e.target.value)} /><Field label="البريد الإلكتروني" type="email" value={email} disabled={!!item} onChange={e=>setEmail(e.target.value)} ltr />
       <Field label="رقم التليفون (اختياري)" type="tel" value={phone} onChange={e=>setPhone(e.target.value)} error={phoneOk?undefined:'لازم رقم مصري: 01xxxxxxxxx أو +201xxxxxxxxx'} hint={phoneOk&&!phone.trim()?'مش لازم، بس بيسهّل التواصل مع الموظف':undefined} ltr />
-      <fieldset className="space-y-2"><legend className="text-bw-small font-semibold">مساحة العمل والدور</legend>{selectableRoles.map(r=><label key={r} className="flex min-h-9 items-center gap-2 text-bw-small"><input type="checkbox" checked={roles.includes(r)} onChange={()=>toggleRole(r)} disabled={exclusive && !roles.includes(r)} className="size-4 accent-bw-action" />{roleLabel[r]}</label>)}</fieldset>
+      <fieldset className="space-y-2"><legend className="text-bw-small font-semibold">مساحة العمل والدور</legend>{selectableRoles.map(r=><label key={r} className="flex min-h-9 items-center gap-2 text-bw-small"><input type="checkbox" checked={roles.includes(r)} onChange={()=>toggleRole(r)} disabled={blocked(r)} className="size-4 accent-bw-action" />{roleLabel[r]}</label>)}</fieldset>
       {roles.includes('HUB_OPERATOR') ? <fieldset className="space-y-2"><legend className="text-bw-small font-semibold">مواقع Hub</legend>{locations.length?locations.map(location=><label key={location.id} className="flex items-center gap-2 text-bw-small"><input type="checkbox" checked={locationIds.includes(location.id)} onChange={e=>setLocationIds(e.target.checked?[...locationIds,location.id]:locationIds.filter(id=>id!==location.id))} className="size-4 accent-bw-action" />{location.name}</label>):<p className="text-bw-small text-bw-ink-soft">لا توجد مواقع متاحة لحسابك.</p>}</fieldset>:null}
     </> : null}
     {!item || resetOnly ? <Field label={resetOnly?'كلمة المرور الجديدة':'كلمة المرور الابتدائية'} type="password" autoComplete="new-password" minLength={10} maxLength={72} value={password} onChange={e=>setPassword(e.target.value)} hint="10 أحرف على الأقل" ltr /> : null}

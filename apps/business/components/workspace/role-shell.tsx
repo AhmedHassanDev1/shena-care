@@ -19,6 +19,7 @@ const REQUIRED: Record<Role, StaffRole[]> = {
   hub: ['HUB_OPERATOR', 'ADMIN'],
   supplier: ['SUPPLIER'],
   driver: ['DRIVER'],
+  partner: ['CAPITAL_PARTNER'],
 }
 
 /**
@@ -70,6 +71,10 @@ export function RoleShell({
     )
   }
   const operator = me.supplierName ? `${me.name} · ${me.supplierName}` : me.name
+  // One person, two separate roles: a plain link to the other workspace. Each workspace still authorises its own calls.
+  const extraNav = role === 'partner'
+    ? (me.roles.includes('HUB_OPERATOR') ? [{ id: 'hub-link', label: 'مساحة المخزن', href: '/hub' }] : [])
+    : role === 'hub' && me.roles.includes('CAPITAL_PARTNER') ? [{ id: 'partner-link', label: 'بوابة الشريك', href: '/partner' }] : []
   return (
     <MeContext.Provider value={me}>
       <WorkspaceFrame
@@ -80,6 +85,7 @@ export function RoleShell({
         counts={counts}
         task={task}
         exitHref={exitHref}
+        extraNav={extraNav}
         onLogout={async () => {
           await logout()
           router.replace('/login')

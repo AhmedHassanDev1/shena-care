@@ -10,6 +10,7 @@ import { CommandError, Egp, Page, Select } from '@/components/workspace/kit'
 import { LoadError, RoleShell } from '@/components/workspace/role-shell'
 import { api } from '@/lib/api'
 import { useApi, useCommand } from '@/lib/use-api'
+import { PartnerPanel } from './partner-panel'
 import { cn } from '@/lib/utils'
 
 type MissingCode = 'PURCHASE_COST' | 'COURIER_COST' | 'PACKAGING_COST' | 'DIRECT_COST_APPROVAL'
@@ -191,6 +192,7 @@ export default function FinancePage() {
           <span className="flex items-center gap-3"><Egp value={expense.amount} className="font-semibold text-bw-ink" />{expense.kind === 'DIRECT' && !expense.approved ? <ApproveButton id={expense.id} onDone={reloadAll} /> : null}</span>
         </li>)}</ul> : null}
       </section>
+      <PartnerPanel />
     </> : null}
     {showExpense ? <ExpenseDialog onClose={() => setShowExpense(false)} onSaved={() => { setShowExpense(false); reloadAll() }} /> : null}
   </Page></RoleShell>
